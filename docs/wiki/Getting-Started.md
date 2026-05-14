@@ -30,13 +30,16 @@ When you first open the app:
 
 If you want the audio visualiser:
 
-1. Click ⚙️ next to the server controls (or go to Settings → Server)
-2. Select your audio device from the dropdown
-3. Copy the generated URL (it includes the `?microphone=...` parameter)
-4. Use this URL in your OBS Browser Source
+1. Go to **Settings → Audio Visualiser**
+2. Set the `device` property to your audio capture device name (e.g. "Stereo Mix", "CABLE Output", or your interface's output)
+3. Save the config
+4. Make sure your OBS Browser Source URL includes `?allowaudio=true`:
+   ```
+   http://127.0.0.1:31589?allowaudio=true
+   ```
 
-<!-- SCREENSHOT: Settings Server tab showing the audio device dropdown and generated URL -->
-![Server Settings](../screenshots/server-settings.png)
+<!-- SCREENSHOT: Settings Audio Visualiser tab showing device property -->
+![Audio Visualiser Settings](../screenshots/audio-device-select.png)
 
 ## Setting Up Your Channel
 

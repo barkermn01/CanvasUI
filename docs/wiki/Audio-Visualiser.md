@@ -12,20 +12,35 @@ The visualiser captures audio from a specific device via the browser's Web Audio
 
 ### 1. Configure in the Editor
 
-Go to **Settings → Server** and select your audio device from the dropdown. This is typically your desktop audio capture device (e.g. "CABLE Output" if using VB-Audio, or "Stereo Mix").
+Go to **Settings → Audio Visualiser** and set the `device` property to your audio device name (e.g. "Audience Mix (BEACN Mic)", "Stereo Mix", or "CABLE Output").
 
-<!-- SCREENSHOT: Server settings showing audio device dropdown with devices listed -->
-![Audio Device Selection](../screenshots/audio-device-select.png)
+You can also set this in the config directly:
 
-### 2. Copy the URL
+```javascript
+AudioVisualiser: {
+    device: "Audience Mix (BEACN Mic)",  // Your audio capture device
+    ...
+}
+```
 
-The generated URL includes the `?microphone=DeviceName&allowaudio=true` parameters. Copy it and use it as your OBS Browser Source URL.
+### 2. OBS Browser Source URL
+
+Your OBS Browser Source URL must include `?allowaudio=true` to grant microphone permissions:
+
+```
+http://127.0.0.1:31589?allowaudio=true
+```
+
+The audio device is read from the config — no need to put it in the URL.
 
 ### 3. OBS Browser Source Settings
 
-- Set the URL to the one copied from the editor
+- Set the URL to `http://127.0.0.1:31589?allowaudio=true`
 - Width: 1920, Height: 1080 (or your resolution)
-- **Important**: The first time, you may need to interact with the page to grant microphone access. Open the URL in a regular browser first and allow the microphone.
+- The first time, you may need to interact with the page to grant microphone access. Open the URL in a regular browser first and allow the microphone.
+
+<!-- SCREENSHOT: Settings Audio Visualiser tab showing device property -->
+![Audio Device Selection](../screenshots/audio-device-select.png)
 
 ## Configuration
 
@@ -103,14 +118,16 @@ Supports pixels (`"80px"`) and percentages (`"50%"`).
 ## Troubleshooting
 
 ### No bars showing
-- Check that the audio device name in the URL exactly matches the device label
+- Check that `Config.AudioVisualiser.device` matches your audio device name exactly
+- Make sure the OBS URL includes `?allowaudio=true`
 - Make sure microphone permission is granted
 - Verify audio is actually playing through that device
 
 ### "No audio device" error in overlay
-- The URL is missing the `?microphone=` parameter
-- Use the Server settings in the editor to generate the correct URL
+- The `device` property in config is empty or not set
+- Set it in Settings → Audio Visualiser or directly in config.js
 
 ### Bars not moving
 - The selected audio device might not be receiving audio
 - Try a different device (e.g. "Stereo Mix" or a virtual cable output)
+- Check the browser console for `[AudioVisualiser]` log messages
