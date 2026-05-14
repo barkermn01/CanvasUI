@@ -337,7 +337,7 @@ class ModuleSimulator {
     }
 
     static #simWebcam(id, mod, container) {
-        const webcamConfig = window.Config?.webcam || EditorState.globalConfig.webcam || {};
+        const settings = mod.settings || {};
 
         const vid = document.createElement('video');
         vid.autoplay = true;
@@ -348,13 +348,13 @@ class ModuleSimulator {
         vid.style.objectFit = 'cover';
         vid.style.pointerEvents = 'none';
 
-        if (webcamConfig.mirror) {
+        if (settings.mirror) {
             vid.style.transform = 'scaleX(-1)';
         }
-        if (webcamConfig.mask === 'circle') {
+        if (settings.mask === 'circle') {
             vid.style.borderRadius = '50%';
-        } else if (webcamConfig.mask === 'rounded') {
-            vid.style.borderRadius = webcamConfig.borderRadius || '16px';
+        } else if (settings.mask === 'rounded') {
+            vid.style.borderRadius = settings.borderRadius || '16px';
         }
 
         container.appendChild(vid);
@@ -362,8 +362,8 @@ class ModuleSimulator {
         navigator.mediaDevices.enumerateDevices().then(devices => {
             const cameras = devices.filter(d => d.kind === 'videoinput');
             let deviceId;
-            if (webcamConfig.device) {
-                const match = cameras.find(d => d.label === webcamConfig.device);
+            if (settings.device) {
+                const match = cameras.find(d => d.label === settings.device);
                 if (match) deviceId = match.deviceId;
             }
             const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : true };

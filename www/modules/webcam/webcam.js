@@ -1,188 +1,165 @@
-class WebcamModule {
-    #video = null;
-    #stream = null;
-    #initialized = false;
-    #error = null;
-    #initPromise = null;
+/**
+ * Webcam Module — supports multiple instances with different devices.
+ * Each instance's device/mirror/mask settings come from the scene config.
+ * Streams are cached by device name so the same camera isn't opened twice.
+ */
 
-    constructor() {
-        this.#initPromise = this.initCamera();
+if (!window.WebcamManager) {
+
+window.WebcamManager = class WebcamManager {
+    #streams = new Map(); // deviceName -> { video, stream, ready, error, refCount }
+
+    getEntry(deviceName) {
+        return this.#streams.get(deviceName || '_default');
     }
 
-    async initCamera() {
-        try {
-            const config = Config.webcam || {};
-            const deviceName = config.device || '';
+    async getStream(deviceName) {
+        const key = deviceName || '_default';
 
-            // Always enumerate to log available devices
+        if (this.#streams.has(key)) {
+            const entry = this.#streams.get(key);
+            entry.refCount++;
+            return entry;
+        }
+
+        const entry = { video: null, stream: null, ready: false, error: null, refCount: 1 };
+        this.#streams.set(key, entry);
+
+        try {
             let devices = await navigator.mediaDevices.enumerateDevices();
             let cameras = devices.filter(d => d.kind === 'videoinput');
-            console.log('[Webcam] Available cameras:', cameras.map(d => d.label || d.deviceId));
 
             let constraints;
-
             if (deviceName) {
                 const match = cameras.find(d => d.label === deviceName);
                 if (match) {
-                    console.log('[Webcam] Using device:', match.label);
                     constraints = { video: { deviceId: { exact: match.deviceId } } };
                 } else {
-                    console.log('[Webcam] Device not found:', deviceName, '— using default');
                     constraints = { video: true };
                 }
             } else {
-                // No device specified — use first available or default
-                if (cameras.length > 0 && cameras[0].deviceId) {
-                    console.log('[Webcam] No device configured, using first:', cameras[0].label || cameras[0].deviceId);
-                    constraints = { video: { deviceId: cameras[0].deviceId } };
-                } else {
-                    constraints = { video: true };
-                }
+                constraints = { video: true };
             }
 
-            this.#stream = await navigator.mediaDevices.getUserMedia(constraints);
+            entry.stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-            this.#video = document.createElement('video');
-            this.#video.srcObject = this.#stream;
-            this.#video.autoplay = true;
-            this.#video.playsInline = true;
-            this.#video.muted = true;
-            this.#video.style.position = 'absolute';
-            this.#video.style.top = '-9999px';
-            this.#video.style.left = '-9999px';
-            this.#video.style.width = '1px';
-            this.#video.style.height = '1px';
-            document.body.appendChild(this.#video);
+            entry.video = document.createElement('video');
+            entry.video.srcObject = entry.stream;
+            entry.video.autoplay = true;
+            entry.video.playsInline = true;
+            entry.video.muted = true;
+            entry.video.style.position = 'absolute';
+            entry.video.style.top = '-9999px';
+            entry.video.style.left = '-9999px';
+            entry.video.style.width = '1px';
+            entry.video.style.height = '1px';
+            document.body.appendChild(entry.video);
 
-            // Wait for video to be ready
             await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => reject(new Error('Video load timeout')), 10000);
-                if (this.#video.readyState >= 2) {
+                if (entry.video.readyState >= 2) {
                     clearTimeout(timeout);
                     resolve();
                 } else {
-                    this.#video.addEventListener('loadeddata', () => {
-                        clearTimeout(timeout);
-                        resolve();
-                    }, { once: true });
-                    this.#video.addEventListener('error', () => {
-                        clearTimeout(timeout);
-                        reject(new Error('Video element error'));
-                    }, { once: true });
+                    entry.video.addEventListener('loadeddata', () => { clearTimeout(timeout); resolve(); }, { once: true });
+                    entry.video.addEventListener('error', () => { clearTimeout(timeout); reject(new Error('Video error')); }, { once: true });
                 }
             });
 
-            await this.#video.play();
-            this.#initialized = true;
-            this.#error = null;
-            console.log('[Webcam] Initialized, video size:', this.#video.videoWidth, 'x', this.#video.videoHeight);
+            await entry.video.play();
+            entry.ready = true;
 
         } catch (e) {
-            console.error('[Webcam] Init failed:', e.name, e.message);
-            this.#error = e.message;
-
-            // Retry after 3 seconds if device was busy
+            entry.error = e.message;
+            // Retry if device busy
             if (e.name === 'NotReadableError' || e.name === 'AbortError') {
-                console.log('[Webcam] Device busy, retrying in 3s...');
-                setTimeout(() => this.initCamera(), 3000);
+                setTimeout(() => {
+                    this.#streams.delete(key);
+                }, 3000);
             }
         }
+
+        return entry;
     }
+};
 
-    #getArea(canvasWidth, canvasHeight) {
-        if (!Config.Scenes) return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
-
-        const activeScene = Config.DefaultScene || Object.keys(Config.Scenes)[0];
-        const scene = Config.Scenes[activeScene];
-        if (!scene || !scene.modules) return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
-
-        const key = Object.keys(scene.modules).find(k => k.toLowerCase().startsWith('webcam'));
-        if (!key || !scene.modules[key].area) return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
-
-        const a = scene.modules[key].area;
-        return {
-            x: typeof a.x === 'number' ? a.x : 0,
-            y: typeof a.y === 'number' ? a.y : 0,
-            width: typeof a.width === 'number' ? a.width : canvasWidth,
-            height: typeof a.height === 'number' ? a.height : canvasHeight
-        };
-    }
-
-    draw(ctx) {
-        if (!this.#initialized || !this.#video) return;
-        if (this.#video.readyState < 2) return;
-
-        const config = Config.webcam || {};
-        const mirror = config.mirror || false;
-        const mask = config.mask || 'none';
-        const borderRadius = config.borderRadius || '0';
-
-        const area = this.#getArea(ctx.canvas.width, ctx.canvas.height);
-
-        ctx.save();
-
-        // Clip to area (scene system also clips, but this handles masks)
-        if (mask === 'circle') {
-            ctx.beginPath();
-            const cx = area.x + area.width / 2;
-            const cy = area.y + area.height / 2;
-            const r = Math.min(area.width, area.height) / 2;
-            ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.clip();
-        } else if (mask === 'rounded' && borderRadius !== '0') {
-            const r = Math.min(parseInt(borderRadius) || 16, area.width / 2, area.height / 2);
-            ctx.beginPath();
-            ctx.moveTo(area.x + r, area.y);
-            ctx.lineTo(area.x + area.width - r, area.y);
-            ctx.quadraticCurveTo(area.x + area.width, area.y, area.x + area.width, area.y + r);
-            ctx.lineTo(area.x + area.width, area.y + area.height - r);
-            ctx.quadraticCurveTo(area.x + area.width, area.y + area.height, area.x + area.width - r, area.y + area.height);
-            ctx.lineTo(area.x + r, area.y + area.height);
-            ctx.quadraticCurveTo(area.x, area.y + area.height, area.x, area.y + area.height - r);
-            ctx.lineTo(area.x, area.y + r);
-            ctx.quadraticCurveTo(area.x, area.y, area.x + r, area.y);
-            ctx.closePath();
-            ctx.clip();
-        }
-
-        // Mirror
-        if (mirror) {
-            ctx.translate(area.x + area.width, 0);
-            ctx.scale(-1, 1);
-            // After flip, draw at mirrored x position
-            const drawX = area.x;
-            const vw = this.#video.videoWidth;
-            const vh = this.#video.videoHeight;
-            const scale = Math.max(area.width / vw, area.height / vh);
-            const sw = area.width / scale;
-            const sh = area.height / scale;
-            const sx = (vw - sw) / 2;
-            const sy = (vh - sh) / 2;
-            ctx.drawImage(this.#video, sx, sy, sw, sh, drawX, area.y, area.width, area.height);
-        } else {
-            // Cover-fit: crop source to fill area without stretching
-            const vw = this.#video.videoWidth;
-            const vh = this.#video.videoHeight;
-            const scale = Math.max(area.width / vw, area.height / vh);
-            const sw = area.width / scale;
-            const sh = area.height / scale;
-            const sx = (vw - sw) / 2;
-            const sy = (vh - sh) / 2;
-            ctx.drawImage(this.#video, sx, sy, sw, sh, area.x, area.y, area.width, area.height);
-        }
-
-        ctx.restore();
-    }
 }
 
-// Only auto-instantiate in overlay mode
 if (document.getElementById('canvas')) {
-    const webcamModule = new WebcamModule();
+    const manager = new window.WebcamManager();
+    // Track which devices have been requested
+    const requestedDevices = new Set();
 
     window.Modules.push({
         name: "webcam",
-        draw: (ctx) => {
-            webcamModule.draw(ctx);
+        draw: (ctx, settings, area) => {
+            if (!area) return;
+
+            const device = settings?.device || '';
+            const mirror = settings?.mirror ?? false;
+            const mask = settings?.mask || 'none';
+            const borderRadius = settings?.borderRadius || '0';
+
+            // Debug: log what settings each instance receives
+            if (!window._webcamDebugLogged) window._webcamDebugLogged = {};
+            const debugKey = `${area.x},${area.y}`;
+            if (!window._webcamDebugLogged[debugKey]) {
+                console.log('[Webcam Draw]', debugKey, 'device:', JSON.stringify(device), 'settings:', JSON.stringify(settings));
+                window._webcamDebugLogged[debugKey] = true;
+            }
+
+            // Request stream if not already done
+            const key = device || '_default';
+            if (!requestedDevices.has(key)) {
+                requestedDevices.add(key);
+                console.log('[Webcam] Requesting stream for key:', JSON.stringify(key), 'device:', JSON.stringify(device));
+                manager.getStream(device);
+            }
+
+            // Get cached entry
+            const entry = manager.getEntry(device);
+            if (!entry || !entry.ready || !entry.video || entry.video.readyState < 2) return;
+
+            ctx.save();
+
+            // Mask clipping
+            if (mask === 'circle') {
+                ctx.beginPath();
+                ctx.arc(area.x + area.width / 2, area.y + area.height / 2, Math.min(area.width, area.height) / 2, 0, Math.PI * 2);
+                ctx.clip();
+            } else if (mask === 'rounded' && borderRadius !== '0') {
+                const r = Math.min(parseInt(borderRadius) || 16, area.width / 2, area.height / 2);
+                ctx.beginPath();
+                ctx.moveTo(area.x + r, area.y);
+                ctx.lineTo(area.x + area.width - r, area.y);
+                ctx.quadraticCurveTo(area.x + area.width, area.y, area.x + area.width, area.y + r);
+                ctx.lineTo(area.x + area.width, area.y + area.height - r);
+                ctx.quadraticCurveTo(area.x + area.width, area.y + area.height, area.x + area.width - r, area.y + area.height);
+                ctx.lineTo(area.x + r, area.y + area.height);
+                ctx.quadraticCurveTo(area.x, area.y + area.height, area.x, area.y + area.height - r);
+                ctx.lineTo(area.x, area.y + r);
+                ctx.quadraticCurveTo(area.x, area.y, area.x + r, area.y);
+                ctx.closePath();
+                ctx.clip();
+            }
+
+            // Mirror
+            if (mirror) {
+                ctx.translate(area.x + area.width, 0);
+                ctx.scale(-1, 1);
+            }
+
+            // Cover-fit draw
+            const vw = entry.video.videoWidth;
+            const vh = entry.video.videoHeight;
+            const scale = Math.max(area.width / vw, area.height / vh);
+            const sw = area.width / scale;
+            const sh = area.height / scale;
+            const sx = (vw - sw) / 2;
+            const sy = (vh - sh) / 2;
+            ctx.drawImage(entry.video, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
+
+            ctx.restore();
         }
     });
 }

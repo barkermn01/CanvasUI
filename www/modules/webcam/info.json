@@ -6,7 +6,7 @@
     "configKey": "webcam",
     "entrypoint": "webcam.js",
     "hasSettings": true,
-    "allowMultiple": false,
+    "allowMultiple": true,
     "description": "Live webcam feed",
     "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
     "schema": {

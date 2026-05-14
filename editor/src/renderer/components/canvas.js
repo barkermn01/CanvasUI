@@ -421,8 +421,7 @@ class CanvasWorkspace {
 
         const label = document.createElement('div');
         label.style.cssText = 'font-size: 10px; color: #aaa;';
-        const webcamConfig = EditorState.globalConfig.webcam || {};
-        label.textContent = webcamConfig.device || 'Default camera';
+        label.textContent = mod.settings?.device || 'Default camera';
 
         container.appendChild(icon);
         container.appendChild(label);

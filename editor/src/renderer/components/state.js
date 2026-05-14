@@ -227,7 +227,7 @@ const EditorState = {
             case 'chat': return {};
             case 'emote': return {};
             case 'audiovisualiser': return {};
-            case 'webcam': return {};
+            case 'webcam': return { device: '', mirror: false, mask: 'none', borderRadius: '0' };
             default: return {};
         }
     },
