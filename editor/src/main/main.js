@@ -3,6 +3,10 @@ const path = require('path');
 const fs = require('fs');
 const server = require('./server');
 
+// Disable Media Foundation video capture to allow shared access to virtual cameras
+// (XSplit VCam, OBS Virtual Camera). MF takes exclusive locks; DirectShow allows sharing.
+app.commandLine.appendSwitch('disable-features', 'MediaFoundationVideoCapture');
+
 let mainWindow;
 
 function createWindow() {
@@ -26,6 +30,16 @@ function createWindow() {
     });
 
     mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+    // Grant media permissions (camera, microphone) for the renderer
+    mainWindow.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        // Always grant media-related permissions
+        callback(true);
+    });
+
+    mainWindow.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+        return true;
+    });
 
     // Open DevTools in dev mode (detached)
     if (isDev) {
@@ -54,6 +68,50 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', async () => {
     await server.stopServer();
+});
+
+// ─── Module Discovery ─────────────────────────────────────────────────────────
+
+ipcMain.handle('module-discover', () => {
+    const resourcesWww = path.join(process.resourcesPath || '', 'www');
+    const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
+    const wwwDir = (process.resourcesPath && fs.existsSync(resourcesWww)) ? resourcesWww : projectWww;
+    const modulesDir = path.join(wwwDir, 'modules');
+
+    try {
+        const entries = fs.readdirSync(modulesDir, { withFileTypes: true });
+        const modules = [];
+
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            const infoPath = path.join(modulesDir, entry.name, 'info.json');
+            if (!fs.existsSync(infoPath)) continue;
+
+            try {
+                const content = fs.readFileSync(infoPath, 'utf8');
+                const info = JSON.parse(content);
+                // Add the directory path for the module loader
+                info._dir = entry.name;
+                modules.push(info);
+            } catch (e) {
+                console.warn(`Failed to parse module info: ${entry.name}/info.json`, e.message);
+            }
+        }
+
+        // Also load global.info.json if present
+        const globalInfoPath = path.join(modulesDir, 'global.info.json');
+        if (fs.existsSync(globalInfoPath)) {
+            try {
+                const content = fs.readFileSync(globalInfoPath, 'utf8');
+                modules.push(JSON.parse(content));
+            } catch (e) {}
+        }
+
+        return modules;
+    } catch (e) {
+        console.warn('Module discovery failed:', e.message);
+        return [];
+    }
 });
 
 // ─── Config File Operations ───────────────────────────────────────────────────
@@ -341,6 +399,12 @@ ipcMain.handle('server-status', () => {
 ipcMain.handle('server-reload', () => {
     if (!server.isRunning()) return { success: false, error: 'Server not running' };
     const count = server.broadcastReload();
+    return { success: true, clients: count };
+});
+
+ipcMain.handle('server-broadcast-raw', (event, data) => {
+    if (!server.isRunning()) return { success: false, error: 'Server not running' };
+    const count = server.broadcastRaw(data);
     return { success: true, clients: count };
 });
 

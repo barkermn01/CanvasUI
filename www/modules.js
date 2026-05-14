@@ -4,13 +4,24 @@ let currentFrameTime = Date.now();
 class ModuleManager {
     modules;
     availableModules;
+    moduleMap;
 
     constructor() {
         this.modules = new Map();
         this.availableModules = Config.Modules;
+        this.moduleMap = {};
     }
 
     async initialize() {
+        // Load the module manifest
+        try {
+            const resp = await fetch('/modules/modules.json');
+            this.moduleMap = await resp.json();
+        } catch (e) {
+            console.error('Failed to load modules.json:', e);
+            return;
+        }
+
         const enabledModules = window.enabledModules || 'all';
         
         let modulesToLoad;
@@ -24,15 +35,36 @@ class ModuleManager {
 
         // Load each module
         for (const moduleName of modulesToLoad) {
+            const infoPath = this.moduleMap[moduleName];
+            if (!infoPath) {
+                console.warn("No entry in modules.json for:", moduleName);
+                continue;
+            }
+
             console.log("Loading Module", moduleName);
-            await this.loadModule(moduleName);
+
+            // If it points directly to a .js file (like scene.js), load it directly
+            if (infoPath.endsWith('.js')) {
+                await this.loadModuleScript(moduleName, `/modules/${infoPath}`);
+                continue;
+            }
+
+            // Otherwise it's an info.json — fetch it to get the entrypoint
+            try {
+                const infoResp = await fetch(`/modules/${infoPath}`);
+                const info = await infoResp.json();
+                const dir = infoPath.substring(0, infoPath.lastIndexOf('/'));
+                const scriptPath = `/modules/${dir}/${info.entrypoint}`;
+                await this.loadModuleScript(moduleName, scriptPath);
+            } catch (e) {
+                console.error(`Failed to load module info for ${moduleName}:`, e);
+            }
         }
     }
 
-    loadModule(name) {
+    loadModuleScript(name, scriptPath) {
         return new Promise((resolve, reject) => {
-            loadJS(`/modules/${name}.js`, () => {
-                // Assuming each module exports itself to window.Modules
+            loadJS(scriptPath, () => {
                 const module = window.Modules[window.Modules.length - 1];
                 this.modules.set(name, module);
                 resolve();

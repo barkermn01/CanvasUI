@@ -100,12 +100,12 @@ class LayerPanel {
             // Icon
             const icon = document.createElement('span');
             icon.className = 'layer-icon';
-            icon.textContent = MODULE_ICONS[mod.type] || '📦';
+            icon.textContent = getModuleIcon(mod.type);
 
             // Name
             const name = document.createElement('span');
             name.className = 'layer-name';
-            name.textContent = mod.type === id ? mod.type : `${mod.type} - ${id}`;
+            name.textContent = id;
 
             // Buttons container
             const buttons = document.createElement('span');

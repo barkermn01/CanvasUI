@@ -6,16 +6,25 @@
  */
 class TypeRenderer {
     /**
-     * Renders a config object into a container using its _type metadata.
+     * Renders a config object into a container using schema metadata.
+     * Schema is read from the module registry's info files, falling back to obj._type for legacy.
      * @param {HTMLElement} container - DOM element to render into
      * @param {object} obj - The config object to render
      * @param {string} path - Dot-path to this object in globalConfig (e.g. "chat.ChatBoxes")
-     * @param {object} options - { adminMode: bool, onChange: fn }
+     * @param {object} options - { adminMode: bool, onChange: fn, schema: object }
      */
     static render(container, obj, path, options = {}) {
-        const { adminMode = false, onChange = () => {} } = options;
-        const typeMap = obj._type || {};
-        const itemTypeMap = obj._item_type || {};
+        const { adminMode = false, onChange = () => {}, schema = null } = options;
+        const typeMap = schema?._type || obj._type || {};
+        const itemTypeMap = schema?._item_type || obj._item_type || {};
+
+        // Helper to get sub-schema for nested objects
+        const getSubSchema = (key) => {
+            if (schema && schema[key] && typeof schema[key] === 'object' && !Array.isArray(schema[key])) {
+                return schema[key];
+            }
+            return null;
+        };
 
         container.innerHTML = '';
 
@@ -89,7 +98,8 @@ class TypeRenderer {
                 container.appendChild(section);
             } else if (itemType === 'object' || (typeof value === 'object' && value !== null && !Array.isArray(value))) {
                 // Sub-object — render recursively in a collapsible group
-                const group = TypeRenderer.#createObjectGroup(key, value, fullPath, options);
+                const subSchema = getSubSchema(key);
+                const group = TypeRenderer.#createObjectGroup(key, value, fullPath, { ...options, schema: subSchema });
                 container.appendChild(group);
             } else if (Array.isArray(value)) {
                 // Array without explicit type — render as string list

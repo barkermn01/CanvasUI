@@ -38,7 +38,7 @@ class ServerPanel {
             if (!this.#running) return;
             const host = EditorPrefs.get('serverHost', '127.0.0.1');
             const port = EditorPrefs.get('serverPort', 31589);
-            const url = `http://${host}:${port}`;
+            const url = `http://${host}:${port}?allowaudio=true`;
             navigator.clipboard.writeText(url).then(() => {
                 this.#statusEl.innerHTML = `<span class="server-dot online"></span> Copied!`;
                 setTimeout(() => { this.#updateUI(); }, 1200);
@@ -78,6 +78,100 @@ class ServerPanel {
         container.appendChild(this.#toggleBtn);
         container.appendChild(reloadBtn);
         container.appendChild(settingsBtn);
+
+        // Raw WebSocket message sender (admin tool)
+        const rawBtn = document.createElement('button');
+        rawBtn.className = 'server-toggle-btn';
+        rawBtn.textContent = '📡';
+        rawBtn.title = 'Send raw WebSocket message to overlay';
+        rawBtn.addEventListener('click', () => this.#showRawSender());
+        container.appendChild(rawBtn);
+    }
+
+    #showRawSender() {
+        // Toggle the raw sender panel
+        let panel = document.getElementById('raw-ws-panel');
+        if (panel) {
+            panel.remove();
+            return;
+        }
+
+        panel = document.createElement('div');
+        panel.id = 'raw-ws-panel';
+        panel.style.cssText = 'position: fixed; top: 50px; right: 10px; width: 450px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 12px; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.5);';
+
+        panel.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <strong style="color: var(--text-primary);">📡 WebSocket Admin</strong>
+                <button id="raw-ws-close" style="background:none; border:none; color:var(--text-secondary); cursor:pointer; font-size:16px;">✕</button>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">Module:</label>
+                <select id="raw-ws-module" style="width: 100%; padding: 4px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px;">
+                    <option value="">All modules (raw broadcast)</option>
+                    <option value="chat">Chat</option>
+                    <option value="emote">Emote</option>
+                    <option value="scene">Scene</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <label style="font-size: 11px; color: var(--text-secondary);">JSON Data:</label>
+                <textarea id="raw-ws-data" style="width: 100%; height: 120px; padding: 6px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; font-family: monospace; font-size: 11px; resize: vertical;" placeholder='{"Type": "MessageAdded", "DisplayName": "TestUser", "Message": "Hello!", "DisplayNameColor": "#ff0000", "Emotes": [], "Badges": [], "Platform": "twitch", "UserId": "test1", "ID": "msg1"}'></textarea>
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button id="raw-ws-send" style="flex:1; padding: 6px; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer;">Send</button>
+                <button id="raw-ws-test-chat" style="flex:1; padding: 6px; background: var(--bg-secondary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">Test Chat Msg</button>
+            </div>
+            <div id="raw-ws-result" style="margin-top: 8px; font-size: 11px; color: var(--text-secondary);"></div>
+        `;
+
+        document.body.appendChild(panel);
+
+        document.getElementById('raw-ws-close').addEventListener('click', () => panel.remove());
+
+        document.getElementById('raw-ws-send').addEventListener('click', async () => {
+            const module = document.getElementById('raw-ws-module').value;
+            const dataStr = document.getElementById('raw-ws-data').value.trim();
+            const resultEl = document.getElementById('raw-ws-result');
+
+            try {
+                const data = JSON.parse(dataStr);
+                let payload;
+                if (module) {
+                    payload = { type: 'module-message', module, data };
+                } else {
+                    payload = { type: 'raw', data };
+                }
+                const result = await window.api.serverBroadcastRaw(payload);
+                resultEl.textContent = `✓ Sent to ${result.clients} client(s)`;
+                resultEl.style.color = '#2ecc71';
+            } catch (e) {
+                resultEl.textContent = `✗ ${e.message}`;
+                resultEl.style.color = '#e74c3c';
+            }
+        });
+
+        document.getElementById('raw-ws-test-chat').addEventListener('click', async () => {
+            const resultEl = document.getElementById('raw-ws-result');
+            const testMsg = {
+                Type: "MessageAdded",
+                ID: "test_" + Date.now(),
+                DisplayName: "TestUser",
+                DisplayNameColor: "#e74c3c",
+                Message: "Test message from admin panel " + new Date().toLocaleTimeString(),
+                Emotes: [],
+                Badges: [],
+                Platform: "twitch",
+                UserId: "admin_test",
+            };
+            document.getElementById('raw-ws-data').value = JSON.stringify(testMsg, null, 2);
+            document.getElementById('raw-ws-module').value = 'chat';
+
+            const payload = { type: 'module-message', module: 'chat', data: testMsg };
+            const result = await window.api.serverBroadcastRaw(payload);
+            resultEl.textContent = `✓ Chat test sent to ${result.clients} client(s)`;
+            resultEl.style.color = '#2ecc71';
+        });
     }
 
     #checkMismatch() {

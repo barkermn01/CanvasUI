@@ -31,7 +31,6 @@ class SceneManager {
         // Wrap other modules' draw/update after a tick so they're all registered
         setTimeout(() => {
             this.#wrapModules();
-            this.#applyChatLayout();
         }, 0);
 
         console.log("SceneManager initialized, active scene:", this.#activeScene);
@@ -49,25 +48,13 @@ class SceneManager {
 
             this.#wrappedModules.set(mod.name.toLowerCase(), { originalDraw, originalUpdate });
 
+            // Suppress individual module draw calls — scene system handles draw order
             if (typeof originalDraw === 'function') {
                 mod.draw = (ctx) => {
                     if (!self.isEnabled || !self.#activeScene) {
                         originalDraw(ctx);
-                        return;
                     }
-                    if (!self.#isModuleInScene(mod.name)) return;
-
-                    const area = self.#getModuleArea(mod.name, ctx.canvas.width, ctx.canvas.height);
-                    if (area) {
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.rect(area.x, area.y, area.width, area.height);
-                        ctx.clip();
-                        originalDraw(ctx);
-                        ctx.restore();
-                    } else {
-                        originalDraw(ctx);
-                    }
+                    // When scene is active, drawing is handled by scene's own draw pass
                 };
             }
 
@@ -84,10 +71,42 @@ class SceneManager {
         });
     }
 
+    #getModuleInstances(moduleName) {
+        const scene = this.#scenes[this.#activeScene];
+        if (!scene || !scene.modules) return [];
+
+        const instances = [];
+        const nameLower = moduleName.toLowerCase();
+
+        for (const [key, mod] of Object.entries(scene.modules)) {
+            // Use _type field if present, otherwise fall back to key-based matching
+            const modType = (mod._type || key.replace(/_\d+$/, '')).toLowerCase();
+            if (modType !== nameLower) continue;
+
+            const area = mod.area ? {
+                x: this.#parseValue(mod.area.x, 1920) || 0,
+                y: this.#parseValue(mod.area.y, 1080) || 0,
+                width: this.#parseValue(mod.area.width, 1920) || 1920,
+                height: this.#parseValue(mod.area.height, 1080) || 1080
+            } : null;
+            instances.push({
+                key,
+                area,
+                settings: mod.settings || {}
+            });
+        }
+
+        return instances;
+    }
+
     #isModuleInScene(moduleName) {
         const scene = this.#scenes[this.#activeScene];
         if (!scene || !scene.modules) return true;
-        return Object.keys(scene.modules).some(k => k.toLowerCase() === moduleName.toLowerCase());
+        const nameLower = moduleName.toLowerCase();
+        return Object.entries(scene.modules).some(([key, mod]) => {
+            const modType = (mod._type || key.replace(/_\d+$/, '')).toLowerCase();
+            return modType === nameLower;
+        });
     }
 
     #getModuleArea(moduleName, canvasWidth, canvasHeight) {
@@ -136,58 +155,8 @@ class SceneManager {
         this.#transitioning = true;
 
         this.#activeScene = sceneName;
-        this.#applyChatLayout();
 
         console.log("Scene switched to:", sceneName);
-    }
-
-    #applyChatLayout() {
-        const scene = this.#scenes[this.#activeScene];
-        const containers = [
-            document.getElementById('chatMessageArea'),
-            document.getElementById('chatMainContainer')
-        ];
-
-        if (!scene || !scene.modules) {
-            containers.forEach(c => { if (c) c.style.display = ''; });
-            return;
-        }
-
-        const chatKey = Object.keys(scene.modules).find(k => k.toLowerCase() === "chat");
-
-        // If chat is not in this scene, hide it
-        if (!chatKey) {
-            containers.forEach(c => { if (c) c.style.display = 'none'; });
-            return;
-        }
-
-        // Chat is in the scene — show and position it
-        containers.forEach(c => { if (c) c.style.display = ''; });
-
-        if (!scene.modules[chatKey].area) return;
-
-        const a = scene.modules[chatKey].area;
-        containers.forEach(container => {
-            if (!container) return;
-
-            // Handle pixel-based x/y format (from editor)
-            if (a.x !== undefined || a.y !== undefined) {
-                container.style.left = (a.x || 0) + 'px';
-                container.style.top = (a.y || 0) + 'px';
-                container.style.width = (a.width || 300) + 'px';
-                container.style.height = (a.height || 200) + 'px';
-                container.style.right = '';
-                container.style.bottom = '';
-            } else {
-                // Handle CSS-style format (legacy)
-                if (a.left !== undefined) container.style.left = a.left;
-                if (a.top !== undefined) container.style.top = a.top;
-                if (a.width !== undefined) container.style.width = a.width;
-                if (a.height !== undefined) container.style.height = a.height;
-                if (a.right !== undefined) container.style.right = a.right;
-                if (a.bottom !== undefined) container.style.bottom = a.bottom;
-            }
-        });
     }
 
     update(dt) {
@@ -200,8 +169,36 @@ class SceneManager {
     }
 
     draw(ctx) {
-        if (!this.#transitioning) return;
-        if (this.#transitionType === "fade") {
+        if (!this.isEnabled || !this.#activeScene) return;
+
+        const scene = this.#scenes[this.#activeScene];
+        if (!scene || !scene.modules) return;
+
+        // Draw all modules in scene config order (this IS the z-order)
+        for (const [key, mod] of Object.entries(scene.modules)) {
+            const modType = (mod._type || key.replace(/_\d+$/, '')).toLowerCase();
+            const wrapped = this.#wrappedModules.get(modType);
+            if (!wrapped || !wrapped.originalDraw) continue;
+
+            const area = mod.area ? {
+                x: this.#parseValue(mod.area.x, ctx.canvas.width) || 0,
+                y: this.#parseValue(mod.area.y, ctx.canvas.height) || 0,
+                width: this.#parseValue(mod.area.width, ctx.canvas.width) || ctx.canvas.width,
+                height: this.#parseValue(mod.area.height, ctx.canvas.height) || ctx.canvas.height
+            } : null;
+
+            ctx.save();
+            if (area) {
+                ctx.beginPath();
+                ctx.rect(area.x, area.y, area.width, area.height);
+                ctx.clip();
+            }
+            wrapped.originalDraw(ctx, mod.settings || {}, area);
+            ctx.restore();
+        }
+
+        // Draw transition overlay
+        if (this.#transitioning && this.#transitionType === "fade") {
             ctx.save();
             ctx.globalAlpha = (1 - this.#transitionProgress) * 0.5;
             ctx.fillStyle = "#000000";

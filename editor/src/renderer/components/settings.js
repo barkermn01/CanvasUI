@@ -3,14 +3,40 @@ class SettingsPanel {
     #panel;
     #activeTab = 'general';
     #adminMode = false;
+    #schemas = {}; // Cached schemas from module registry
 
     constructor() {
         this.#adminMode = EditorPrefs.getAdminMode();
         this.#createOverlay();
+        this.#loadSchemas();
 
         document.getElementById('btn-settings').addEventListener('click', () => {
             this.open();
         });
+    }
+
+    #loadSchemas() {
+        // Load schemas from module registry (populated by palette.js discovery)
+        if (window.ModuleRegistry && window.ModuleRegistry.modules) {
+            for (const mod of window.ModuleRegistry.modules) {
+                if (mod.schema) {
+                    this.#schemas[mod.name] = mod.schema;
+                }
+            }
+        }
+    }
+
+    #getModuleSchema(name) {
+        // Try cached first, then re-check registry (it loads async)
+        if (this.#schemas[name]) return this.#schemas[name];
+        if (window.ModuleRegistry && window.ModuleRegistry.modules) {
+            const mod = window.ModuleRegistry.modules.find(m => m.name === name);
+            if (mod?.schema) {
+                this.#schemas[name] = mod.schema;
+                return mod.schema;
+            }
+        }
+        return null;
     }
 
     #createOverlay() {
@@ -90,28 +116,32 @@ class SettingsPanel {
                 content.innerHTML = '';
                 TypeRenderer.render(content, EditorState.globalConfig.StreamerBot || {}, 'StreamerBot', {
                     adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings')
+                    onChange: () => EditorState.notify('settings'),
+                    schema: this.#getModuleSchema('_global')?.StreamerBot || null
                 });
                 return; // Skip bindTab since TypeRenderer handles its own events
             case 'chat':
                 content.innerHTML = '';
                 TypeRenderer.render(content, EditorState.globalConfig.chat || {}, 'chat', {
                     adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings')
+                    onChange: () => EditorState.notify('settings'),
+                    schema: this.#getModuleSchema('chat')
                 });
                 return;
             case 'emote':
                 content.innerHTML = '';
                 TypeRenderer.render(content, EditorState.globalConfig.emote || {}, 'emote', {
                     adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings')
+                    onChange: () => EditorState.notify('settings'),
+                    schema: this.#getModuleSchema('emote')
                 });
                 return;
             case 'audiovisualiser':
                 content.innerHTML = '';
                 TypeRenderer.render(content, EditorState.globalConfig.AudioVisualiser || {}, 'AudioVisualiser', {
                     adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings')
+                    onChange: () => EditorState.notify('settings'),
+                    schema: this.#getModuleSchema('audiovisualiser')
                 });
                 return;
             case 'bots': content.innerHTML = this.#renderBots(); break;
@@ -148,10 +178,8 @@ class SettingsPanel {
         const host = EditorPrefs.get('serverHost', '127.0.0.1');
         const webroot = EditorPrefs.get('serverWebroot', './www');
         const autoStart = EditorPrefs.get('serverAutoStart', true);
-        const audioDevice = EditorPrefs.get('obsAudioDevice', '');
 
-        const baseUrl = `http://${host}:${port}`;
-        const obsUrl = `${baseUrl}?allowaudio=true`;
+        const baseUrl = `http://${host}:${port}?allowaudio=true`;
 
         container.innerHTML = `
             <div class="settings-section">
@@ -168,18 +196,11 @@ class SettingsPanel {
             </div>
             <div class="settings-section">
                 <h3>OBS Browser Source URL</h3>
-                <p class="s-hint">Copy this URL into your OBS Browser Source. Select an audio device for the Audio Visualiser, or "None" to disable it.</p>
-                <div class="s-row">
-                    <label>Audio Device</label>
-                    <select id="srv-audio-device">
-                        <option value="" ${!audioDevice ? 'selected' : ''}>None (no visualiser)</option>
-                    </select>
-                </div>
+                <p class="s-hint">Copy this URL into your OBS Browser Source. Add <code>?allowaudio=true</code> if using the Audio Visualiser.</p>
                 <div class="obs-url-box">
-                    <code id="srv-obs-url">${obsUrl}</code>
+                    <code id="srv-obs-url">${baseUrl}</code>
                     <button id="srv-copy-url" title="Copy to clipboard">📋</button>
                 </div>
-                ${!audioDevice ? '<div class="obs-warning">⚠️ No audio device selected — Audio Visualiser will be disabled in OBS</div>' : ''}
             </div>
         `;
 
@@ -194,7 +215,9 @@ class SettingsPanel {
             EditorPrefs.set('serverPort', parseInt(portInput.value) || 31589);
             EditorPrefs.set('serverWebroot', webrootInput.value);
             EditorPrefs.set('serverAutoStart', autoStartInput.checked);
-            this.#updateObsUrl(container);
+            // Update displayed URL
+            const urlEl = container.querySelector('#srv-obs-url');
+            if (urlEl) urlEl.textContent = `http://${hostInput.value}:${portInput.value}?allowaudio=true`;
         };
 
         hostInput.addEventListener('change', saveServerSettings);
@@ -225,15 +248,6 @@ class SettingsPanel {
             }
         });
 
-        // Audio device selector
-        const deviceSelect = container.querySelector('#srv-audio-device');
-        this.#populateAudioDevices(deviceSelect, audioDevice);
-
-        deviceSelect.addEventListener('change', () => {
-            EditorPrefs.set('obsAudioDevice', deviceSelect.value);
-            this.#updateObsUrl(container);
-        });
-
         // Copy URL
         container.querySelector('#srv-copy-url').addEventListener('click', () => {
             const url = container.querySelector('#srv-obs-url').textContent;
@@ -248,55 +262,8 @@ class SettingsPanel {
     #updateObsUrl(container) {
         const host = EditorPrefs.get('serverHost', '127.0.0.1');
         const port = EditorPrefs.get('serverPort', 31589);
-
-        const baseUrl = `http://${host}:${port}`;
-        const obsUrl = `${baseUrl}?allowaudio=true`;
-
         const urlEl = container.querySelector('#srv-obs-url');
-        if (urlEl) urlEl.textContent = obsUrl;
-
-        // Update warning
-        const existingWarning = container.querySelector('.obs-warning');
-        if (!audioDevice && !existingWarning) {
-            const section = container.querySelector('.obs-url-box');
-            if (section) {
-                const warning = document.createElement('div');
-                warning.className = 'obs-warning';
-                warning.textContent = '⚠️ No audio device selected — Audio Visualiser will be disabled in OBS';
-                section.insertAdjacentElement('afterend', warning);
-            }
-        } else if (audioDevice && existingWarning) {
-            existingWarning.remove();
-        }
-    }
-
-    async #populateAudioDevices(select, currentDevice) {
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(d => d.kind === 'audioinput' && d.label);
-
-            audioInputs.forEach(device => {
-                const option = document.createElement('option');
-                option.value = device.label;
-                option.textContent = device.label;
-                if (device.label === currentDevice) option.selected = true;
-                select.appendChild(option);
-            });
-
-            if (audioInputs.length === 0) {
-                const option = document.createElement('option');
-                option.value = '';
-                option.textContent = '(No audio devices found — grant microphone access)';
-                option.disabled = true;
-                select.appendChild(option);
-            }
-        } catch (e) {
-            const option = document.createElement('option');
-            option.value = '';
-            option.textContent = '(Unable to list audio devices)';
-            option.disabled = true;
-            select.appendChild(option);
-        }
+        if (urlEl) urlEl.textContent = `http://${host}:${port}?allowaudio=true`;
     }
 
     #renderStreamerBot() {

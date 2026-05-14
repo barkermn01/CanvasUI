@@ -16,10 +16,6 @@ class AudioVisualiser {
         const urlParams = new URLSearchParams(window.location.search);
         this.selectedDeviceName = Config.AudioVisualiser?.device 
             || decodeURIComponent(urlParams.get('microphone') || '');
-        
-        console.log('[AudioVisualiser] Device from config:', Config.AudioVisualiser?.device);
-        console.log('[AudioVisualiser] Device from URL:', urlParams.get('microphone'));
-        console.log('[AudioVisualiser] Selected device:', this.selectedDeviceName);
 
         // Initialize audio
         this.initAudio();
@@ -93,7 +89,6 @@ class AudioVisualiser {
         try {
             // Check if we have permission
             const permissionStatus = await navigator.permissions.query({ name: 'microphone' });
-            console.log('[AudioVisualiser] Permission status:', permissionStatus.state);
             
             if (permissionStatus.state === 'granted') {
                 this.permissionGranted = true;
@@ -114,7 +109,6 @@ class AudioVisualiser {
             // Get list of audio devices
             const devices = await navigator.mediaDevices.enumerateDevices();
             this.devices = devices.filter(device => device.kind === 'audioinput');
-            console.log('[AudioVisualiser] Available devices:', this.devices.map(d => d.label));
 
             if (!this.selectedDeviceName) {
                 this.error = "missing";
@@ -123,7 +117,6 @@ class AudioVisualiser {
 
             // Find device by name
             const selectedDevice = this.devices.find(d => d.label === this.selectedDeviceName);
-            console.log('[AudioVisualiser] Matched device:', selectedDevice?.label || 'NOT FOUND');
             if (!selectedDevice) {
                 this.error = "invalid";
                 return;

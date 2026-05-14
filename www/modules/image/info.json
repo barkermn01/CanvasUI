@@ -1,0 +1,19 @@
+{
+    "name": "image",
+    "displayName": "Image",
+    "icon": "🖼️",
+    "type": "canvas",
+    "configKey": "image",
+    "entrypoint": "image.js",
+    "hasSettings": true,
+    "allowMultiple": true,
+    "description": "Static image overlay",
+    "gradient": { "from": "rgba(34, 197, 94, 0.08)", "to": "rgba(34, 197, 94, 0.25)" },
+    "schema": {
+        "_type": {
+            "src": "string",
+            "opacity": "number",
+            "objectFit": { "type": "select", "options": ["contain", "cover", "fill", "none"] }
+        }
+    }
+}

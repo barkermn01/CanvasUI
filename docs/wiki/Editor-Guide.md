@@ -29,7 +29,10 @@ Select any module, then look at the **Scene Settings** section in Properties:
 - **Duration** — Transition time in seconds
 
 ### Deleting a Scene
-Click the **✕** on a scene tab (can't delete the last scene).
+Click the **✕** on a scene tab (can't delete the default scene).
+
+### Duplicating a Scene
+Click the **⧉** button on the active scene tab to create a full copy of the scene with all its modules.
 
 ## Adding Modules
 
@@ -77,6 +80,12 @@ Select a module and click the **▶** play button (top-right of the module) to s
 
 ### All at Once
 Click **▶ Play All** above the canvas to start all simulations simultaneously. Click **⏹ Stop All** to reset.
+
+### Chat Preview
+The chat module has a live canvas preview. Use the **💬** button to send test messages and **🗑** to clear.
+
+### WebSocket Admin
+Click the **📡** button in the toolbar to open the WebSocket Admin panel. Send raw messages to connected overlay clients for testing chat, emotes, and scene changes.
 
 <!-- SCREENSHOT: Editor with Play All active showing chat messages flowing, emotes bouncing, and visualiser animating -->
 ![Preview Mode](../screenshots/preview-mode.png)

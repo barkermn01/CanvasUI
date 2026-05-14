@@ -1,0 +1,25 @@
+{
+    "name": "_global",
+    "displayName": "Global",
+    "description": "Top-level config settings",
+    "schema": {
+        "_type": {
+            "Name": "string",
+            "ChannelName": "string",
+            "TwitchID": "string",
+            "DefaultScene": "string",
+            "Modules": { "type": "array", "items": "string" },
+            "Bots": { "type": "array", "items": "string" }
+        },
+        "_item_type": {
+            "StreamerBot": "object"
+        },
+        "StreamerBot": {
+            "_type": {
+                "host": "string",
+                "port": "number",
+                "endpoint": "string"
+            }
+        }
+    }
+}

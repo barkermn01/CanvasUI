@@ -31,11 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.Config = EditorState.globalConfig;
     EditorState.onChange(() => { window.Config = EditorState.globalConfig; });
 
-    // Load real module scripts for simulation (after Config is set)
-    const chatScript = document.createElement('script');
-    chatScript.src = '../../../www/modules/chat.js';
-    document.head.appendChild(chatScript);
-
     // Play All / Stop All buttons
     document.getElementById('btn-play-all').addEventListener('click', () => {
         const modules = EditorState.getActiveSceneModules();

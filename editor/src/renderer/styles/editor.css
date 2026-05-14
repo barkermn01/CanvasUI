@@ -1791,14 +1791,16 @@ body {
 }
 
 /* Scene tab settings icon */
-.tab-settings {
+.tab-settings,
+.tab-duplicate {
     font-size: 11px;
     opacity: 0.6;
     cursor: pointer;
     margin-left: 4px;
 }
 
-.tab-settings:hover {
+.tab-settings:hover,
+.tab-duplicate:hover {
     opacity: 1;
 }
 

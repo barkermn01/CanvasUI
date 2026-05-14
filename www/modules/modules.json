@@ -1,0 +1,9 @@
+{
+    "chat": "chat/info.json",
+    "emote": "emote/info.json",
+    "audiovisualiser": "audiovisualiser/info.json",
+    "webcam": "webcam/info.json",
+    "image": "image/info.json",
+    "video": "video/info.json",
+    "scene": "scene.js"
+}

@@ -1,0 +1,71 @@
+{
+    "name": "chat",
+    "displayName": "Chat",
+    "icon": "💬",
+    "type": "canvas",
+    "configKey": "chat",
+    "entrypoint": "chat.js",
+    "hasSettings": true,
+    "allowMultiple": false,
+    "description": "Displays Twitch/YouTube chat messages",
+    "gradient": { "from": "rgba(59, 130, 246, 0.08)", "to": "rgba(59, 130, 246, 0.25)" },
+    "schema": {
+        "_type": {
+            "BeforeCanvas": "bool",
+            "hideBots": "bool"
+        },
+        "_item_type": {
+            "ExtendedEmotesServices": "object",
+            "MessageArea": "css",
+            "AutoHide": "object",
+            "platforms": "object",
+            "ChatBoxes": "object",
+            "RemovedMessage": "object"
+        },
+        "ExtendedEmotesServices": {
+            "_type": {
+                "BTTV": "bool",
+                "FFZ": "bool"
+            }
+        },
+        "AutoHide": {
+            "_type": {
+                "enabled": "bool",
+                "time": "number",
+                "animation": { "type": "select", "options": ["slide", "fade"] },
+                "direction": { "type": "select", "options": ["left", "right"] }
+            }
+        },
+        "ChatBoxes": {
+            "_type": {
+                "ShowBadges": "bool",
+                "ShowEmotes": "bool",
+                "UserColon": "bool",
+                "allowClipping": "bool",
+                "NewMessages": { "type": "select", "options": ["below", "above"] },
+                "position": { "type": "select", "options": ["top", "bottom"] }
+            },
+            "_item_type": {
+                "BadgeSettings": "object",
+                "HideSpecificBadges": "object",
+                "messageStyle": "css",
+                "style": "css"
+            },
+            "BadgeSettings": {
+                "_type": {
+                    "width": "number",
+                    "height": "number"
+                }
+            }
+        },
+        "RemovedMessage": {
+            "_type": {
+                "hideMessage": "bool",
+                "Text": "string",
+                "color": "color",
+                "italics": "bool",
+                "bold": "bool"
+            }
+        }
+    }
+}

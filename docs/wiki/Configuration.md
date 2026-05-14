@@ -135,6 +135,19 @@ emote: {
 }
 ```
 
-## Type System (_type metadata)
+## Webcam
 
-The config supports a `_type` metadata system that tells the editor what UI to render for each property. See [[Building from Source]] for details on the admin mode.
+```javascript
+webcam: {
+    device: "XSplit VCam",     // Camera device name (blank = default)
+    mirror: false,             // Flip horizontally
+    mask: "none",              // "none", "circle", "rounded"
+    borderRadius: "0"          // CSS border-radius for "rounded" mask
+}
+```
+
+## Type System
+
+Module settings schemas are defined in each module's `info.json` file under the `schema` field. The editor reads these schemas to auto-generate the settings UI. The config file itself contains only data values — no metadata.
+
+See [[Modules]] for the info.json format and schema structure.

@@ -1,0 +1,21 @@
+{
+    "name": "video",
+    "displayName": "Video",
+    "icon": "🎬",
+    "type": "canvas",
+    "configKey": "video",
+    "entrypoint": "video.js",
+    "hasSettings": true,
+    "allowMultiple": true,
+    "description": "Video playback overlay",
+    "gradient": { "from": "rgba(239, 68, 68, 0.08)", "to": "rgba(239, 68, 68, 0.25)" },
+    "schema": {
+        "_type": {
+            "src": "string",
+            "loop": "bool",
+            "muted": "bool",
+            "opacity": "number",
+            "objectFit": { "type": "select", "options": ["contain", "cover", "fill", "none"] }
+        }
+    }
+}

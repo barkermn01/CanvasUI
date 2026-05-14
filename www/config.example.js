@@ -1,9 +1,9 @@
 const Config = {
     // Streamer.bot WebSocket connection settings
     StreamerBot: {
-        host: "127.0.0.1",         // Streamer.bot WebSocket server host
-        port: 24585,               // Streamer.bot WebSocket server port
-        endpoint: "/"              // WebSocket endpoint path
+        host: "127.0.0.1",
+        port: 24585,
+        endpoint: "/"
     },
 
     // Your Twitch channel info
@@ -22,26 +22,26 @@ const Config = {
     DefaultScene: "Gaming",
     Scenes: {
         "Gaming": {
-            obsScene: "Gaming",        // OBS scene name that triggers this layout
+            obsScene: "Gaming",
             transition: { type: "fade", duration: 0.5 },
             modules: {
-                emote: { area: { x: 0, y: 0, width: "100%", height: "100%" } },
-                chat: { area: { left: "0%", top: "60%", width: "30%", height: "40%" } },
-                audiovisualiser: { area: { x: 0, y: 0, width: "100%", height: "80px" } }
+                emote: { _type: "emote", area: { x: 0, y: 0, width: 1920, height: 1080 } },
+                chat: { _type: "chat", area: { x: 0, y: 648, width: 576, height: 432 } },
+                audiovisualiser: { _type: "audiovisualiser", area: { x: 0, y: 0, width: 1920, height: 80 } }
             }
         },
         "JustChatting": {
-            obsScene: "Just Chatting", // OBS scene name that triggers this layout
+            obsScene: "Just Chatting",
             transition: { type: "fade", duration: 0.5 },
             modules: {
-                chat: { area: { left: "0%", top: "0%", width: "100%", height: "100%" } }
+                chat: { _type: "chat", area: { x: 0, y: 0, width: 1920, height: 1080 } }
             }
         },
         "BRB": {
-            obsScene: "Be Right Back", // OBS scene name that triggers this layout
+            obsScene: "Be Right Back",
             transition: { type: "fade", duration: 1 },
             modules: {
-                audiovisualiser: { area: { x: 0, y: "40%", width: "100%", height: "20%" } }
+                audiovisualiser: { _type: "audiovisualiser", area: { x: 0, y: 432, width: 1920, height: 216 } }
             }
         }
     },
@@ -58,72 +58,51 @@ const Config = {
         "CommanderRoot",
         "AutomodBot",
         "RaidShield",
-        "OWLBot",
         "StreamerBot",
-        "Sery_Bot",
         "Fossabot",
-        "deepbot",
-        "CommunityBot",
-        "ScriptedBot",
-        "Streamcord",
         "MEE6"
     ],
 
     // Audio Visualiser settings
     AudioVisualiser: {
-        direction: "right-left",   // "right-left", "left-right", "top-down", "bottom-up"
-        mirrored: true,            // Mirror bars from center
+        direction: "right-left",
+        mirrored: true,
         barWidth: 5,
         barHeight: 5,
         barSpacing: 2,
         backgroundColor: "transparent",
         area: {
-            left: "0",             // CSS style positioning
+            left: "0",
             right: "0",
             top: "0",
             bottom: null,
-            height: "80px"         // Only used if both top/bottom aren't set
+            height: "80px"
         },
         colors: {
-            mode: "levels",        // "levels" = solid color per intensity, "gradient" = gradient fill per bar
-            // Gradient config (used when mode is "gradient"):
-            // gradient: {
-            //     stops: [
-            //         { position: 0, color: "#33ccff" },
-            //         { position: 0.5, color: "#000030" },
-            //         { position: 1, color: "#ff99cc" }
-            //     ]
-            // },
-            // Level colors (used when mode is "levels"):
-            level1: "#67136f",     // Lowest intensity
+            mode: "levels",
+            level1: "#67136f",
             level2: "#5c3886",
             level3: "#885ab4",
-            level4: "#885ab4"      // Highest intensity
+            level4: "#885ab4"
         }
     },
 
     // Emote animation settings
     emote: {
-        AnimationTime: {           // Seconds emotes stay on screen (fixed number or Min/Max range)
-            Min: 10,
-            Max: 20
-        },
-        Speed: {                   // Pixels per second movement speed (fixed number or Min/Max range)
-            Min: 100,
-            Max: 300
-        },
-        RandomDirectionsFromStart: true  // Randomize initial movement direction
+        AnimationTime: { Min: 10, Max: 20 },
+        Speed: { Min: 100, Max: 300 },
+        RandomDirectionsFromStart: true
     },
 
     // Chat display settings
     chat: {
-        BeforeCanvas: true,        // true = chat behind canvas, false = chat in front
-        hideBots: true,            // Hide messages from bots listed above
+        BeforeCanvas: true,
+        hideBots: true,
         ExtendedEmotesServices: {
-            BTTV: true,            // Enable BetterTTV emotes
-            FFZ: true              // Enable FrankerFaceZ emotes
+            BTTV: true,
+            FFZ: true
         },
-        MessageArea: {             // Chat container positioning
+        MessageArea: {
             width: "100%",
             height: "100%",
             top: "0%",
@@ -132,37 +111,24 @@ const Config = {
             left: "0%"
         },
         AutoHide: {
-            enabled: false,        // Whether messages auto-hide after a time
-            time: 60,              // Seconds before messages start to hide
-            animation: "slide",    // "fade" or "slide"
-            direction: "left"      // Slide direction: "left" or "right"
-        },
-        platforms: {
-            youtube: {
-                "backgroundColor": "rgba(255, 0, 0, 0.1)",
-                "position": "right"
-            },
-            twitch: {
-                "backgroundColor": "rgba(100, 65, 164, 0.1)",
-                "position": "left"
-            }
+            enabled: false,
+            time: 60,
+            animation: "slide",
+            direction: "left"
         },
         ChatBoxes: {
             ShowBadges: true,
-            BadgeSettings: {
-                width: 24,
-                height: 24
-            },
+            BadgeSettings: { width: 24, height: 24 },
             HideSpecificBadges: [],
             ShowEmotes: true,
-            UserColon: true,       // Show colon after username (false = space only)
-            NewMessages: "below",  // "below" or "above"
-            position: "bottom",    // "top" or "bottom" - where chat starts from
-            animationType: "fade", // "left", "right", "fade"
-            messageStyle: {        // CSS applied to message text content
+            UserColon: true,
+            NewMessages: "below",
+            position: "bottom",
+            animationType: "fade",
+            messageStyle: {
                 "overflow-wrap": "break-word"
             },
-            style: {               // CSS applied to each chat message container
+            style: {
                 "border-radius": "3px",
                 "margin-bottom": "3px",
                 "padding": "8px",
@@ -171,11 +137,19 @@ const Config = {
             }
         },
         RemovedMessage: {
-            hideMessage: false,    // true = remove entirely, false = show replacement text
+            hideMessage: false,
             Text: "Message was removed",
             color: "#FFFFFF",
             italics: true,
             bold: true
         }
+    },
+
+    // Webcam settings
+    webcam: {
+        device: "",
+        mirror: false,
+        mask: "none",
+        borderRadius: "0"
     }
 };

@@ -45,48 +45,13 @@ class ModuleSimulator {
         window.Config = EditorState.globalConfig;
 
         switch (mod.type) {
-            case 'chat': this.#simChat(id, container); break;
             case 'emote': this.#simEmote(id, container); break;
             case 'audiovisualiser': this.#simAudioVisualiser(id, container); break;
             case 'video': this.#simVideo(id, mod, container); break;
-            default: container.textContent = '▶ No simulation'; return;
+            case 'webcam': this.#simWebcam(id, mod, container); break;
+            case 'image': this.#simImage(id, mod, container); break;
+            default: return;
         }
-    }
-
-    static #simChat(id, container) {
-        // Create a chat manager targeting our container
-        const chatContainer = document.createElement('div');
-        chatContainer.style.cssText = 'width:100%; height:100%; position:relative;';
-        container.appendChild(chatContainer);
-
-        const chatManager = new Chat_MessageManager({ targetContainer: chatContainer });
-
-        const sampleMessages = [
-            { ID: 'sim1', DisplayName: 'CoolViewer', DisplayNameColor: '#e74c3c', Message: 'This stream is awesome!', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u1', Type: 'MessageAdded' },
-            { ID: 'sim2', DisplayName: 'NightOwl', DisplayNameColor: '#3498db', Message: 'Hey chat! 👋', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u2', Type: 'MessageAdded' },
-            { ID: 'sim3', DisplayName: 'GamerPro', DisplayNameColor: '#2ecc71', Message: 'GG well played', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u3', Type: 'MessageAdded' },
-            { ID: 'sim4', DisplayName: 'LurkKing', DisplayNameColor: '#9b59b6', Message: 'Just lurking 👀', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u4', Type: 'MessageAdded' },
-            { ID: 'sim5', DisplayName: 'SubHype', DisplayNameColor: '#f39c12', Message: 'Lets gooo 🎉🎉🎉', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u5', Type: 'MessageAdded' },
-            { ID: 'sim6', DisplayName: 'ChillDude', DisplayNameColor: '#1abc9c', Message: 'Vibes are immaculate', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u6', Type: 'MessageAdded' },
-            { ID: 'sim7', DisplayName: 'NewHere', DisplayNameColor: '#e67e22', Message: 'First time watching!', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u7', Type: 'MessageAdded' },
-            { ID: 'sim8', DisplayName: 'EmoteSpam', DisplayNameColor: '#fd79a8', Message: '❤️ ❤️ ❤️', Emotes: [], Badges: [], Platform: 'twitch', UserId: 'u8', Type: 'MessageAdded' },
-        ];
-
-        let msgIndex = 0;
-
-        // Send initial message
-        chatManager.onMessage(sampleMessages[msgIndex++ % sampleMessages.length]);
-
-        const interval = setInterval(() => {
-            chatManager.onMessage(sampleMessages[msgIndex++ % sampleMessages.length]);
-        }, 1500);
-
-        this.#activeSimulations.set(id, {
-            cleanup: () => {
-                clearInterval(interval);
-                chatContainer.remove();
-            }
-        });
     }
 
     static #simEmote(id, container) {
@@ -341,6 +306,86 @@ class ModuleSimulator {
             cleanup: () => {
                 vid.pause();
                 vid.src = '';
+                vid.remove();
+            }
+        });
+    }
+
+    static #simImage(id, mod, container) {
+        if (!mod.settings.src) {
+            container.innerHTML = '<div class="module-no-media"><span class="module-no-media-icon">⚠️</span><span class="module-no-media-text">No image selected</span></div>';
+            return;
+        }
+
+        const host = EditorPrefs.get('serverHost', '127.0.0.1');
+        const port = EditorPrefs.get('serverPort', 31589);
+
+        const img = document.createElement('img');
+        img.src = `http://${host}:${port}${mod.settings.src}`;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = mod.settings.objectFit || 'contain';
+        img.style.pointerEvents = 'none';
+        img.style.opacity = mod.settings.opacity ?? 1;
+        container.appendChild(img);
+
+        this.#activeSimulations.set(id, {
+            cleanup: () => {
+                img.remove();
+            }
+        });
+    }
+
+    static #simWebcam(id, mod, container) {
+        const webcamConfig = window.Config?.webcam || EditorState.globalConfig.webcam || {};
+
+        const vid = document.createElement('video');
+        vid.autoplay = true;
+        vid.playsInline = true;
+        vid.muted = true;
+        vid.style.width = '100%';
+        vid.style.height = '100%';
+        vid.style.objectFit = 'cover';
+        vid.style.pointerEvents = 'none';
+
+        if (webcamConfig.mirror) {
+            vid.style.transform = 'scaleX(-1)';
+        }
+        if (webcamConfig.mask === 'circle') {
+            vid.style.borderRadius = '50%';
+        } else if (webcamConfig.mask === 'rounded') {
+            vid.style.borderRadius = webcamConfig.borderRadius || '16px';
+        }
+
+        container.appendChild(vid);
+
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            const cameras = devices.filter(d => d.kind === 'videoinput');
+            let deviceId;
+            if (webcamConfig.device) {
+                const match = cameras.find(d => d.label === webcamConfig.device);
+                if (match) deviceId = match.deviceId;
+            }
+            const constraints = { video: deviceId ? { deviceId: { exact: deviceId } } : true };
+            return navigator.mediaDevices.getUserMedia(constraints);
+        }).then(stream => {
+            vid.srcObject = stream;
+            vid.play().catch(() => {});
+            const sim = this.#activeSimulations.get(id);
+            if (sim) sim._stream = stream;
+        }).catch(err => {
+            container.innerHTML = `<div class="module-no-media"><span class="module-no-media-icon">📷</span><span class="module-no-media-text">Camera unavailable</span></div>`;
+            console.error('[Webcam Sim]', err.name, err.message);
+        });
+
+        this.#activeSimulations.set(id, {
+            _stream: null,
+            cleanup: () => {
+                const sim = this.#activeSimulations.get(id);
+                if (sim && sim._stream) {
+                    sim._stream.getTracks().forEach(t => t.stop());
+                }
+                vid.srcObject = null;
                 vid.remove();
             }
         });

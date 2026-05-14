@@ -23,7 +23,8 @@
                 "arch": ["x64"]
             }
         ],
-        "icon": "../icon.png"
+        "icon": "../icon.png",
+        "executableName": "canvasui"
     },
     "nsis": {
         "oneClick": false,
@@ -33,6 +34,8 @@
         "createDesktopShortcut": true,
         "createStartMenuShortcut": true,
         "shortcutName": "CanvasUI Stream Manager",
-        "artifactName": "CanvasUI Setup ${version}.${env.BUILD_NUMBER}.exe"
+        "artifactName": "CanvasUI Setup ${version}.${env.BUILD_NUMBER}.exe",
+        "perMachine": false,
+        "include": "installer.nsh"
     }
 }

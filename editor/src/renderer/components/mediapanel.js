@@ -222,13 +222,11 @@ class MediaPanel {
             panel.classList.remove('media-drag-over');
 
             const files = [...e.dataTransfer.files];
-            console.log('[Media] Drop event, files:', files.length, files.map(f => f.path));
             if (files.length === 0) return;
 
             const paths = files.map(f => f.path).filter(p => p);
             if (paths.length > 0) {
                 const results = await window.api.mediaDrop(paths, this.#currentPath);
-                console.log('[Media] Upload results:', results);
                 this.refresh();
             }
         });

@@ -136,6 +136,20 @@ function broadcastReload() {
     return clients.size;
 }
 
+function broadcastRaw(data) {
+    const message = typeof data === 'string' ? data : JSON.stringify(data);
+    let sent = 0;
+    clients.forEach(ws => {
+        try {
+            if (ws.readyState === 1) {
+                ws.send(message);
+                sent++;
+            }
+        } catch (e) {}
+    });
+    return sent;
+}
+
 function getClientCount() {
     return clients.size;
 }
@@ -145,5 +159,6 @@ module.exports = {
     stopServer,
     isRunning,
     broadcastReload,
+    broadcastRaw,
     getClientCount
 };

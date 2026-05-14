@@ -63,6 +63,23 @@ class SceneTabs {
         input.focus();
     }
 
+    #duplicateScene(name) {
+        const scene = EditorState.scenes[name];
+        if (!scene) return;
+
+        // Find a unique name
+        let newName = `${name} Copy`;
+        let counter = 2;
+        while (EditorState.scenes[newName]) {
+            newName = `${name} Copy ${counter++}`;
+        }
+
+        // Deep clone the scene
+        EditorState.scenes[newName] = JSON.parse(JSON.stringify(scene));
+        EditorState.switchScene(newName);
+        EditorState.notify('scenes');
+    }
+
     render() {
         this.#tabList.innerHTML = '';
         const scenes = Object.keys(EditorState.scenes);
@@ -159,13 +176,38 @@ class SceneTabs {
                 input.select();
             });
 
-            // Click to switch
-            tab.addEventListener('click', () => {
-                EditorState.switchScene(name);
+            // Click to switch (with delay to allow dblclick)
+            let clickTimeout = null;
+            tab.addEventListener('click', (e) => {
+                if (e.target.closest('.tab-close, .tab-settings, .tab-duplicate')) return;
+                if (clickTimeout) return;
+                clickTimeout = setTimeout(() => {
+                    clickTimeout = null;
+                    if (name !== EditorState.activeScene) {
+                        EditorState.switchScene(name);
+                    }
+                }, 250);
+            });
+
+            tab.addEventListener('dblclick', () => {
+                if (clickTimeout) {
+                    clearTimeout(clickTimeout);
+                    clickTimeout = null;
+                }
             });
 
             // Settings icon on active tab — deselects module to show scene settings
             if (name === EditorState.activeScene) {
+                const dupIcon = document.createElement('span');
+                dupIcon.className = 'tab-duplicate';
+                dupIcon.textContent = '⧉';
+                dupIcon.title = 'Duplicate scene';
+                dupIcon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.#duplicateScene(name);
+                });
+                tab.appendChild(dupIcon);
+
                 const settingsIcon = document.createElement('span');
                 settingsIcon.className = 'tab-settings';
                 settingsIcon.textContent = '⚙';

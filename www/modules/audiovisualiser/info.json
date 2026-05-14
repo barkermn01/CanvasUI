@@ -1,0 +1,45 @@
+{
+    "name": "audiovisualiser",
+    "displayName": "Audio Visualiser",
+    "icon": "🎵",
+    "type": "canvas",
+    "configKey": "AudioVisualiser",
+    "entrypoint": "audiovisualiser.js",
+    "hasSettings": true,
+    "allowMultiple": false,
+    "description": "Audio frequency visualisation bars",
+    "gradient": { "from": "rgba(168, 85, 247, 0.08)", "to": "rgba(168, 85, 247, 0.25)" },
+    "schema": {
+        "_type": {
+            "device": "string",
+            "direction": {
+                "type": "select",
+                "options": ["left-right", "right-left", "top-down", "bottom-up"]
+            },
+            "mirrored": "bool",
+            "barWidth": "number",
+            "barHeight": "number",
+            "barSpacing": "number",
+            "backgroundColor": "string"
+        },
+        "_item_type": {
+            "area": "css",
+            "colors": "object"
+        },
+        "colors": {
+            "_type": {
+                "mode": {
+                    "type": "select",
+                    "options": ["levels", "gradient"]
+                },
+                "level1": "color",
+                "level2": "color",
+                "level3": "color",
+                "level4": "color"
+            },
+            "_item_type": {
+                "gradient": "object"
+            }
+        }
+    }
+}

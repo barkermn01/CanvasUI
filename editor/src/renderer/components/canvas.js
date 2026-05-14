@@ -1,18 +1,23 @@
-const MODULE_ICONS = {
-    chat: '💬',
-    emote: '😀',
-    audiovisualiser: '🎵',
-    image: '🖼️',
-    video: '🎬'
-};
-
-const MODULE_GRADIENTS = {
+// Module icons and gradients are now provided by window.ModuleRegistry (populated by palette.js)
+// Fallback constants for when registry hasn't loaded yet
+const MODULE_ICONS_FALLBACK = { chat: '💬', emote: '😀', audiovisualiser: '🎵', image: '🖼️', video: '🎬' };
+const MODULE_GRADIENTS_FALLBACK = {
     chat: { from: 'rgba(59, 130, 246, 0.08)', to: 'rgba(59, 130, 246, 0.25)' },
     emote: { from: 'rgba(234, 179, 8, 0.08)', to: 'rgba(234, 179, 8, 0.25)' },
     audiovisualiser: { from: 'rgba(168, 85, 247, 0.08)', to: 'rgba(168, 85, 247, 0.25)' },
     image: { from: 'rgba(34, 197, 94, 0.08)', to: 'rgba(34, 197, 94, 0.25)' },
     video: { from: 'rgba(239, 68, 68, 0.08)', to: 'rgba(239, 68, 68, 0.25)' }
 };
+
+function getModuleIcon(type) {
+    if (window.ModuleRegistry) return window.ModuleRegistry.getIcon(type);
+    return MODULE_ICONS_FALLBACK[type] || '📦';
+}
+
+function getModuleGradient(type) {
+    if (window.ModuleRegistry) return window.ModuleRegistry.getGradient(type);
+    return MODULE_GRADIENTS_FALLBACK[type] || { from: 'rgba(255,255,255,0.05)', to: 'rgba(255,255,255,0.15)' };
+}
 
 class CanvasWorkspace {
     #canvas;
@@ -240,53 +245,96 @@ class CanvasWorkspace {
     }
 
     #buildChatPreview() {
-        const chat = EditorState.globalConfig.chat || {};
-        const boxes = chat.ChatBoxes || {};
-        const style = boxes.style || {};
-
         const container = document.createElement('div');
         container.className = 'module-preview chat-preview';
-        container.style.display = 'flex';
-        container.style.flexDirection = 'column';
-        container.style.padding = '8px';
-        container.style.overflow = 'hidden';
-        container.style.justifyContent = boxes.position === 'top' ? 'flex-start' : 'flex-end';
+        container.style.cssText = 'position: relative; overflow: hidden;';
 
-        const sampleMessages = [
-            { user: 'StreamerBot', color: '#9b59b6', text: 'Welcome to the stream!' },
-            { user: 'Viewer42', color: '#3498db', text: 'Hey everyone 👋' },
-            { user: 'ModUser', color: '#2ecc71', text: 'Enjoy the show!' }
-        ];
+        // Live canvas for chat rendering
+        const canvas = document.createElement('canvas');
+        canvas.style.cssText = 'width: 100%; height: 100%; pointer-events: none;';
+        container.appendChild(canvas);
 
-        sampleMessages.forEach(msg => {
-            const msgEl = document.createElement('div');
-            msgEl.style.cssText = 'font-size: 10px; margin-bottom: 2px; padding: 3px 5px; border-radius: 3px; background: rgba(0,0,0,0.3); pointer-events: none;';
-
-            // Apply some of the user's chat style
-            if (style['font-family']) msgEl.style.fontFamily = style['font-family'];
-            if (style['border-radius']) msgEl.style.borderRadius = style['border-radius'];
-            if (style['background']) msgEl.style.background = style['background'];
-            if (style['color']) msgEl.style.color = style['color'];
-
-            const userSpan = document.createElement('span');
-            userSpan.style.color = msg.color;
-            userSpan.style.fontWeight = 'bold';
-            userSpan.textContent = msg.user;
-
-            const sep = document.createElement('span');
-            sep.textContent = boxes.UserColon !== false ? ': ' : ' ';
-
-            const textSpan = document.createElement('span');
-            textSpan.textContent = msg.text;
-            textSpan.style.color = style['color'] || '#e0e0e0';
-
-            msgEl.appendChild(userSpan);
-            msgEl.appendChild(sep);
-            msgEl.appendChild(textSpan);
-            container.appendChild(msgEl);
-        });
+        // Load CanvasChat from server and start rendering
+        this.#loadChatModule(container, canvas);
 
         return container;
+    }
+
+    #loadChatModule(container, canvas) {
+        const host = EditorPrefs.get('serverHost', '127.0.0.1');
+        const port = EditorPrefs.get('serverPort', 31589);
+
+        if (window.CanvasChat) {
+            this.#startChatPreview(container, canvas);
+            return;
+        }
+
+        if (document.querySelector('script[data-chat-module]')) {
+            const check = setInterval(() => {
+                if (window.CanvasChat) {
+                    clearInterval(check);
+                    this.#startChatPreview(container, canvas);
+                }
+            }, 100);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = `http://${host}:${port}/modules/chat/chat.js`;
+        script.dataset.chatModule = 'true';
+        script.onload = () => {
+            this.#startChatPreview(container, canvas);
+        };
+        script.onerror = () => {
+            canvas.remove();
+            const fallback = document.createElement('div');
+            fallback.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-secondary); font-size:11px;';
+            fallback.textContent = 'Start server to preview chat';
+            container.appendChild(fallback);
+        };
+        document.head.appendChild(script);
+    }
+
+    #startChatPreview(container, canvas) {
+        if (!window.CanvasChat) return;
+
+        window.Config = EditorState.globalConfig;
+        const chatInstance = new window.CanvasChat();
+        container._chatInstance = chatInstance;
+
+        let lastTime = performance.now();
+        const animate = () => {
+            if (!container.isConnected) return;
+
+            const now = performance.now();
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            // Get the module's real area dimensions (not the scaled editor size)
+            const moduleId = container.closest('[data-module-id]')?.dataset.moduleId;
+            const mod = moduleId ? EditorState.getActiveSceneModules()[moduleId] : null;
+            const w = mod ? mod.area.width : (container.clientWidth || 300);
+            const h = mod ? mod.area.height : (container.clientHeight || 200);
+
+            if (!w || !h) {
+                requestAnimationFrame(animate);
+                return;
+            }
+            if (canvas.width !== w || canvas.height !== h) {
+                canvas.width = w;
+                canvas.height = h;
+            }
+
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, w, h);
+
+            window.Config = EditorState.globalConfig;
+            chatInstance.update(dt);
+            chatInstance.draw(ctx, {}, { x: 0, y: 0, width: w, height: h });
+
+            requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
     }
 
     #buildEmotePreview() {
@@ -362,6 +410,25 @@ class CanvasWorkspace {
         return colors[level] || '#885ab4';
     }
 
+    #buildWebcamPreview(mod) {
+        const container = document.createElement('div');
+        container.className = 'module-preview webcam-preview';
+        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; background: rgba(0,0,0,0.3); position: relative; overflow: hidden; gap: 4px;';
+
+        const icon = document.createElement('div');
+        icon.style.cssText = 'font-size: 28px; opacity: 0.8;';
+        icon.textContent = '📷';
+
+        const label = document.createElement('div');
+        label.style.cssText = 'font-size: 10px; color: #aaa;';
+        const webcamConfig = EditorState.globalConfig.webcam || {};
+        label.textContent = webcamConfig.device || 'Default camera';
+
+        container.appendChild(icon);
+        container.appendChild(label);
+        return container;
+    }
+
     #buildPreview(mod) {
         switch (mod.type) {
             case 'chat':
@@ -370,6 +437,8 @@ class CanvasWorkspace {
                 return this.#buildEmotePreview();
             case 'audiovisualiser':
                 return this.#buildAudioVisualiserPreview();
+            case 'webcam':
+                return this.#buildWebcamPreview(mod);
             case 'image':
                 if (mod.settings.src) {
                     const container = document.createElement('div');
@@ -408,7 +477,7 @@ class CanvasWorkspace {
         // Fallback: icon
         const container = document.createElement('div');
         container.className = 'module-preview';
-        container.textContent = MODULE_ICONS[mod.type] || '📦';
+        container.textContent = getModuleIcon(mod.type);
         return container;
     }
 
@@ -444,19 +513,18 @@ class CanvasWorkspace {
             el.style.zIndex = layerIndex + 1;
 
             // Gradient background — transparent by default, visible on hover, stronger on select
-            const grad = MODULE_GRADIENTS[mod.type] || { from: 'rgba(255,255,255,0.05)', to: 'rgba(255,255,255,0.15)' };
+            const grad = getModuleGradient(mod.type);
             el.style.setProperty('--mod-grad-from', grad.from);
             el.style.setProperty('--mod-grad-to', grad.to);
 
             // Label
             const label = document.createElement('div');
             label.className = 'module-label';
-            const labelText = mod.type === id ? `${MODULE_ICONS[mod.type] || '📦'} ${mod.type}` : `${MODULE_ICONS[mod.type] || '📦'} ${mod.type} - ${id}`;
-            label.textContent = labelText;
+            label.textContent = `${getModuleIcon(mod.type)} ${id}`;
             el.appendChild(label);
 
             // Play/Stop simulation button
-            if (['chat', 'emote', 'audiovisualiser', 'video'].includes(mod.type)) {
+            if (['emote', 'audiovisualiser', 'video', 'webcam', 'image'].includes(mod.type)) {
                 const playBtn = document.createElement('button');
                 playBtn.className = 'module-play-btn';
                 playBtn.textContent = ModuleSimulator.isPlaying(id) ? '⏹' : '▶';
@@ -472,6 +540,49 @@ class CanvasWorkspace {
                     playBtn.title = ModuleSimulator.isPlaying(id) ? 'Stop simulation' : 'Play simulation';
                 });
                 el.appendChild(playBtn);
+            }
+
+            // Chat module: test message + clear buttons
+            if (mod.type === 'chat') {
+                const chatTestBtn = document.createElement('button');
+                chatTestBtn.className = 'module-play-btn';
+                chatTestBtn.textContent = '💬';
+                chatTestBtn.title = 'Send test message';
+                chatTestBtn.style.right = '30px';
+                chatTestBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                chatTestBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const preview = el.querySelector('.chat-preview');
+                    if (!preview || !preview._chatInstance) return;
+                    const names = ['Viewer42', 'NightOwl', 'GamerPro', 'LurkKing', 'SubHype', 'ChillDude'];
+                    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
+                    const msgs = ['Hello! 👋', 'GG well played', 'Lets gooo 🎉', 'Nice stream!', 'First time here!', '❤️❤️❤️'];
+                    const i = Math.floor(Math.random() * names.length);
+                    preview._chatInstance.onMessage({
+                        Type: 'MessageAdded',
+                        ID: 'test_' + Date.now(),
+                        DisplayName: names[i],
+                        DisplayNameColor: colors[i],
+                        Message: msgs[i],
+                        Emotes: [],
+                        Badges: [],
+                        Platform: 'twitch',
+                        UserId: 'test_' + i
+                    });
+                });
+                el.appendChild(chatTestBtn);
+
+                const chatClearBtn = document.createElement('button');
+                chatClearBtn.className = 'module-play-btn';
+                chatClearBtn.textContent = '🗑';
+                chatClearBtn.title = 'Clear chat';
+                chatClearBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+                chatClearBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const preview = el.querySelector('.chat-preview');
+                    if (preview && preview._chatInstance) preview._chatInstance.onMessage({ Type: 'ClearChat' });
+                });
+                el.appendChild(chatClearBtn);
             }
 
             // Config-driven preview

@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+    // Module discovery
+    discoverModules: () => ipcRenderer.invoke('module-discover'),
+
     // Config operations
     autoLoadConfig: () => ipcRenderer.invoke('auto-load-config'),
     importConfig: () => ipcRenderer.invoke('import-config'),
@@ -21,6 +24,7 @@ contextBridge.exposeInMainWorld('api', {
     serverStop: () => ipcRenderer.invoke('server-stop'),
     serverStatus: () => ipcRenderer.invoke('server-status'),
     serverReload: () => ipcRenderer.invoke('server-reload'),
+    serverBroadcastRaw: (data) => ipcRenderer.invoke('server-broadcast-raw', data),
 
     // Window controls
     windowMinimize: () => ipcRenderer.invoke('window-minimize'),

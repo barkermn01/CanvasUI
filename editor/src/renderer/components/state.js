@@ -18,7 +18,8 @@ const EditorState = {
         DefaultScene: "",
         AudioVisualiser: {},
         emote: {},
-        chat: {}
+        chat: {},
+        webcam: {}
     },
 
     listeners: [],
@@ -97,6 +98,14 @@ const EditorState = {
     addModuleToScene(moduleType, area) {
         if (!this.activeScene) return null;
         const modules = this.scenes[this.activeScene].modules;
+
+        // Check if this module type allows multiple instances
+        const canMultiple = window.ModuleRegistry ? window.ModuleRegistry.canAddMultiple(moduleType) : true;
+        if (!canMultiple) {
+            // Check if one already exists in this scene
+            const exists = Object.values(modules).some(m => m.type === moduleType);
+            if (exists) return null;
+        }
 
         // Generate unique ID for duplicate module types
         let id = moduleType;
@@ -218,6 +227,7 @@ const EditorState = {
             case 'chat': return {};
             case 'emote': return {};
             case 'audiovisualiser': return {};
+            case 'webcam': return {};
             default: return {};
         }
     },
@@ -298,7 +308,7 @@ const EditorState = {
         Object.values(this.scenes).forEach(scene => {
             Object.values(scene.modules).forEach(mod => usedTypes.add(mod.type));
         });
-        ['image', 'video'].forEach(t => {
+        ['image', 'video', 'webcam'].forEach(t => {
             if (usedTypes.has(t) && !config.Modules.includes(t)) {
                 // Insert before 'scene'
                 const idx = config.Modules.indexOf('scene');
@@ -318,13 +328,14 @@ const EditorState = {
             };
 
             for (const [id, mod] of Object.entries(scene.modules)) {
-                const key = mod.type;
-                // Use the module type as key, append _N for duplicates
-                let configKey = key;
+                // Use the user-set ID as the config key
+                let configKey = id;
+
+                // Handle collision (shouldn't happen, but safety)
                 if (sceneConfig.modules[configKey]) {
                     let c = 1;
-                    while (sceneConfig.modules[`${key}_${c}`]) c++;
-                    configKey = `${key}_${c}`;
+                    while (sceneConfig.modules[`${configKey}_${c}`]) c++;
+                    configKey = `${configKey}_${c}`;
                 }
 
                 const area = {
@@ -334,7 +345,7 @@ const EditorState = {
                     height: Math.round(mod.area.height)
                 };
 
-                sceneConfig.modules[configKey] = { area };
+                sceneConfig.modules[configKey] = { area, _type: mod.type };
 
                 // Add media settings if applicable
                 if (mod.settings && Object.keys(mod.settings).length > 0) {
@@ -351,7 +362,6 @@ const EditorState = {
     // Load from imported config
     loadConfig(config) {
         this.globalConfig = {
-            _type: config._type || {},
             Name: config.Name || "",
             StreamerBot: config.StreamerBot || {},
             ChannelName: config.ChannelName || "",
@@ -361,7 +371,8 @@ const EditorState = {
             DefaultScene: config.DefaultScene || "",
             AudioVisualiser: config.AudioVisualiser || {},
             emote: config.emote || {},
-            chat: config.chat || {}
+            chat: config.chat || {},
+            webcam: config.webcam || {}
         };
 
         this.scenes = {};
@@ -375,8 +386,8 @@ const EditorState = {
 
                 if (scene.modules) {
                     for (const [modKey, modData] of Object.entries(scene.modules)) {
-                        // Determine type from key (strip _N suffix)
-                        const type = modKey.replace(/_\d+$/, '');
+                        // Use _type field if present, otherwise determine type from key (strip _N suffix)
+                        const type = modData._type || modKey.replace(/_\d+$/, '');
                         this.scenes[sceneName].modules[modKey] = {
                             type,
                             area: this.parseArea(modData.area),

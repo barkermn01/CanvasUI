@@ -12,6 +12,7 @@ Welcome to the CanvasUI Stream Manager wiki — a visual overlay system for stre
 - [[Modules]] — Available modules and how they work
 - [[Building from Source]] — Developer guide for building the app
 - [[Troubleshooting]] — Common issues and fixes
+- [[Changelog]] — Version history and release notes
 
 ## What is CanvasUI?
 
@@ -23,7 +24,7 @@ CanvasUI Stream Manager is a complete overlay solution that includes:
 - **Multi-Scene Support** — Different layouts for Gaming, Just Chatting, BRB, etc.
 - **OBS Integration** — Automatically switches layouts when OBS changes scenes (via Streamer.bot)
 - **Media Library** — Upload and manage images/videos for your overlays
-- **Module System** — Chat, emotes, audio visualiser, images, videos, and more
+- **Module System** — Chat, emotes, audio visualiser, webcam, images, videos, and more
 
 ## Getting the App
 

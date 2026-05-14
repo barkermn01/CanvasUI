@@ -1,0 +1,33 @@
+{
+    "name": "emote",
+    "displayName": "Emote",
+    "icon": "😀",
+    "type": "canvas",
+    "configKey": "emote",
+    "entrypoint": "emote.js",
+    "hasSettings": true,
+    "allowMultiple": false,
+    "description": "Bouncing emotes from chat",
+    "gradient": { "from": "rgba(234, 179, 8, 0.08)", "to": "rgba(234, 179, 8, 0.25)" },
+    "schema": {
+        "_type": {
+            "RandomDirectionsFromStart": "bool"
+        },
+        "_item_type": {
+            "AnimationTime": "object",
+            "Speed": "object"
+        },
+        "AnimationTime": {
+            "_type": {
+                "Min": "number",
+                "Max": "number"
+            }
+        },
+        "Speed": {
+            "_type": {
+                "Min": "number",
+                "Max": "number"
+            }
+        }
+    }
+}

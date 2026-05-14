@@ -25,15 +25,11 @@ const buildData = JSON.parse(fs.readFileSync(buildNumberFile, 'utf8'));
 buildData.build++;
 fs.writeFileSync(buildNumberFile, JSON.stringify(buildData, null, 2) + '\n', 'utf8');
 
-const VERSION = `1.2.0.${buildData.build}`;
-// npm/electron-builder only supports semver (3 parts), use first 3 for package.json
-const SEMVER = '1.2.0';
-
-// Update package.json version
+// Update package.json version — read existing version, append build number for display
 const pkgPath = path.join(__dirname, 'package.json');
 const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-pkg.version = SEMVER;
-fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+const SEMVER = pkg.version;
+const VERSION = `${SEMVER}.${buildData.build}`;
 
 console.log(`🔨 Building CanvasUI Stream Manager v${VERSION}...\n`);
 
@@ -54,46 +50,14 @@ const pngBuf = fs.readFileSync(iconPng);
 const icoBuf = await pngToIco(pngBuf);
 fs.writeFileSync(iconIco, icoBuf);
 
-// Step 1: Create a clean config.js for distribution
+// Step 1: Use the example config for distribution
 console.log('📝 Creating release config...');
 
-const configSource = fs.readFileSync(path.join(ROOT, 'www', 'config.js'), 'utf8');
-const match = configSource.match(/const\s+Config\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+const exampleConfigPath = path.join(ROOT, 'www', 'config.example.js');
+const exampleContent = fs.readFileSync(exampleConfigPath, 'utf8');
 
-if (!match) {
-    console.error('❌ Could not parse www/config.js');
-    process.exit(1);
-}
-
-const config = new Function(`return ${match[1]}`)();
-
-// Strip personal/protected fields
-config.Name = "";
-config.ChannelName = "YourChannelName";
-config.TwitchID = "YourTwitchID";
-config.Bots = [
-    "Nightbot",
-    "StreamElements",
-    "StreamLabs"
-];
-
-// Reset StreamerBot to defaults
-if (config.StreamerBot) {
-    config.StreamerBot.host = "127.0.0.1";
-    config.StreamerBot.port = 24585;
-    config.StreamerBot.endpoint = "/";
-}
-
-// Reset scene obsScene names to generic
-if (config.Scenes) {
-    for (const [name, scene] of Object.entries(config.Scenes)) {
-        if (scene.obsScene) {
-            scene.obsScene = name; // Default to scene name
-        }
-    }
-}
-
-const releaseConfig = `const Config  = ${JSON.stringify(config, null, 4)}`;
+// The example config uses plain JS (no const export needed for the release)
+const releaseConfig = exampleContent;
 
 // Step 2: Copy www/ to build directory
 console.log('📂 Copying www/ files...');

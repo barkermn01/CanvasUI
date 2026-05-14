@@ -1,0 +1,20 @@
+{
+    "name": "webcam",
+    "displayName": "Webcam",
+    "icon": "📷",
+    "type": "canvas",
+    "configKey": "webcam",
+    "entrypoint": "webcam.js",
+    "hasSettings": true,
+    "allowMultiple": false,
+    "description": "Live webcam feed",
+    "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
+    "schema": {
+        "_type": {
+            "device": "string",
+            "mirror": "bool",
+            "mask": { "type": "select", "options": ["none", "circle", "rounded"] },
+            "borderRadius": "string"
+        }
+    }
+}

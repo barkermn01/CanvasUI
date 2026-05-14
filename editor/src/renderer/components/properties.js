@@ -57,7 +57,7 @@ class PropertiesPanel {
 
         // Module info
         html += `<div class="prop-group">`;
-        html += `<div class="prop-group-title">${MODULE_ICONS[mod.type] || '📦'} ${mod.type}</div>`;
+        html += `<div class="prop-group-title">${getModuleIcon(mod.type)} ${mod.type}</div>`;
         html += `<div class="prop-row"><label>ID</label><input type="text" id="prop-module-id" value="${id}"></div>`;
         html += `</div>`;
 
@@ -75,6 +75,8 @@ class PropertiesPanel {
             html += this.#imageProps(mod);
         } else if (mod.type === 'video') {
             html += this.#videoProps(mod);
+        } else if (mod.type === 'webcam') {
+            html += this.#webcamProps(mod);
         }
 
         // Transition (scene-level)
@@ -96,7 +98,8 @@ class PropertiesPanel {
         const settingsTabMap = {
             chat: 'chat',
             emote: 'emote',
-            audiovisualiser: 'audiovisualiser'
+            audiovisualiser: 'audiovisualiser',
+            webcam: 'webcam'
         };
         if (settingsTabMap[mod.type]) {
             html += `<button class="prop-btn-settings" id="btn-module-settings" data-tab="${settingsTabMap[mod.type]}">⚙️ ${mod.type.charAt(0).toUpperCase() + mod.type.slice(1)} Settings</button>`;
@@ -147,6 +150,93 @@ class PropertiesPanel {
         html += `</select></div>`;
         html += `</div>`;
         return html;
+    }
+
+    #webcamProps(mod) {
+        const webcamConfig = EditorState.globalConfig.webcam || {};
+        let html = `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Webcam Settings</div>`;
+        html += `<div class="prop-row"><label>Device</label><select id="prop-webcam-device"><option value="">Loading cameras...</option></select></div>`;
+        html += `<div class="prop-row"><label>Mirror</label><input type="checkbox" id="prop-webcam-mirror" ${webcamConfig.mirror ? 'checked' : ''}></div>`;
+        html += `<div class="prop-row"><label>Mask</label><select id="prop-webcam-mask">`;
+        ['none', 'circle', 'rounded'].forEach(v => {
+            html += `<option value="${v}" ${webcamConfig.mask === v ? 'selected' : ''}>${v}</option>`;
+        });
+        html += `</select></div>`;
+        html += `<div class="prop-row"><label>Border Radius</label><input type="text" id="prop-webcam-borderRadius" value="${webcamConfig.borderRadius || '0'}" placeholder="e.g. 16px"></div>`;
+        html += `</div>`;
+
+        // Enumerate cameras and bind events after render
+        setTimeout(() => this.#populateWebcamDevices(webcamConfig), 0);
+        setTimeout(() => this.#bindWebcamEvents(), 0);
+
+        return html;
+    }
+
+    #bindWebcamEvents() {
+        const mirrorEl = document.getElementById('prop-webcam-mirror');
+        const maskEl = document.getElementById('prop-webcam-mask');
+        const radiusEl = document.getElementById('prop-webcam-borderRadius');
+
+        if (mirrorEl) {
+            mirrorEl.addEventListener('change', () => {
+                if (!EditorState.globalConfig.webcam) EditorState.globalConfig.webcam = {};
+                EditorState.globalConfig.webcam.mirror = mirrorEl.checked;
+                EditorState.notify('module-settings');
+            });
+        }
+        if (maskEl) {
+            maskEl.addEventListener('change', () => {
+                if (!EditorState.globalConfig.webcam) EditorState.globalConfig.webcam = {};
+                EditorState.globalConfig.webcam.mask = maskEl.value;
+                EditorState.notify('module-settings');
+            });
+        }
+        if (radiusEl) {
+            radiusEl.addEventListener('change', () => {
+                if (!EditorState.globalConfig.webcam) EditorState.globalConfig.webcam = {};
+                EditorState.globalConfig.webcam.borderRadius = radiusEl.value;
+                EditorState.notify('module-settings');
+            });
+        }
+    }
+
+    async #populateWebcamDevices(webcamConfig) {
+        const select = document.getElementById('prop-webcam-device');
+        if (!select) return;
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameras = devices.filter(d => d.kind === 'videoinput');
+
+            if (cameras.length === 0) {
+                select.innerHTML = '<option value="">(No cameras found)</option>';
+                return;
+            }
+
+            select.innerHTML = '';
+
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '(Default camera)';
+            select.appendChild(defaultOpt);
+
+            cameras.forEach(cam => {
+                const opt = document.createElement('option');
+                opt.value = cam.label || cam.deviceId;
+                opt.textContent = cam.label || `Camera ${cam.deviceId.slice(0, 8)}`;
+                if ((cam.label || cam.deviceId) === (webcamConfig.device || '')) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                if (!EditorState.globalConfig.webcam) EditorState.globalConfig.webcam = {};
+                EditorState.globalConfig.webcam.device = select.value;
+                EditorState.notify('module-settings');
+            });
+        } catch (e) {
+            select.innerHTML = '<option value="">(Camera access denied)</option>';
+        }
     }
 
     #bindEvents(id, mod) {
