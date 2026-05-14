@@ -6,6 +6,9 @@ on:
     paths:
       - 'docs/wiki/**'
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   sync-wiki:
     runs-on: ubuntu-latest
