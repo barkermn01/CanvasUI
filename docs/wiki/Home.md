@@ -28,3 +28,4 @@ CanvasUI Stream Manager is a complete overlay solution that includes:
 ## Getting the App
 
 Download the latest installer from the [Releases page](../../releases), or build from source — see [[Building from Source]].
+
