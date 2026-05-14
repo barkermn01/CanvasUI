@@ -81,16 +81,43 @@ class TypeRenderer {
         }
 
         // Render typed properties
-        for (const [key, value] of Object.entries(obj)) {
+        // Collect all keys: from the object + from the schema (for properties that don't exist yet)
+        const allKeys = new Set(Object.keys(obj));
+        for (const key of Object.keys(typeMap)) {
+            allKeys.add(key);
+        }
+
+        for (const key of allKeys) {
             if (key.startsWith('_')) continue; // Skip metadata
 
+            const value = obj[key];
             const typeDef = typeMap[key];
             const itemType = itemTypeMap[key];
+
+            // Conditional visibility: check showWhen on the type definition
+            if (typeDef && typeof typeDef === 'object' && typeDef.showWhen) {
+                const { field, value: expected } = typeDef.showWhen;
+                if (obj[field] !== expected) continue;
+            }
+            // Also check showWhen on _item_type entries (for sub-objects)
+            const keySubSchema = getSubSchema(key);
+            if (keySubSchema && keySubSchema.showWhen) {
+                const { field, value: expected } = keySubSchema.showWhen;
+                if (obj[field] !== expected) continue;
+            }
+
             const fullPath = path ? `${path}.${key}` : key;
 
             if (typeDef) {
-                // Has explicit type definition
-                const row = TypeRenderer.#createInput(key, value, typeDef, fullPath, obj, onChange);
+                // Has explicit type definition — initialize default if missing
+                if (value === undefined) {
+                    const type = typeof typeDef === 'string' ? typeDef : typeDef.type;
+                    if (type === 'gradient') obj[key] = { stops: [] };
+                    else if (type === 'bool') obj[key] = false;
+                    else if (type === 'number') obj[key] = 0;
+                    else if (type === 'string' || type === 'color' || type === 'audioDevice') obj[key] = '';
+                }
+                const row = TypeRenderer.#createInput(key, obj[key], typeDef, fullPath, obj, onChange);
                 if (row) container.appendChild(row);
             } else if (itemType === 'css') {
                 // CSS key-value editor
@@ -245,6 +272,44 @@ class TypeRenderer {
                 // Render inline for simple arrays
                 return TypeRenderer.#createArrayEditor(key, value || [], fullPath, obj, onChange);
             }
+            case 'gradient': {
+                // Gradient stops editor with preview bar
+                const wrapper = document.createElement('div');
+                wrapper.className = 'tr-gradient-wrapper';
+
+                const stops = value?.stops || [];
+                const previewBar = document.createElement('div');
+                previewBar.className = 'gradient-preview-bar';
+                previewBar.style.height = '20px';
+                previewBar.style.borderRadius = '4px';
+                previewBar.style.marginBottom = '6px';
+                if (stops.length > 0) {
+                    const css = stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+                    previewBar.style.background = `linear-gradient(to right, ${css})`;
+                } else {
+                    previewBar.style.background = '#333';
+                }
+                wrapper.appendChild(previewBar);
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'gradient-edit-btn';
+                editBtn.textContent = '🎨 Edit Gradient';
+                editBtn.addEventListener('click', () => {
+                    TypeRenderer.#openGradientEditor(obj, key, () => {
+                        // Update preview after edit
+                        const newStops = obj[key]?.stops || [];
+                        if (newStops.length > 0) {
+                            const css = newStops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+                            previewBar.style.background = `linear-gradient(to right, ${css})`;
+                        }
+                        onChange();
+                    });
+                });
+                wrapper.appendChild(editBtn);
+
+                row.appendChild(wrapper);
+                break;
+            }
             default: {
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -275,7 +340,19 @@ class TypeRenderer {
 
         const content = document.createElement('div');
         content.className = 'tr-group-content';
-        TypeRenderer.render(content, value, fullPath, options);
+
+        // Wrap onChange to re-render this group when values change
+        const originalOnChange = options.onChange || (() => {});
+        const groupOptions = {
+            ...options,
+            onChange: () => {
+                originalOnChange();
+                // Re-render this group's content to reflect conditional visibility
+                TypeRenderer.render(content, value, fullPath, groupOptions);
+            }
+        };
+
+        TypeRenderer.render(content, value, fullPath, groupOptions);
         group.appendChild(content);
 
         return group;
@@ -431,5 +508,113 @@ class TypeRenderer {
         renderList();
         section.appendChild(list);
         return section;
+    }
+
+    static #openGradientEditor(obj, key, onSave) {
+        if (!obj[key]) obj[key] = { stops: [] };
+
+        let editStops = JSON.parse(JSON.stringify(obj[key].stops || []));
+        if (editStops.length === 0) {
+            editStops = [
+                { position: 0, color: '#0000ff' },
+                { position: 1, color: '#ff00ff' }
+            ];
+        }
+
+        const overlay = document.createElement('div');
+        overlay.id = 'gradient-editor-overlay';
+        overlay.innerHTML = `
+            <div id="gradient-editor-panel">
+                <div id="gradient-editor-header">
+                    <h2>Gradient Editor</h2>
+                    <button id="gradient-editor-close">✕</button>
+                </div>
+                <div id="gradient-editor-body">
+                    <div id="gradient-editor-preview"></div>
+                    <div id="gradient-editor-stops"></div>
+                    <div class="gradient-add-row">
+                        <button id="gradient-add-stop">+ Add Stop</button>
+                    </div>
+                </div>
+                <div id="gradient-editor-footer">
+                    <button id="gradient-editor-cancel">Cancel</button>
+                    <button id="gradient-editor-save">💾 Save</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const updatePreview = () => {
+            const preview = overlay.querySelector('#gradient-editor-preview');
+            if (editStops.length > 0) {
+                const css = editStops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+                preview.style.background = `linear-gradient(to right, ${css})`;
+            } else {
+                preview.style.background = '#333';
+            }
+        };
+
+        const renderStops = () => {
+            const stopsContainer = overlay.querySelector('#gradient-editor-stops');
+            stopsContainer.innerHTML = '';
+
+            editStops.forEach((stop, i) => {
+                const row = document.createElement('div');
+                row.className = 'gradient-stop-row';
+
+                const colorSwatch = ColorPicker.create(stop.color, (hex) => {
+                    editStops[i].color = hex;
+                    updatePreview();
+                });
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.className = 'gradient-stop-position';
+                slider.min = 0;
+                slider.max = 100;
+                slider.value = Math.round(stop.position * 100);
+                slider.addEventListener('input', () => {
+                    editStops[i].position = parseInt(slider.value) / 100;
+                    posLabel.textContent = slider.value + '%';
+                    updatePreview();
+                });
+
+                const posLabel = document.createElement('span');
+                posLabel.className = 'gradient-stop-pos-label';
+                posLabel.textContent = Math.round(stop.position * 100) + '%';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'gradient-stop-delete';
+                deleteBtn.textContent = '✕';
+                deleteBtn.addEventListener('click', () => {
+                    editStops.splice(i, 1);
+                    renderStops();
+                    updatePreview();
+                });
+
+                row.appendChild(colorSwatch);
+                row.appendChild(slider);
+                row.appendChild(posLabel);
+                if (editStops.length > 2) row.appendChild(deleteBtn);
+                stopsContainer.appendChild(row);
+            });
+        };
+
+        renderStops();
+        updatePreview();
+
+        overlay.querySelector('#gradient-add-stop').addEventListener('click', () => {
+            editStops.push({ position: 0.5, color: '#ffffff' });
+            renderStops();
+            updatePreview();
+        });
+
+        overlay.querySelector('#gradient-editor-close').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('#gradient-editor-cancel').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('#gradient-editor-save').addEventListener('click', () => {
+            obj[key] = { stops: editStops };
+            onSave();
+            overlay.remove();
+        });
     }
 }

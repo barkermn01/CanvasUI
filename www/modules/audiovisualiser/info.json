@@ -32,13 +32,11 @@
                     "type": "select",
                     "options": ["levels", "gradient"]
                 },
-                "level1": "color",
-                "level2": "color",
-                "level3": "color",
-                "level4": "color"
-            },
-            "_item_type": {
-                "gradient": "object"
+                "level1": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
+                "level2": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
+                "level3": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
+                "level4": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
+                "gradient": { "type": "gradient", "showWhen": { "field": "mode", "value": "gradient" } }
             }
         }
     }
