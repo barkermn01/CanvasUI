@@ -11,7 +11,7 @@
     "gradient": { "from": "rgba(168, 85, 247, 0.08)", "to": "rgba(168, 85, 247, 0.25)" },
     "schema": {
         "_type": {
-            "device": "string",
+            "device": "audioDevice",
             "direction": {
                 "type": "select",
                 "options": ["left-right", "right-left", "top-down", "bottom-up"]

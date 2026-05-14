@@ -170,6 +170,34 @@ class TypeRenderer {
                 row.appendChild(input);
                 break;
             }
+            case 'audioDevice': {
+                const select = document.createElement('select');
+                select.innerHTML = '<option value="">Loading...</option>';
+                row.appendChild(select);
+                // Populate async
+                navigator.mediaDevices.enumerateDevices().then(devices => {
+                    const inputs = devices.filter(d => d.kind === 'audioinput');
+                    select.innerHTML = '';
+                    const none = document.createElement('option');
+                    none.value = '';
+                    none.textContent = '(None)';
+                    select.appendChild(none);
+                    inputs.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d.label || d.deviceId;
+                        opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
+                        if ((d.label || d.deviceId) === value) opt.selected = true;
+                        select.appendChild(opt);
+                    });
+                }).catch(() => {
+                    select.innerHTML = '<option value="">(No devices found)</option>';
+                });
+                select.addEventListener('change', () => {
+                    obj[key] = select.value;
+                    onChange();
+                });
+                break;
+            }
             case 'color': {
                 const swatch = ColorPicker.create(value || '#ffffff', (hex) => {
                     obj[key] = hex;
