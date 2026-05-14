@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CanvasUI Stream Manager</title>
+    <link rel="stylesheet" href="styles/editor.css">
+</head>
+<body>
+    <!-- Top toolbar -->
+    <div id="toolbar" style="-webkit-app-region: drag;">
+        <div id="toolbar-left" style="-webkit-app-region: no-drag;">
+            <button id="btn-import" title="Open Config">📂 Open</button>
+            <button id="btn-export" title="Save Config As" style="display:none;">💾 Save As</button>
+            <button id="btn-save" title="Save" disabled>💾 Save</button>
+            <button id="btn-settings" title="Global Settings">⚙️ Settings</button>
+        </div>
+        <div id="toolbar-center">
+            <span id="project-name" title="Click to rename" style="-webkit-app-region: no-drag;">Unnamed</span>
+        </div>
+        <div id="toolbar-right" style="-webkit-app-region: no-drag;">
+            <div id="server-controls"></div>
+            <label>Canvas: </label>
+            <input type="number" id="canvas-width" value="1920" min="100" max="7680" step="1">
+            <span>×</span>
+            <input type="number" id="canvas-height" value="1080" min="100" max="4320" step="1">
+            <div id="window-controls">
+                <button id="win-minimize" class="win-ctrl-btn">─</button>
+                <button id="win-maximize" class="win-ctrl-btn">□</button>
+                <button id="win-close" class="win-ctrl-btn win-close-btn">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scene tabs -->
+    <div id="scene-tabs">
+        <button id="btn-add-scene" title="Add Scene">+</button>
+        <div id="scene-tab-list"></div>
+    </div>
+
+    <!-- Main layout -->
+    <div id="main-layout">
+        <!-- Left sidebar: Layers + Media -->
+        <div id="left-sidebar" class="sidebar">
+            <div class="sidebar-panels">
+                <div class="sidebar-panel" data-panel="layers">
+                    <div class="panel-header">
+                        <h3>Layers</h3>
+                        <button class="panel-pin pinned" data-panel="layers" title="Unpin to hide">📌</button>
+                    </div>
+                    <div class="panel-content" id="layer-list"></div>
+                </div>
+                <div class="sidebar-panel" data-panel="media">
+                    <div class="panel-header">
+                        <h3>Media</h3>
+                        <button class="panel-pin pinned" data-panel="media" title="Unpin to hide">📌</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="media-toolbar">
+                            <button id="media-upload-btn" class="media-toolbar-btn">📁 Upload</button>
+                            <button id="media-mkdir-btn" class="media-toolbar-btn">📂 New Folder</button>
+                        </div>
+                        <div id="media-list"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-activity-bar">
+                <button class="activity-btn active" data-panel="layers" title="Layers">📚</button>
+                <button class="activity-btn active" data-panel="media" title="Media">🖼️</button>
+            </div>
+        </div>
+
+        <!-- Canvas workspace -->
+        <div id="workspace">
+            <div id="canvas-controls">
+                <button id="btn-play-all" title="Play all simulations">▶ Play All</button>
+                <button id="btn-stop-all" title="Stop all simulations">⏹ Stop All</button>
+            </div>
+            <div id="canvas-container">
+                <div id="editor-canvas"></div>
+            </div>
+        </div>
+
+        <!-- Right sidebar: Modules + Properties -->
+        <div id="right-sidebar" class="sidebar">
+            <div class="sidebar-activity-bar">
+                <button class="activity-btn active" data-panel="modules" title="Modules">🧩</button>
+                <button class="activity-btn active" data-panel="properties" title="Properties">🔧</button>
+            </div>
+            <div class="sidebar-panels">
+                <div class="sidebar-panel" data-panel="modules">
+                    <div class="panel-header">
+                        <h3>Modules</h3>
+                        <button class="panel-pin pinned" data-panel="modules" title="Unpin to hide">📌</button>
+                    </div>
+                    <div class="panel-content" id="palette">
+                        <div class="palette-item" data-module="chat" draggable="true">
+                            <span class="palette-icon">💬</span> Chat
+                        </div>
+                        <div class="palette-item" data-module="emote" draggable="true">
+                            <span class="palette-icon">😀</span> Emote
+                        </div>
+                        <div class="palette-item" data-module="audiovisualiser" draggable="true">
+                            <span class="palette-icon">🎵</span> Audio Visualiser
+                        </div>
+                        <div class="palette-item" data-module="image" draggable="true">
+                            <span class="palette-icon">🖼️</span> Image
+                        </div>
+                        <div class="palette-item" data-module="video" draggable="true">
+                            <span class="palette-icon">🎬</span> Video
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-panel" data-panel="properties">
+                    <div class="panel-header">
+                        <h3>Properties</h3>
+                        <button class="panel-pin pinned" data-panel="properties" title="Unpin to hide">📌</button>
+                    </div>
+                    <div class="panel-content" id="props-content">
+                        <p class="props-hint">Select a module on the canvas to edit its properties</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="components/prefs.js"></script>
+    <script src="components/state.js"></script>
+    <script src="components/history.js"></script>
+    <script src="components/canvas.js"></script>
+    <script src="components/palette.js"></script>
+    <script src="components/properties.js"></script>
+    <script src="components/scenes.js"></script>
+    <script src="components/layers.js"></script>
+    <script src="components/toolbar.js"></script>
+    <script src="components/configio.js"></script>
+    <script src="components/colorpicker.js"></script>
+    <script src="components/typerenderer.js"></script>
+    <script src="components/simulator.js"></script>
+    <script src="components/settings.js"></script>
+    <script src="components/sidebar.js"></script>
+    <script src="components/mediapanel.js"></script>
+    <script src="components/serverpanel.js"></script>
+    <script src="components/app.js"></script>
+</body>
+</html>

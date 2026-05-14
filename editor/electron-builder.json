@@ -1,0 +1,38 @@
+{
+    "appId": "com.canvasui.stream-manager",
+    "productName": "CanvasUI Stream Manager",
+    "directories": {
+        "output": "dist"
+    },
+    "files": [
+        "src/**/*",
+        "node_modules/**/*",
+        "package.json"
+    ],
+    "extraResources": [
+        {
+            "from": "build-www",
+            "to": "www",
+            "filter": ["**/*"]
+        }
+    ],
+    "win": {
+        "target": [
+            {
+                "target": "nsis",
+                "arch": ["x64"]
+            }
+        ],
+        "icon": "../icon.png"
+    },
+    "nsis": {
+        "oneClick": false,
+        "allowToChangeInstallationDirectory": true,
+        "installerIcon": "icon.ico",
+        "uninstallerIcon": "icon.ico",
+        "createDesktopShortcut": true,
+        "createStartMenuShortcut": true,
+        "shortcutName": "CanvasUI Stream Manager",
+        "artifactName": "CanvasUI Setup ${version}.${env.BUILD_NUMBER}.exe"
+    }
+}

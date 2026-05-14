@@ -1,0 +1,21 @@
+{
+  "name": "canvasui-stream-manager",
+  "version": "1.2.0",
+  "description": "CanvasUI Stream Manager - Scene editor and overlay server for streamers",
+  "author": "KeatranGaming",
+  "main": "src/main/main.js",
+  "scripts": {
+    "prestart": "node -e \"const f='buildnumber.json';const d=JSON.parse(require('fs').readFileSync(f));d.build++;require('fs').writeFileSync(f,JSON.stringify(d,null,2)+'\\n')\"",
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "node build.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "electron": "42.0.1",
+    "electron-builder": "^26.8.1",
+    "png-to-ico": "^3.0.1"
+  }
+}

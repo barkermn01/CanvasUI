@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+editor/node_modules/
+
+# Personal config (use www/config.example.js as template)
+www/config.js
+config.json
+SirHeck/
+SirHeck.config.js
+
+# Media uploads (user content)
+www/media/*
+!www/media/.gitkeep
+
+# Build output
+editor/dist/
+editor/build-www/
+editor/icon.ico
+
+# Installer binaries and Node installers
+*.msi
+*.exe
+*.blockmap
+
+# Session context (dev notes)
+NEXT-SESSION-CONTEXT.md
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/

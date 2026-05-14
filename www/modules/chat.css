@@ -1,0 +1,47 @@
+@keyframes slideInFromLeft {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInFromRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.chat-message {
+    position: relative;
+    opacity: 0;
+}
+
+.chat-message.animate-left {
+    animation: slideInFromLeft 0.5s ease-in-out forwards;
+}
+
+.chat-message.animate-right {
+    animation: slideInFromRight 0.5s ease-in-out forwards;
+}
+
+.chat-message.animate-fade {
+    animation: fadeIn 0.5s ease-in-out forwards;
+}
