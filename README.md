@@ -1,7 +1,7 @@
 # CanvasUI Stream Manager
 
 A fully local StreamElements alternative that renders overlays in real time using Canvas. No cloud, no lag.
-Powered by Streamer.bot’s event system, design scenes and render chat, emotes, audio visualisers, images, and videos as browser source overlays in OBS with a built-in desktop editor.
+Uses Streamer.bot to drive real-time events and automation, design scenes and render chat, emotes, audio visualisers, images, and videos as browser source overlays in OBS with a built-in desktop editor.
 
 <!-- SCREENSHOT: Main editor window with a scene loaded showing the canvas with modules, layers panel, and properties panel -->
 ![Editor Overview](docs/screenshots/editor-overview.png)
