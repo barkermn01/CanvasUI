@@ -1,4 +1,6 @@
-class AudioVisualiser {
+if (!window.AudioVisualiser) {
+
+window.AudioVisualiser = class AudioVisualiser {
     constructor() {
         this.name = "audiovisualiser";
         this.audioContext = null;
@@ -192,9 +194,9 @@ class AudioVisualiser {
         return gradient;
     }
 
-    drawBars(ctx) {
+    drawBars(ctx, sceneArea) {
         const config = Config.AudioVisualiser;
-        const area = this.calculateArea(ctx);
+        const area = sceneArea || this.calculateArea(ctx);
         const isVertical = config.direction === 'right-left' || config.direction === 'left-right';
         const barSize = isVertical ? config.barWidth : config.barHeight;
         const spacing = config.barSpacing;
@@ -369,7 +371,7 @@ class AudioVisualiser {
         }
     }
 
-    draw(ctx) {
+    draw(ctx, sceneArea) {
         const width = ctx.canvas.width;
         const height = ctx.canvas.height;
     
@@ -430,15 +432,19 @@ class AudioVisualiser {
         }
     
         this.analyser.getByteFrequencyData(this.dataArray);
-        this.drawBars(ctx);
+        this.drawBars(ctx, sceneArea);
     }
     
+};
+
+if (document.getElementById('canvas')) {
+    const system = new window.AudioVisualiser();
+    window.Modules.push({
+        name: "AudioVisualiser",
+        draw: (ctx, settings, area) => {
+            system.draw(ctx, area);
+        }
+    });
 }
 
-const system = new AudioVisualiser();
-window.Modules.push({
-    name: "AudioVisualiser",
-    draw: ctx => {
-        system.draw(ctx);
-    }
-});
+} // end if (!window.AudioVisualiser)

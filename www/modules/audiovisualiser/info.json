@@ -6,7 +6,7 @@
     "configKey": "AudioVisualiser",
     "entrypoint": "audiovisualiser.js",
     "hasSettings": true,
-    "allowMultiple": false,
+    "allowMultiple": true,
     "description": "Audio frequency visualisation bars",
     "gradient": { "from": "rgba(168, 85, 247, 0.08)", "to": "rgba(168, 85, 247, 0.25)" },
     "schema": {

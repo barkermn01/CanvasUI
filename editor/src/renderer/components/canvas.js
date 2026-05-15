@@ -345,13 +345,14 @@ class CanvasWorkspace {
         return container;
     }
 
-    #buildAudioVisualiserPreview() {
+    #buildAudioVisualiserPreview(mod) {
         const av = EditorState.globalConfig.AudioVisualiser || {};
+        const settings = mod.settings || {};
         const colors = av.colors || {};
-        const direction = av.direction || 'right-left';
-        const mirrored = av.mirrored || false;
-        const barWidth = av.barWidth || 5;
-        const barSpacing = av.barSpacing || 2;
+        const direction = settings.direction || av.direction || 'right-left';
+        const mirrored = settings.mirrored ?? av.mirrored ?? false;
+        const barWidth = settings.barWidth || av.barWidth || 5;
+        const barSpacing = settings.barSpacing || av.barSpacing || 2;
 
         const container = document.createElement('div');
         container.className = 'module-preview av-preview';
@@ -365,27 +366,20 @@ class CanvasWorkspace {
             container.style.justifyContent = 'flex-start';
         }
 
-        // Use a large bar count — will be clipped by overflow:hidden
-        // We estimate based on typical width, actual rendering will clip
         const barCount = 120;
-
         for (let i = 0; i < barCount; i++) {
-            // Generate varied heights that look like a real audio spectrum
             const noise = Math.sin(i * 0.3) * 30 + Math.sin(i * 0.7) * 20 + Math.sin(i * 1.5) * 10;
             const height = Math.max(5, Math.min(95, 40 + noise + (Math.random() * 15 - 7)));
 
             if (mirrored) {
                 const wrapper = document.createElement('div');
                 wrapper.style.cssText = `display: flex; flex-direction: column; justify-content: center; width: ${barWidth}px; min-width: ${barWidth}px; height: 100%; flex-shrink: 0;`;
-
                 const topBar = document.createElement('div');
                 topBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
                 topBar.style.background = this.#getAvBarBackground(colors, height);
-
                 const bottomBar = document.createElement('div');
                 bottomBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
                 bottomBar.style.background = this.#getAvBarBackground(colors, height);
-
                 wrapper.appendChild(topBar);
                 wrapper.appendChild(bottomBar);
                 container.appendChild(wrapper);
@@ -435,7 +429,7 @@ class CanvasWorkspace {
             case 'emote':
                 return this.#buildEmotePreview();
             case 'audiovisualiser':
-                return this.#buildAudioVisualiserPreview();
+                return this.#buildAudioVisualiserPreview(mod);
             case 'webcam':
                 return this.#buildWebcamPreview(mod);
             case 'image':

@@ -132,152 +132,81 @@ class ModuleSimulator {
     }
 
     static #simAudioVisualiser(id, container) {
-        // Create a canvas and use the real AudioVisualiser draw logic
         const canvas = document.createElement('canvas');
-        canvas.width = container.clientWidth || 300;
-        canvas.height = container.clientHeight || 200;
         canvas.style.cssText = 'width:100%; height:100%; pointer-events:none;';
         container.appendChild(canvas);
 
-        const ctx = canvas.getContext('2d');
-        const config = Config.AudioVisualiser || {};
-        const colors = config.colors || {};
-        const barWidth = config.barWidth || 5;
-        const barSpacing = config.barSpacing || 2;
-        const direction = config.direction || 'right-left';
-        const mirrored = config.mirrored || false;
+        // Load real AudioVisualiser module from server
+        const host = EditorPrefs.get('serverHost', '127.0.0.1');
+        const port = EditorPrefs.get('serverPort', 31589);
 
-        // Generate fake frequency data
-        const barCount = Math.floor(canvas.width / (barWidth + barSpacing));
-        const fakeData = new Uint8Array(barCount);
-        const targets = new Float32Array(barCount);
+        const startSim = () => {
+            if (!window.AudioVisualiser) return;
 
-        // Initialize with random values
-        for (let i = 0; i < barCount; i++) {
-            const r = Math.random();
-            targets[i] = r < 0.3 ? Math.random() * 50 : r < 0.6 ? Math.random() * 100 + 50 : Math.random() * 105 + 150;
-            fakeData[i] = targets[i];
-        }
+            window.Config = EditorState.globalConfig;
+            const avInstance = new window.AudioVisualiser();
 
-        // Create a minimal AudioVisualiser-like object that uses the real draw methods
-        const vis = {
-            dataArray: fakeData,
-            initialized: true,
-            getColor(value) {
-                if (value < 25) return colors.level1 || '#67136f';
-                if (value < 50) return colors.level2 || '#5c3886';
-                if (value < 75) return colors.level3 || '#885ab4';
-                return colors.level4 || '#885ab4';
-            },
-            createBarGradient(ctx, x, y, width, height) {
-                const isVert = direction === 'right-left' || direction === 'left-right';
-                let gradient;
-                if (isVert) {
-                    gradient = ctx.createLinearGradient(x, y + height, x, y);
-                } else {
-                    gradient = ctx.createLinearGradient(x, y, x + width, y);
-                }
-                const stops = colors.gradient?.stops || [];
-                stops.forEach(stop => gradient.addColorStop(stop.position, stop.color));
-                return gradient;
-            }
-        };
+            const animate = () => {
+                if (!container.isConnected) return;
 
-        let lastTime = performance.now();
+                const moduleId = container.closest('[data-module-id]')?.dataset.moduleId;
+                const modData = moduleId ? EditorState.getActiveSceneModules()[moduleId] : null;
+                const w = modData ? modData.area.width : (container.clientWidth || 300);
+                const h = modData ? modData.area.height : (container.clientHeight || 80);
 
-        const animate = (now) => {
-            const dt = (now - lastTime) / 1000;
-            lastTime = now;
-
-            // Animate fake data toward targets
-            for (let i = 0; i < barCount; i++) {
-                const diff = targets[i] - fakeData[i];
-                fakeData[i] += diff * 2 * dt;
-                if (Math.abs(diff) < 3) {
-                    const r = Math.random();
-                    targets[i] = r < 0.3 ? Math.random() * 50 : r < 0.6 ? Math.random() * 100 + 50 : Math.random() * 105 + 150;
-                }
-            }
-
-            // Draw using the same logic as the real module
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            const area = { x: 0, y: 0, width: canvas.width, height: canvas.height };
-            const isVertical = direction === 'right-left' || direction === 'left-right';
-            const barSize = barWidth;
-            const maxBarLength = isVertical ? area.height : area.width;
-            const halfLength = mirrored ? maxBarLength / 2 : maxBarLength;
-            const center = isVertical ? area.y + (area.height / 2) : area.x + (area.width / 2);
-            const useGradient = colors.mode === 'gradient';
-
-            for (let i = 0; i < barCount; i++) {
-                const value = fakeData[i] / 255 * 100;
-                const size = (value / 100) * halfLength;
-                const position = i * (barSize + barSpacing);
-
-                let barX, barY, barW, barH;
-
-                switch (direction) {
-                    case 'right-left':
-                        barX = area.x + area.width - position - barSize;
-                        barY = mirrored ? center - size : area.y + area.height - size;
-                        barW = barSize;
-                        barH = size;
-                        break;
-                    case 'left-right':
-                        barX = area.x + position;
-                        barY = mirrored ? center - size : area.y + area.height - size;
-                        barW = barSize;
-                        barH = size;
-                        break;
-                    case 'top-down':
-                        barY = area.y + position;
-                        barX = mirrored ? center - size : area.x;
-                        barW = size;
-                        barH = barSize;
-                        break;
-                    case 'bottom-up':
-                        barY = area.y + position;
-                        barX = mirrored ? center - size : area.x + area.width - size;
-                        barW = size;
-                        barH = barSize;
-                        break;
+                if (canvas.width !== w || canvas.height !== h) {
+                    canvas.width = w;
+                    canvas.height = h;
                 }
 
-                if (useGradient && colors.gradient?.stops?.length) {
-                    ctx.fillStyle = vis.createBarGradient(ctx, barX, barY, barW, barH);
-                } else {
-                    ctx.fillStyle = vis.getColor(value);
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, w, h);
+
+                window.Config = EditorState.globalConfig;
+
+                if (avInstance.initialized) {
+                    avInstance.analyser.getByteFrequencyData(avInstance.dataArray);
+                    avInstance.drawBars(ctx, { x: 0, y: 0, width: w, height: h });
                 }
 
-                ctx.fillRect(barX, barY, barW, barH);
-
-                if (mirrored) {
-                    if (isVertical) {
-                        if (useGradient && colors.gradient?.stops?.length) {
-                            ctx.fillStyle = vis.createBarGradient(ctx, barX, center, barW, barH);
-                        }
-                        ctx.fillRect(barX, center, barW, barH);
-                    } else {
-                        if (useGradient && colors.gradient?.stops?.length) {
-                            ctx.fillStyle = vis.createBarGradient(ctx, center, barY, barW, barH);
-                        }
-                        ctx.fillRect(center, barY, barW, barH);
-                    }
-                }
-            }
+                const frame = requestAnimationFrame(animate);
+                const sim = ModuleSimulator.#activeSimulations.get(id);
+                if (sim) sim.animFrame = frame;
+            };
 
             const frame = requestAnimationFrame(animate);
-            ModuleSimulator.#activeSimulations.get(id).animFrame = frame;
+            this.#activeSimulations.set(id, {
+                animFrame: frame,
+                cleanup: () => {
+                    if (avInstance.mediaStream) {
+                        avInstance.mediaStream.getTracks().forEach(t => t.stop());
+                    }
+                    if (avInstance.audioContext) {
+                        avInstance.audioContext.close();
+                    }
+                    canvas.remove();
+                }
+            });
         };
 
-        const frame = requestAnimationFrame(animate);
-        this.#activeSimulations.set(id, {
-            animFrame: frame,
-            cleanup: () => {
-                canvas.remove();
-            }
-        });
+        if (window.AudioVisualiser) {
+            startSim();
+        } else if (document.querySelector('script[data-av-module]')) {
+            const check = setInterval(() => {
+                if (window.AudioVisualiser) { clearInterval(check); startSim(); }
+            }, 100);
+            this.#activeSimulations.set(id, { cleanup: () => { clearInterval(check); canvas.remove(); } });
+        } else {
+            const script = document.createElement('script');
+            script.src = `http://${host}:${port}/modules/audiovisualiser/audiovisualiser.js`;
+            script.dataset.avModule = 'true';
+            script.onload = startSim;
+            script.onerror = () => {
+                container.innerHTML = '<div class="module-no-media"><span class="module-no-media-icon">🎵</span><span class="module-no-media-text">Start server to simulate</span></div>';
+            };
+            document.head.appendChild(script);
+            this.#activeSimulations.set(id, { cleanup: () => { canvas.remove(); } });
+        }
     }
 
     static #simVideo(id, mod, container) {

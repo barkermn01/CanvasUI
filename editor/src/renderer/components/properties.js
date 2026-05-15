@@ -77,6 +77,8 @@ class PropertiesPanel {
             html += this.#videoProps(mod);
         } else if (mod.type === 'webcam') {
             html += this.#webcamProps(mod);
+        } else if (mod.type === 'audiovisualiser') {
+            html += this.#audioVisualiserProps(mod);
         }
 
         // Transition (scene-level)
@@ -229,6 +231,71 @@ class PropertiesPanel {
             });
         } catch (e) {
             select.innerHTML = '<option value="">(Camera access denied)</option>';
+        }
+    }
+
+    #audioVisualiserProps(mod) {
+        const settings = mod.settings || {};
+        let html = `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Audio Visualiser Settings</div>`;
+        html += `<div class="prop-row"><label>Device</label><select id="prop-av-device"><option value="">Loading...</option></select></div>`;
+        html += `<div class="prop-row"><label>Direction</label><select id="prop-av-direction">`;
+        ['right-left', 'left-right', 'top-down', 'bottom-up'].forEach(v => {
+            html += `<option value="${v}" ${settings.direction === v ? 'selected' : ''}>${v}</option>`;
+        });
+        html += `</select></div>`;
+        html += `<div class="prop-row"><label>Mirrored</label><input type="checkbox" id="prop-av-mirrored" ${settings.mirrored ? 'checked' : ''}></div>`;
+        html += `<div class="prop-row"><label>Bar Width</label><input type="number" id="prop-av-barWidth" value="${settings.barWidth || 5}" min="1" max="50"></div>`;
+        html += `<div class="prop-row"><label>Bar Spacing</label><input type="number" id="prop-av-barSpacing" value="${settings.barSpacing || 2}" min="0" max="20"></div>`;
+        html += `</div>`;
+
+        setTimeout(() => this.#bindAudioVisualiserEvents(), 0);
+        setTimeout(() => this.#populateAudioDevicesForAV(settings), 0);
+
+        return html;
+    }
+
+    #bindAudioVisualiserEvents() {
+        const id = EditorState.selectedModule;
+
+        const dirEl = document.getElementById('prop-av-direction');
+        const mirrorEl = document.getElementById('prop-av-mirrored');
+        const barWEl = document.getElementById('prop-av-barWidth');
+        const barSEl = document.getElementById('prop-av-barSpacing');
+
+        if (dirEl) dirEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'direction', dirEl.value));
+        if (mirrorEl) mirrorEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'mirrored', mirrorEl.checked));
+        if (barWEl) barWEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'barWidth', parseInt(barWEl.value) || 5));
+        if (barSEl) barSEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'barSpacing', parseInt(barSEl.value) || 2));
+    }
+
+    async #populateAudioDevicesForAV(settings) {
+        const select = document.getElementById('prop-av-device');
+        if (!select) return;
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+            select.innerHTML = '';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '(Default / Global)';
+            select.appendChild(defaultOpt);
+
+            audioInputs.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.label || d.deviceId;
+                opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
+                if ((d.label || d.deviceId) === (settings.device || '')) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                EditorState.updateModuleSetting(EditorState.selectedModule, 'device', select.value);
+            });
+        } catch (e) {
+            select.innerHTML = '<option value="">(No devices found)</option>';
         }
     }
 

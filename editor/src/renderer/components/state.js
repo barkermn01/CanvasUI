@@ -226,7 +226,7 @@ const EditorState = {
             case 'video': return { src: '', loop: true, muted: true, opacity: 1, objectFit: 'contain' };
             case 'chat': return {};
             case 'emote': return {};
-            case 'audiovisualiser': return {};
+            case 'audiovisualiser': return { device: '', direction: 'right-left', mirrored: true, barWidth: 5, barSpacing: 2 };
             case 'webcam': return { device: '', mirror: false, mask: 'none', borderRadius: '0' };
             default: return {};
         }
