@@ -39,6 +39,53 @@ class SettingsPanel {
         return null;
     }
 
+    #buildTabs() {
+        const tabsContainer = this.#overlay.querySelector('#settings-tabs');
+        tabsContainer.innerHTML = '';
+
+        // Fixed tabs that always appear
+        const fixedTabs = [
+            { id: 'general', label: 'General' },
+            { id: 'server', label: 'Server' },
+            { id: 'streamerbot', label: 'Streamer.bot' }
+        ];
+
+        // Dynamic tabs from discovered modules with hasSettings
+        const moduleTabs = [];
+        if (window.ModuleRegistry && window.ModuleRegistry.modules) {
+            for (const mod of window.ModuleRegistry.modules) {
+                if (mod.hasSettings && mod.name && !mod.name.startsWith('_')) {
+                    moduleTabs.push({ id: mod.name, label: mod.displayName || mod.name });
+                }
+            }
+        }
+
+        // Bots tab at the end
+        const endTabs = [
+            { id: 'bots', label: 'Bots' }
+        ];
+
+        const allTabs = [...fixedTabs, ...moduleTabs, ...endTabs];
+
+        allTabs.forEach((tab, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'settings-tab' + (tab.id === this.#activeTab ? ' active' : '');
+            btn.dataset.tab = tab.id;
+            btn.textContent = tab.label;
+            tabsContainer.appendChild(btn);
+        });
+
+        // Bind tab clicks
+        tabsContainer.querySelectorAll('.settings-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                this.#activeTab = tab.dataset.tab;
+                tabsContainer.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                this.#renderTab();
+            });
+        });
+    }
+
     #createOverlay() {
         this.#overlay = document.createElement('div');
         this.#overlay.id = 'settings-overlay';
@@ -53,20 +100,15 @@ class SettingsPanel {
                     </div>
                 </div>
                 <div id="settings-body">
-                    <div id="settings-tabs">
-                        <button class="settings-tab active" data-tab="general">General</button>
-                        <button class="settings-tab" data-tab="server">Server</button>
-                        <button class="settings-tab" data-tab="streamerbot">Streamer.bot</button>
-                        <button class="settings-tab" data-tab="chat">Chat</button>
-                        <button class="settings-tab" data-tab="emote">Emotes</button>
-                        <button class="settings-tab" data-tab="audiovisualiser">Audio Visualiser</button>
-                        <button class="settings-tab" data-tab="bots">Bots</button>
-                    </div>
+                    <div id="settings-tabs"></div>
                     <div id="settings-content"></div>
                 </div>
             </div>
         `;
         document.body.appendChild(this.#overlay);
+
+        // Build tabs dynamically
+        this.#buildTabs();
 
         this.#overlay.querySelector('#settings-close').addEventListener('click', () => this.close());
         this.#overlay.querySelector('#settings-admin-toggle').addEventListener('click', () => {
@@ -80,19 +122,13 @@ class SettingsPanel {
         this.#overlay.addEventListener('click', (e) => {
             if (e.target === this.#overlay) this.close();
         });
-
-        this.#overlay.querySelectorAll('.settings-tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                this.#activeTab = tab.dataset.tab;
-                this.#overlay.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                this.#renderTab();
-            });
-        });
     }
 
     open() {
         this.#overlay.style.display = 'flex';
+        // Rebuild tabs in case modules were discovered after initial creation
+        this.#buildTabs();
+        this.#renderTab();
         // Sync admin button state
         const btn = this.#overlay.querySelector('#settings-admin-toggle');
         btn.textContent = this.#adminMode ? '🔓 Admin' : '🔒 Admin';
@@ -107,7 +143,14 @@ class SettingsPanel {
     #renderTab() {
         const content = this.#overlay.querySelector('#settings-content');
         switch (this.#activeTab) {
-            case 'general': content.innerHTML = this.#renderGeneral(); break;
+            case 'general':
+                content.innerHTML = '';
+                TypeRenderer.render(content, EditorState.globalConfig, '', {
+                    adminMode: this.#adminMode,
+                    onChange: () => EditorState.notify('settings'),
+                    schema: this.#getModuleSchema('_global')
+                });
+                return;
             case 'server':
                 content.innerHTML = '';
                 this.#renderServer(content);
@@ -119,58 +162,30 @@ class SettingsPanel {
                     onChange: () => EditorState.notify('settings'),
                     schema: this.#getModuleSchema('_global')?.StreamerBot || null
                 });
-                return; // Skip bindTab since TypeRenderer handles its own events
-            case 'chat':
-                content.innerHTML = '';
-                TypeRenderer.render(content, EditorState.globalConfig.chat || {}, 'chat', {
-                    adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings'),
-                    schema: this.#getModuleSchema('chat')
-                });
-                return;
-            case 'emote':
-                content.innerHTML = '';
-                TypeRenderer.render(content, EditorState.globalConfig.emote || {}, 'emote', {
-                    adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings'),
-                    schema: this.#getModuleSchema('emote')
-                });
-                return;
-            case 'audiovisualiser':
-                content.innerHTML = '';
-                TypeRenderer.render(content, EditorState.globalConfig.AudioVisualiser || {}, 'AudioVisualiser', {
-                    adminMode: this.#adminMode,
-                    onChange: () => EditorState.notify('settings'),
-                    schema: this.#getModuleSchema('audiovisualiser')
-                });
                 return;
             case 'bots': content.innerHTML = this.#renderBots(); break;
+            default: {
+                // Dynamic module tab — find the module info and render its config
+                const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === this.#activeTab);
+                if (modInfo && modInfo.configKey) {
+                    content.innerHTML = '';
+                    const configObj = EditorState.globalConfig[modInfo.configKey] || {};
+                    // Ensure the config key exists
+                    if (!EditorState.globalConfig[modInfo.configKey]) {
+                        EditorState.globalConfig[modInfo.configKey] = {};
+                    }
+                    TypeRenderer.render(content, EditorState.globalConfig[modInfo.configKey], modInfo.configKey, {
+                        adminMode: this.#adminMode,
+                        onChange: () => EditorState.notify('settings'),
+                        schema: this.#getModuleSchema(modInfo.name)
+                    });
+                    return;
+                }
+                content.innerHTML = '<p>No settings available for this module.</p>';
+                return;
+            }
         }
         this.#bindTab(content);
-    }
-
-    #renderGeneral() {
-        const gc = EditorState.globalConfig;
-        return `
-            <div class="settings-section">
-                <h3>Channel Info</h3>
-                <div class="s-row"><label>Channel Name</label><input type="text" data-field="ChannelName" value="${gc.ChannelName || ''}"></div>
-                <div class="s-row"><label>Twitch ID</label><input type="text" data-field="TwitchID" value="${gc.TwitchID || ''}"></div>
-            </div>
-            <div class="settings-section">
-                <h3>Modules</h3>
-                <p class="s-hint">Comma-separated list of modules to load (order matters for rendering)</p>
-                <div class="s-row"><label>Modules</label><input type="text" data-field="Modules" value="${(gc.Modules || []).join(', ')}"></div>
-            </div>
-            <div class="settings-section">
-                <h3>Default Scene</h3>
-                <div class="s-row"><label>Scene</label>
-                    <select data-field="DefaultScene">
-                        ${Object.keys(EditorState.scenes).map(s => `<option value="${s}" ${gc.DefaultScene === s ? 'selected' : ''}>${s}</option>`).join('')}
-                    </select>
-                </div>
-            </div>
-        `;
     }
 
     #renderServer(container) {
@@ -184,10 +199,10 @@ class SettingsPanel {
         container.innerHTML = `
             <div class="settings-section">
                 <h3>Web Server</h3>
-                <div class="s-row"><label>Host</label><input type="text" id="srv-host" value="${host}"></div>
-                <div class="s-row"><label>Port</label><input type="number" id="srv-port" value="${port}"></div>
-                <div class="s-row"><label>Web Root</label><input type="text" id="srv-webroot" value="${webroot}"></div>
-                <div class="s-row"><label>Auto Start</label><input type="checkbox" id="srv-autostart" ${autoStart ? 'checked' : ''}></div>
+                <div class="s-row"><label class="has-tooltip" data-tooltip="IP address the server listens on (use 0.0.0.0 for all interfaces)">Host</label><input type="text" id="srv-host" value="${host}"></div>
+                <div class="s-row"><label class="has-tooltip" data-tooltip="Port number for the web server">Port</label><input type="number" id="srv-port" value="${port}"></div>
+                <div class="s-row"><label class="has-tooltip" data-tooltip="Root directory for overlay files">Web Root</label><input type="text" id="srv-webroot" value="${webroot}"></div>
+                <div class="s-row"><label class="has-tooltip" data-tooltip="Start the server automatically when the editor opens">Auto Start</label><input type="checkbox" id="srv-autostart" ${autoStart ? 'checked' : ''}></div>
                 <div class="s-row">
                     <label></label>
                     <button id="srv-restart" class="srv-btn">🔄 Restart Server</button>
@@ -203,6 +218,23 @@ class SettingsPanel {
                 </div>
             </div>
         `;
+
+        // Setup custom tooltips for server labels
+        container.querySelectorAll('.has-tooltip').forEach(label => {
+            label.style.cursor = 'help';
+            label.style.textDecoration = 'underline dotted';
+            const tip = document.createElement('div');
+            tip.className = 'tr-tooltip';
+            tip.textContent = label.dataset.tooltip;
+            document.body.appendChild(tip);
+            label.addEventListener('mouseenter', () => {
+                const rect = label.getBoundingClientRect();
+                tip.style.display = 'block';
+                tip.style.left = rect.left + 'px';
+                tip.style.top = (rect.top - tip.offsetHeight - 4) + 'px';
+            });
+            label.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+        });
 
         // Bind server settings
         const hostInput = container.querySelector('#srv-host');

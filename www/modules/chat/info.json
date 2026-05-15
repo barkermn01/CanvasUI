@@ -14,6 +14,10 @@
             "BeforeCanvas": "bool",
             "hideBots": "bool"
         },
+        "_labels": {
+            "BeforeCanvas": { "label": "Behind Canvas", "tooltip": "Render chat behind the canvas layer" },
+            "hideBots": { "label": "Hide Bots", "tooltip": "Hide messages from bot accounts listed in the Bots tab" }
+        },
         "_item_type": {
             "ExtendedEmotesServices": "object",
             "MessageArea": "css",
@@ -26,6 +30,10 @@
             "_type": {
                 "BTTV": "bool",
                 "FFZ": "bool"
+            },
+            "_labels": {
+                "BTTV": { "label": "BetterTTV", "tooltip": "Enable BetterTTV emotes" },
+                "FFZ": { "label": "FrankerFaceZ", "tooltip": "Enable FrankerFaceZ emotes" }
             }
         },
         "AutoHide": {
@@ -34,6 +42,12 @@
                 "time": "number",
                 "animation": { "type": "select", "options": ["slide", "fade"] },
                 "direction": { "type": "select", "options": ["left", "right"] }
+            },
+            "_labels": {
+                "enabled": { "label": "Enabled", "tooltip": "Automatically hide messages after a set time" },
+                "time": { "label": "Time (seconds)", "tooltip": "Seconds before a message starts to hide" },
+                "animation": { "label": "Animation", "tooltip": "How messages disappear" },
+                "direction": { "label": "Slide Direction", "tooltip": "Direction messages slide out (when animation is slide)" }
             }
         },
         "ChatBoxes": {
@@ -45,6 +59,14 @@
                 "NewMessages": { "type": "select", "options": ["below", "above"] },
                 "position": { "type": "select", "options": ["top", "bottom"] }
             },
+            "_labels": {
+                "ShowBadges": { "label": "Show Badges", "tooltip": "Display user badges (sub, mod, etc.)" },
+                "ShowEmotes": { "label": "Show Emotes", "tooltip": "Render emote images inline" },
+                "UserColon": { "label": "Show Colon", "tooltip": "Show ':' after username" },
+                "allowClipping": { "label": "Allow Clipping", "tooltip": "Allow messages to overflow the container" },
+                "NewMessages": { "label": "New Messages", "tooltip": "Where new messages appear relative to existing ones" },
+                "position": { "label": "Position", "tooltip": "Where chat starts from (top or bottom of area)" }
+            },
             "_item_type": {
                 "BadgeSettings": "object",
                 "HideSpecificBadges": "object",
@@ -55,6 +77,10 @@
                 "_type": {
                     "width": "number",
                     "height": "number"
+                },
+                "_labels": {
+                    "width": { "label": "Badge Width", "tooltip": "Badge image width in pixels" },
+                    "height": { "label": "Badge Height", "tooltip": "Badge image height in pixels" }
                 }
             }
         },
@@ -65,6 +91,13 @@
                 "color": "color",
                 "italics": "bool",
                 "bold": "bool"
+            },
+            "_labels": {
+                "hideMessage": { "label": "Hide Entirely", "tooltip": "Remove the message completely instead of showing replacement text" },
+                "Text": { "label": "Replacement Text", "tooltip": "Text shown in place of removed messages" },
+                "color": { "label": "Text Color", "tooltip": "Color of the replacement text" },
+                "italics": { "label": "Italic", "tooltip": "Render replacement text in italics" },
+                "bold": { "label": "Bold", "tooltip": "Render replacement text in bold" }
             }
         }
     }

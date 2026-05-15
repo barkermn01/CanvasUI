@@ -14,6 +14,11 @@
             "src": "string",
             "opacity": "number",
             "objectFit": { "type": "select", "options": ["contain", "cover", "fill", "none"] }
+        },
+        "_labels": {
+            "src": { "label": "Source", "tooltip": "Path to the image file (e.g. /media/overlay.png)" },
+            "opacity": { "label": "Opacity", "tooltip": "Transparency level (0 = invisible, 1 = fully visible)" },
+            "objectFit": { "label": "Fit Mode", "tooltip": "How the image fits within its area" }
         }
     }
 }

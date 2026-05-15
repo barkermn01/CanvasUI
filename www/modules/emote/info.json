@@ -1,6 +1,6 @@
 {
     "name": "emote",
-    "displayName": "Emote",
+    "displayName": "Emotes",
     "icon": "😀",
     "type": "canvas",
     "configKey": "emote",
@@ -13,6 +13,9 @@
         "_type": {
             "RandomDirectionsFromStart": "bool"
         },
+        "_labels": {
+            "RandomDirectionsFromStart": { "label": "Random Start Direction", "tooltip": "Randomise the initial movement direction of each emote" }
+        },
         "_item_type": {
             "AnimationTime": "object",
             "Speed": "object"
@@ -21,12 +24,20 @@
             "_type": {
                 "Min": "number",
                 "Max": "number"
+            },
+            "_labels": {
+                "Min": { "label": "Minimum (seconds)", "tooltip": "Shortest time an emote stays on screen" },
+                "Max": { "label": "Maximum (seconds)", "tooltip": "Longest time an emote stays on screen" }
             }
         },
         "Speed": {
             "_type": {
                 "Min": "number",
                 "Max": "number"
+            },
+            "_labels": {
+                "Min": { "label": "Minimum (px/s)", "tooltip": "Slowest movement speed in pixels per second" },
+                "Max": { "label": "Maximum (px/s)", "tooltip": "Fastest movement speed in pixels per second" }
             }
         }
     }

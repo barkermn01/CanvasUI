@@ -7,18 +7,28 @@
             "Name": "string",
             "ChannelName": "string",
             "TwitchID": "string",
-            "DefaultScene": "string",
+            "DefaultScene": { "type": "sceneSelect" },
             "Modules": { "type": "array", "items": "string" },
             "Bots": { "type": "array", "items": "string" }
         },
-        "_item_type": {
-            "StreamerBot": "object"
+        "_labels": {
+            "Name": { "label": "Project Name", "tooltip": "Display name shown in the editor title bar" },
+            "ChannelName": { "label": "Channel Name", "tooltip": "Your Twitch channel name" },
+            "TwitchID": { "label": "Twitch ID", "tooltip": "Your Twitch user ID (numeric)" },
+            "DefaultScene": { "label": "Default Scene", "tooltip": "Scene shown on startup and when no OBS scene matches" },
+            "Modules": { "label": "Modules", "tooltip": "List of modules to load (order matters, scene should be last)" },
+            "Bots": { "label": "Bots", "tooltip": "Bot usernames to hide from chat" }
         },
         "StreamerBot": {
             "_type": {
                 "host": "string",
                 "port": "number",
                 "endpoint": "string"
+            },
+            "_labels": {
+                "host": { "label": "Host", "tooltip": "Streamer.bot WebSocket server address (usually 127.0.0.1)" },
+                "port": { "label": "Port", "tooltip": "Streamer.bot WebSocket server port (default 24585)" },
+                "endpoint": { "label": "Endpoint", "tooltip": "WebSocket endpoint path (usually /)" }
             }
         }
     }

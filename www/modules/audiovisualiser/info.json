@@ -22,6 +22,15 @@
             "barSpacing": "number",
             "backgroundColor": "string"
         },
+        "_labels": {
+            "device": { "label": "Audio Device", "tooltip": "Select the audio input device to visualise" },
+            "direction": { "label": "Direction", "tooltip": "Which direction the bars grow from" },
+            "mirrored": { "label": "Mirrored", "tooltip": "Bars grow from center outward in both directions" },
+            "barWidth": { "label": "Bar Width", "tooltip": "Width of each bar in pixels" },
+            "barHeight": { "label": "Bar Height", "tooltip": "Height of each bar in pixels (vertical modes)" },
+            "barSpacing": { "label": "Bar Spacing", "tooltip": "Gap between bars in pixels" },
+            "backgroundColor": { "label": "Background Color", "tooltip": "Background behind the visualiser (use 'transparent' for none)" }
+        },
         "_item_type": {
             "area": "css",
             "colors": "object"
@@ -37,6 +46,14 @@
                 "level3": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
                 "level4": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
                 "gradient": { "type": "gradient", "showWhen": { "field": "mode", "value": "gradient" } }
+            },
+            "_labels": {
+                "mode": { "label": "Color Mode", "tooltip": "Levels uses fixed colors per intensity, Gradient uses a smooth color ramp" },
+                "level1": { "label": "Low", "tooltip": "Color for lowest intensity bars" },
+                "level2": { "label": "Medium-Low", "tooltip": "Color for medium-low intensity bars" },
+                "level3": { "label": "Medium-High", "tooltip": "Color for medium-high intensity bars" },
+                "level4": { "label": "High", "tooltip": "Color for highest intensity bars" },
+                "gradient": { "label": "Gradient", "tooltip": "Edit the gradient color stops" }
             }
         }
     }

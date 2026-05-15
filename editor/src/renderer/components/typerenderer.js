@@ -17,6 +17,7 @@ class TypeRenderer {
         const { adminMode = false, onChange = () => {}, schema = null } = options;
         const typeMap = schema?._type || obj._type || {};
         const itemTypeMap = schema?._item_type || obj._item_type || {};
+        const labelsMap = schema?._labels || obj._labels || {};
 
         // Helper to get sub-schema for nested objects
         const getSubSchema = (key) => {
@@ -24,6 +25,15 @@ class TypeRenderer {
                 return schema[key];
             }
             return null;
+        };
+
+        // Helper to get display label for a key
+        const getLabel = (key) => {
+            if (labelsMap[key]) return labelsMap[key];
+            // Auto-format: camelCase/PascalCase to spaced words
+            return key.replace(/([a-z])([A-Z])/g, '$1 $2')
+                      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                      .replace(/^./, c => c.toUpperCase());
         };
 
         container.innerHTML = '';
@@ -81,10 +91,16 @@ class TypeRenderer {
         }
 
         // Render typed properties
-        // Collect all keys: from the object + from the schema (for properties that don't exist yet)
-        const allKeys = new Set(Object.keys(obj));
-        for (const key of Object.keys(typeMap)) {
-            allKeys.add(key);
+        // Collect all keys: from the schema (if provided) or from the object
+        const allKeys = new Set();
+        if (schema) {
+            // When schema is provided, only render keys defined in the schema
+            for (const key of Object.keys(typeMap)) allKeys.add(key);
+            for (const key of Object.keys(itemTypeMap)) allKeys.add(key);
+        } else {
+            // No schema — render all object keys + any from legacy _type
+            for (const key of Object.keys(obj)) allKeys.add(key);
+            for (const key of Object.keys(typeMap)) allKeys.add(key);
         }
 
         for (const key of allKeys) {
@@ -117,7 +133,9 @@ class TypeRenderer {
                     else if (type === 'number') obj[key] = 0;
                     else if (type === 'string' || type === 'color' || type === 'audioDevice') obj[key] = '';
                 }
-                const row = TypeRenderer.#createInput(key, obj[key], typeDef, fullPath, obj, onChange);
+                // Pass display label from _labels if available
+                const displayLabel = labelsMap[key] || null;
+                const row = TypeRenderer.#createInput(key, obj[key], typeDef, fullPath, obj, onChange, displayLabel);
                 if (row) container.appendChild(row);
             } else if (itemType === 'css') {
                 // CSS key-value editor
@@ -140,6 +158,13 @@ class TypeRenderer {
         }
     }
 
+    static #formatLabel(key) {
+        // Convert camelCase/PascalCase to spaced title case
+        return key.replace(/([a-z])([A-Z])/g, '$1 $2')
+                  .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+                  .replace(/^./, c => c.toUpperCase());
+    }
+
     static #inferType(value) {
         if (typeof value === 'boolean') return 'bool';
         if (typeof value === 'number') return 'number';
@@ -150,12 +175,29 @@ class TypeRenderer {
         return 'string';
     }
 
-    static #createInput(key, value, typeDef, fullPath, obj, onChange) {
+    static #createInput(key, value, typeDef, fullPath, obj, onChange, displayLabel) {
         const row = document.createElement('div');
         row.className = 'tr-row';
 
         const label = document.createElement('label');
-        label.textContent = key;
+        label.textContent = displayLabel?.label || displayLabel || TypeRenderer.#formatLabel(key);
+        if (displayLabel?.tooltip) {
+            label.style.cursor = 'help';
+            label.style.textDecoration = 'underline dotted';
+
+            const tip = document.createElement('div');
+            tip.className = 'tr-tooltip';
+            tip.textContent = displayLabel.tooltip;
+            document.body.appendChild(tip);
+
+            label.addEventListener('mouseenter', (e) => {
+                const rect = label.getBoundingClientRect();
+                tip.style.display = 'block';
+                tip.style.left = rect.left + 'px';
+                tip.style.top = (rect.top - tip.offsetHeight - 4) + 'px';
+            });
+            label.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+        }
         row.appendChild(label);
 
         const type = typeof typeDef === 'string' ? typeDef : typeDef.type;
@@ -223,6 +265,23 @@ class TypeRenderer {
                     obj[key] = select.value;
                     onChange();
                 });
+                break;
+            }
+            case 'sceneSelect': {
+                const select = document.createElement('select');
+                const scenes = typeof EditorState !== 'undefined' ? Object.keys(EditorState.scenes) : [];
+                scenes.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    if (s === value) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                select.addEventListener('change', () => {
+                    obj[key] = select.value;
+                    onChange();
+                });
+                row.appendChild(select);
                 break;
             }
             case 'color': {

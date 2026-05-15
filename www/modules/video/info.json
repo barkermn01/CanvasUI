@@ -16,6 +16,13 @@
             "muted": "bool",
             "opacity": "number",
             "objectFit": { "type": "select", "options": ["contain", "cover", "fill", "none"] }
+        },
+        "_labels": {
+            "src": { "label": "Source", "tooltip": "Path to the video file (e.g. /media/background.mp4)" },
+            "loop": { "label": "Loop", "tooltip": "Restart the video when it ends" },
+            "muted": { "label": "Muted", "tooltip": "Disable audio playback" },
+            "opacity": { "label": "Opacity", "tooltip": "Transparency level (0 = invisible, 1 = fully visible)" },
+            "objectFit": { "label": "Fit Mode", "tooltip": "How the video fits within its area" }
         }
     }
 }

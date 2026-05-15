@@ -15,6 +15,12 @@
             "mirror": "bool",
             "mask": { "type": "select", "options": ["none", "circle", "rounded"] },
             "borderRadius": "string"
+        },
+        "_labels": {
+            "device": { "label": "Camera Device", "tooltip": "Name of the camera to use (blank for default)" },
+            "mirror": { "label": "Mirror", "tooltip": "Flip the video horizontally" },
+            "mask": { "label": "Mask Shape", "tooltip": "Clip the webcam feed to a shape" },
+            "borderRadius": { "label": "Border Radius", "tooltip": "Corner rounding for the 'rounded' mask (e.g. 16px)" }
         }
     }
 }
