@@ -78,7 +78,7 @@ class MediaPanel {
 
             const pathLabel = document.createElement('span');
             pathLabel.className = 'media-path-label';
-            pathLabel.textContent = `/media/${this.#currentPath}`;
+            pathLabel.textContent = `/${this.#currentPath}`;
             nav.appendChild(pathLabel);
 
             this.#list.appendChild(nav);
@@ -127,6 +127,28 @@ class MediaPanel {
         name.className = 'media-name';
         name.textContent = item.name;
         el.appendChild(name);
+
+        // Delete button for folder
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'media-delete-btn';
+        deleteBtn.textContent = '🗑';
+        deleteBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (deleteBtn.dataset.armed) {
+                await window.api.mediaDeleteDir(item.path);
+                this.refresh();
+            } else {
+                deleteBtn.dataset.armed = 'true';
+                deleteBtn.textContent = '❌';
+                deleteBtn.title = 'Click again to confirm delete folder';
+                setTimeout(() => {
+                    deleteBtn.dataset.armed = '';
+                    deleteBtn.textContent = '🗑';
+                    deleteBtn.title = '';
+                }, 2000);
+            }
+        });
+        el.appendChild(deleteBtn);
 
         el.addEventListener('click', () => {
             this.#currentPath = item.path;
@@ -184,7 +206,9 @@ class MediaPanel {
             e.stopPropagation();
             // Double-click to confirm delete (no confirm() in Electron)
             if (deleteBtn.dataset.armed) {
-                await window.api.mediaDelete(item.name);
+                // item.path is web path like /media/subdir/file.png — strip /media/ prefix for delete
+                const relativePath = item.path.replace(/^\/media\//, '');
+                await window.api.mediaDelete(relativePath);
                 this.refresh();
             } else {
                 deleteBtn.dataset.armed = 'true';

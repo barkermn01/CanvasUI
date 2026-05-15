@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
     mediaList: (subPath) => ipcRenderer.invoke('media-list', subPath),
     mediaUpload: (paths) => ipcRenderer.invoke('media-upload', paths),
     mediaDelete: (name) => ipcRenderer.invoke('media-delete', name),
+    mediaDeleteDir: (dirPath) => ipcRenderer.invoke('media-delete-dir', dirPath),
     mediaDrop: (paths, subPath) => ipcRenderer.invoke('media-drop', paths, subPath),
     mediaCreateDir: (name, subPath) => ipcRenderer.invoke('media-create-dir', name, subPath),
     onMediaChanged: (callback) => ipcRenderer.on('media-changed', callback),

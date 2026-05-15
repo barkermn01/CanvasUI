@@ -317,12 +317,15 @@ class CanvasWorkspace {
             label.textContent = `${getModuleIcon(mod.type)} ${id}`;
             el.appendChild(label);
 
-            // Play/Stop simulation button — shown for any module with editorClass
-            if (ModuleSimulator.hasEditorSupport(mod.type)) {
-                const playBtn = document.createElement('button');
+            // Play/Stop simulation button — shown after registration if module has simulate callbacks
+            const hasSimulate = ModuleSimulator.hasEditorSupport(mod.type);
+            let playBtn = null;
+            if (hasSimulate) {
+                playBtn = document.createElement('button');
                 playBtn.className = 'module-play-btn';
                 playBtn.textContent = '▶';
                 playBtn.title = 'Play simulation';
+                playBtn.style.display = 'none'; // Hidden until we confirm simulate exists
                 playBtn.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                 });
@@ -334,54 +337,6 @@ class CanvasWorkspace {
                     playBtn.title = ModuleSimulator.isPlaying(id) ? 'Stop simulation' : 'Play simulation';
                 });
                 el.appendChild(playBtn);
-            }
-
-            // Chat module: test message + clear buttons
-            if (mod.type === 'chat') {
-                const chatTestBtn = document.createElement('button');
-                chatTestBtn.className = 'module-play-btn';
-                chatTestBtn.textContent = '💬';
-                chatTestBtn.title = 'Send test message';
-                chatTestBtn.style.right = '30px';
-                chatTestBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-                chatTestBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    // Access the chat instance from the registry
-                    const entry = ModuleSimulator.getEntry(id);
-                    const chatInstance = entry?.classInstance;
-                    if (!chatInstance || typeof chatInstance.onMessage !== 'function') return;
-                    const names = ['Viewer42', 'NightOwl', 'GamerPro', 'LurkKing', 'SubHype', 'ChillDude'];
-                    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
-                    const msgs = ['Hello! 👋', 'GG well played', 'Lets gooo 🎉', 'Nice stream!', 'First time here!', '❤️❤️❤️'];
-                    const i = Math.floor(Math.random() * names.length);
-                    chatInstance.onMessage({
-                        Type: 'MessageAdded',
-                        ID: 'test_' + Date.now(),
-                        DisplayName: names[i],
-                        DisplayNameColor: colors[i],
-                        Message: msgs[i],
-                        Emotes: [],
-                        Badges: [],
-                        Platform: 'twitch',
-                        UserId: 'test_' + i
-                    });
-                });
-                el.appendChild(chatTestBtn);
-
-                const chatClearBtn = document.createElement('button');
-                chatClearBtn.className = 'module-play-btn';
-                chatClearBtn.textContent = '🗑';
-                chatClearBtn.title = 'Clear chat';
-                chatClearBtn.addEventListener('mousedown', (e) => e.stopPropagation());
-                chatClearBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const entry = ModuleSimulator.getEntry(id);
-                    const chatInstance = entry?.classInstance;
-                    if (chatInstance && typeof chatInstance.onMessage === 'function') {
-                        chatInstance.onMessage({ Type: 'ClearChat' });
-                    }
-                });
-                el.appendChild(chatClearBtn);
             }
 
             // Build preview — register module and use its preview callback
@@ -435,7 +390,12 @@ class CanvasWorkspace {
     async #registerAndBuildPreview(id, mod, el) {
         // Try to register (loads script if needed)
         if (ModuleSimulator.hasEditorSupport(mod.type)) {
-            await ModuleSimulator.register(id, mod.type);
+            const reg = await ModuleSimulator.register(id, mod.type);
+            // Show play button only if module registered simulate callbacks
+            if (reg?.simulate?.draw || reg?.simulate?.update) {
+                const playBtn = el.querySelector('.module-play-btn');
+                if (playBtn) playBtn.style.display = '';
+            }
         }
 
         // Build preview using registration (or fallback)

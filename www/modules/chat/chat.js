@@ -802,14 +802,44 @@ class CanvasChatMain {
             },
             simulate: {
                 start: (canvas, settings, area) => {
-                    // Chat is always "simulating" via its preview — nothing extra needed
+                    // Spawn test messages periodically during simulation
+                    const names = ['Viewer42', 'NightOwl', 'GamerPro', 'LurkKing', 'SubHype', 'ChillDude'];
+                    const colors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
+                    const msgs = ['Hello! 👋', 'GG well played', 'Lets gooo 🎉', 'Nice stream!', 'First time here!', '❤️❤️❤️', 'LOL 😂', 'Hype!', 'Good vibes only', 'PogChamp'];
+
+                    const spawnMessage = () => {
+                        const i = Math.floor(Math.random() * names.length);
+                        const m = Math.floor(Math.random() * msgs.length);
+                        self.onMessage({
+                            Type: 'MessageAdded',
+                            ID: 'sim_' + Date.now() + '_' + Math.random(),
+                            DisplayName: names[i],
+                            DisplayNameColor: colors[i],
+                            Message: msgs[m],
+                            Emotes: [],
+                            Badges: [],
+                            Platform: 'twitch',
+                            UserId: 'sim_' + i
+                        });
+                    };
+
+                    // Send a few initial messages
+                    for (let i = 0; i < 3; i++) setTimeout(spawnMessage, i * 300);
+
+                    // Then periodically
+                    self._simInterval = setInterval(spawnMessage, 2000);
                 },
                 draw: (ctx, settings, area, dt) => {
                     window.Config = window.Config || {};
                     self.update(dt);
                     self.draw(ctx, settings, area);
                 },
-                stop: () => {}
+                stop: () => {
+                    if (self._simInterval) {
+                        clearInterval(self._simInterval);
+                        self._simInterval = null;
+                    }
+                }
             },
             dispose: () => {
                 // Chat persists messages in localStorage, no cleanup needed

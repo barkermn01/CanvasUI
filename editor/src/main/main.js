@@ -352,6 +352,19 @@ ipcMain.handle('media-delete', (event, fileName) => {
     }
 });
 
+ipcMain.handle('media-delete-dir', (event, dirPath) => {
+    const mediaDir = getMediaDir();
+    const fullPath = path.join(mediaDir, dirPath);
+    // Security: ensure it's inside media dir and not the media dir itself
+    if (!fullPath.startsWith(mediaDir) || fullPath === mediaDir) return { success: false, error: 'Invalid path' };
+    try {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
 ipcMain.handle('media-drop', async (event, fileDataArray, subPath) => {
     const mediaDir = getMediaDir();
     const targetDir = subPath ? path.join(mediaDir, subPath) : mediaDir;
