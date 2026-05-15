@@ -79,6 +79,8 @@ class PropertiesPanel {
             html += this.#webcamProps(mod);
         } else if (mod.type === 'audiovisualiser') {
             html += this.#audioVisualiserProps(mod);
+        } else if (mod.type === 'pngtuber') {
+            html += this.#pngtuberProps(mod);
         }
 
         // Transition (scene-level)
@@ -97,14 +99,11 @@ class PropertiesPanel {
         }
 
         // Module settings button (opens settings panel to the relevant tab)
-        const settingsTabMap = {
-            chat: 'chat',
-            emote: 'emote',
-            audiovisualiser: 'audiovisualiser',
-            webcam: 'webcam'
-        };
-        if (settingsTabMap[mod.type]) {
-            html += `<button class="prop-btn-settings" id="btn-module-settings" data-tab="${settingsTabMap[mod.type]}">⚙️ ${mod.type.charAt(0).toUpperCase() + mod.type.slice(1)} Settings</button>`;
+        // Dynamic: show button if the module has hasSettings in its registry info
+        const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
+        if (modInfo?.hasSettings) {
+            const displayName = modInfo.displayName || mod.type.charAt(0).toUpperCase() + mod.type.slice(1);
+            html += `<button class="prop-btn-settings" id="btn-module-settings" data-tab="${mod.type}">⚙️ ${displayName} Settings</button>`;
         }
 
         // Delete button
@@ -281,6 +280,123 @@ class PropertiesPanel {
             const defaultOpt = document.createElement('option');
             defaultOpt.value = '';
             defaultOpt.textContent = '(Default / Global)';
+            select.appendChild(defaultOpt);
+
+            audioInputs.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.label || d.deviceId;
+                opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
+                if ((d.label || d.deviceId) === (settings.device || '')) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => {
+                EditorState.updateModuleSetting(EditorState.selectedModule, 'device', select.value);
+            });
+        } catch (e) {
+            select.innerHTML = '<option value="">(No devices found)</option>';
+        }
+    }
+
+    #pngtuberProps(mod) {
+        const settings = mod.settings || {};
+        let html = `<div class="prop-group">`;
+        html += `<div class="prop-group-title">PNGTuber Settings</div>`;
+        html += `<div class="prop-row"><label>Audio Device</label><select id="prop-pt-device"><option value="">Loading...</option></select></div>`;
+        html += `<div class="prop-row"><label>Threshold</label><input type="number" id="prop-pt-threshold" value="${settings.threshold ?? 30}" min="0" max="255"></div>`;
+        html += `<div class="prop-row"><label>Hold Time (ms)</label><input type="number" id="prop-pt-holdTime" value="${settings.holdTime ?? 200}" min="0" max="2000"></div>`;
+        html += `<div class="prop-row"><label>Freq Min (Hz)</label><input type="number" id="prop-pt-freqMin" value="${settings.frequencyMin ?? 85}" min="20" max="2000"></div>`;
+        html += `<div class="prop-row"><label>Freq Max (Hz)</label><input type="number" id="prop-pt-freqMax" value="${settings.frequencyMax ?? 300}" min="20" max="2000"></div>`;
+        html += `</div>`;
+
+        html += `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Images</div>`;
+        html += `<div class="prop-row"><label>Idle</label><button id="btn-pick-pt-idle">Browse...</button></div>`;
+        if (settings.idleImage) {
+            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.idleImage.split(/[/\\]/).pop()}</span></div>`;
+        }
+        html += `<div class="prop-row"><label>Talking</label><button id="btn-pick-pt-talking">Browse...</button></div>`;
+        if (settings.talkingImage) {
+            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.talkingImage.split(/[/\\]/).pop()}</span></div>`;
+        }
+        html += `<div class="prop-row"><label>Blink</label><button id="btn-pick-pt-blink">Browse...</button></div>`;
+        if (settings.blinkImage) {
+            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.blinkImage.split(/[/\\]/).pop()}</span></div>`;
+        }
+        html += `</div>`;
+
+        html += `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Animation</div>`;
+        html += `<div class="prop-row"><label>Blink Interval (s)</label><input type="number" id="prop-pt-blinkInterval" value="${settings.blinkInterval ?? 4}" min="0" max="30" step="0.5"></div>`;
+        html += `<div class="prop-row"><label>Blink Duration (ms)</label><input type="number" id="prop-pt-blinkDuration" value="${settings.blinkDuration ?? 150}" min="50" max="1000"></div>`;
+        html += `<div class="prop-row"><label>Bounce on Talk</label><input type="checkbox" id="prop-pt-bounce" ${settings.bounce ? 'checked' : ''}></div>`;
+        html += `<div class="prop-row"><label>Bounce Pixels</label><input type="number" id="prop-pt-bounceAmount" value="${settings.bounceAmount ?? 5}" min="1" max="50"></div>`;
+        html += `</div>`;
+
+        setTimeout(() => this.#bindPNGTuberEvents(), 0);
+        setTimeout(() => this.#populateAudioDevicesForPT(settings), 0);
+
+        return html;
+    }
+
+    #bindPNGTuberEvents() {
+        const id = EditorState.selectedModule;
+
+        const threshEl = document.getElementById('prop-pt-threshold');
+        const holdEl = document.getElementById('prop-pt-holdTime');
+        const freqMinEl = document.getElementById('prop-pt-freqMin');
+        const freqMaxEl = document.getElementById('prop-pt-freqMax');
+        const blinkIntEl = document.getElementById('prop-pt-blinkInterval');
+        const blinkDurEl = document.getElementById('prop-pt-blinkDuration');
+        const bounceEl = document.getElementById('prop-pt-bounce');
+        const bounceAmtEl = document.getElementById('prop-pt-bounceAmount');
+
+        if (threshEl) threshEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'threshold', parseInt(threshEl.value) || 30));
+        if (holdEl) holdEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'holdTime', parseInt(holdEl.value) || 200));
+        if (freqMinEl) freqMinEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'frequencyMin', parseInt(freqMinEl.value) || 85));
+        if (freqMaxEl) freqMaxEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'frequencyMax', parseInt(freqMaxEl.value) || 300));
+        if (blinkIntEl) blinkIntEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'blinkInterval', parseFloat(blinkIntEl.value) || 4));
+        if (blinkDurEl) blinkDurEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'blinkDuration', parseInt(blinkDurEl.value) || 150));
+        if (bounceEl) bounceEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'bounce', bounceEl.checked));
+        if (bounceAmtEl) bounceAmtEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'bounceAmount', parseInt(bounceAmtEl.value) || 5));
+
+        // Image browse buttons
+        const pickIdle = document.getElementById('btn-pick-pt-idle');
+        const pickTalking = document.getElementById('btn-pick-pt-talking');
+        const pickBlink = document.getElementById('btn-pick-pt-blink');
+
+        if (pickIdle) pickIdle.addEventListener('click', () => {
+            window.mediaPanel.startSelection('image', (path) => {
+                EditorState.updateModuleSetting(id, 'idleImage', path);
+                this.render();
+            });
+        });
+        if (pickTalking) pickTalking.addEventListener('click', () => {
+            window.mediaPanel.startSelection('image', (path) => {
+                EditorState.updateModuleSetting(id, 'talkingImage', path);
+                this.render();
+            });
+        });
+        if (pickBlink) pickBlink.addEventListener('click', () => {
+            window.mediaPanel.startSelection('image', (path) => {
+                EditorState.updateModuleSetting(id, 'blinkImage', path);
+                this.render();
+            });
+        });
+    }
+
+    async #populateAudioDevicesForPT(settings) {
+        const select = document.getElementById('prop-pt-device');
+        if (!select) return;
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const audioInputs = devices.filter(d => d.kind === 'audioinput');
+
+            select.innerHTML = '';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = '(Select device)';
             select.appendChild(defaultOpt);
 
             audioInputs.forEach(d => {

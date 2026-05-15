@@ -151,5 +151,21 @@ const Config = {
         mirror: false,
         mask: "none",
         borderRadius: "0"
+    },
+
+    // PNGTuber settings
+    pngtuber: {
+        device: "",
+        threshold: 30,
+        holdTime: 200,
+        frequencyMin: 85,
+        frequencyMax: 300,
+        idleImage: "",
+        talkingImage: "",
+        blinkImage: "",
+        blinkInterval: 4,
+        blinkDuration: 150,
+        bounce: true,
+        bounceAmount: 5
     }
 };

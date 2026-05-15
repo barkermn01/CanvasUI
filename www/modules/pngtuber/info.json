@@ -1,0 +1,43 @@
+{
+    "name": "pngtuber",
+    "displayName": "PNGTuber",
+    "icon": "🎭",
+    "type": "canvas",
+    "configKey": "pngtuber",
+    "entrypoint": "pngtuber.js",
+    "editorClass": "PNGTuber",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Audio-reactive PNG avatar that switches poses based on voice",
+    "gradient": { "from": "rgba(255, 159, 67, 0.08)", "to": "rgba(255, 159, 67, 0.25)" },
+    "schema": {
+        "_type": {
+            "device": "audioDevice",
+            "threshold": "number",
+            "holdTime": "number",
+            "frequencyMin": "number",
+            "frequencyMax": "number",
+            "idleImage": "string",
+            "talkingImage": "string",
+            "blinkImage": "string",
+            "blinkInterval": "number",
+            "blinkDuration": "number",
+            "bounce": "bool",
+            "bounceAmount": "number"
+        },
+        "_labels": {
+            "device": { "label": "Audio Device", "tooltip": "Microphone or audio input to monitor for voice" },
+            "threshold": { "label": "Volume Threshold", "tooltip": "Audio level (0-255) that triggers the talking state" },
+            "holdTime": { "label": "Hold Time (ms)", "tooltip": "How long to stay in talking state after audio drops below threshold (prevents flickering)" },
+            "frequencyMin": { "label": "Frequency Min (Hz)", "tooltip": "Lower bound of frequency range to monitor (85 for typical voice)" },
+            "frequencyMax": { "label": "Frequency Max (Hz)", "tooltip": "Upper bound of frequency range to monitor (300 for typical voice)" },
+            "idleImage": { "label": "Idle Image", "tooltip": "PNG shown when not talking (e.g. /media/avatar-idle.png)" },
+            "talkingImage": { "label": "Talking Image", "tooltip": "PNG shown when talking (e.g. /media/avatar-talk.png)" },
+            "blinkImage": { "label": "Blink Image", "tooltip": "Optional PNG overlaid during blink (leave empty to disable)" },
+            "blinkInterval": { "label": "Blink Interval (s)", "tooltip": "Seconds between blinks (0 to disable)" },
+            "blinkDuration": { "label": "Blink Duration (ms)", "tooltip": "How long the blink lasts in milliseconds" },
+            "bounce": { "label": "Bounce on Talk", "tooltip": "Add a small bounce animation when switching to talking" },
+            "bounceAmount": { "label": "Bounce Pixels", "tooltip": "How many pixels to bounce up when talking" }
+        }
+    }
+}
