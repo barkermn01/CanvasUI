@@ -33,7 +33,7 @@ A visual overlay system for streamers that renders chat, emotes, audio visualise
 
 ```bash
 # Clone the repo
-git clone https://github.com/YourUsername/CanvasUI.git
+git clone https://github.com/barkermn01/CanvasUI.git
 cd CanvasUI
 
 # Install overlay dependencies
