@@ -129,6 +129,8 @@ class Sidebar {
         } else {
             panelsContainer.classList.add('collapsed');
         }
+        // Trigger canvas resize after sidebar width changes
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
     }
 
     #bindPanelResize() {
