@@ -56,6 +56,17 @@ body {
 #toolbar-left, #toolbar-right { display: flex; align-items: center; gap: 4px; }
 #toolbar-right input { width: 60px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); padding: 3px 6px; border-radius: 3px; text-align: center; }
 #toolbar-right label, #toolbar-right span { color: var(--text-secondary); font-size: 13px; }
+
+/* Canvas Settings Dropdown */
+.toolbar-dropdown { position: relative; }
+.toolbar-dropdown summary { cursor: pointer; color: var(--text-secondary); font-size: 13px; padding: 4px 8px; border-radius: 3px; list-style: none; user-select: none; }
+.toolbar-dropdown summary:hover { background: var(--bg-surface); color: var(--text-primary); }
+.toolbar-dropdown summary::-webkit-details-marker { display: none; }
+.toolbar-dropdown-content { position: absolute; top: 100%; right: 0; margin-top: 4px; background: #16213e; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; z-index: 1000; min-width: 180px; box-shadow: 0 4px 12px rgba(0,0,0,0.6); }
+.toolbar-dropdown-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; }
+.toolbar-dropdown-row label { color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.toolbar-dropdown-row input[type="number"] { width: 70px; }
+.toolbar-dropdown-row input[type="checkbox"] { width: auto; }
 #project-name { color: var(--text-secondary); font-size: 13px; cursor: pointer; padding: 2px 8px; border-radius: 3px; }
 #project-name:hover { background: var(--bg-surface); color: var(--text-primary); }
 #project-name.unnamed { font-style: italic; opacity: 0.6; }

@@ -1,6 +1,7 @@
 const EditorState = {
     canvasWidth: 1920,
     canvasHeight: 1080,
+    lockToCanvas: true,
     scenes: {},
     activeScene: null,
     selectedModule: null,

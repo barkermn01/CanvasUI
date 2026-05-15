@@ -19,10 +19,23 @@
         </div>
         <div id="toolbar-right" style="-webkit-app-region: no-drag;">
             <div id="server-controls"></div>
-            <label>Canvas: </label>
-            <input type="number" id="canvas-width" value="1920" min="100" max="7680" step="1">
-            <span>×</span>
-            <input type="number" id="canvas-height" value="1080" min="100" max="4320" step="1">
+            <details id="canvas-settings-dropdown" class="toolbar-dropdown">
+                <summary>Canvas Settings</summary>
+                <div class="toolbar-dropdown-content">
+                    <div class="toolbar-dropdown-row">
+                        <label>Width</label>
+                        <input type="number" id="canvas-width" value="1920" min="100" max="7680" step="1">
+                    </div>
+                    <div class="toolbar-dropdown-row">
+                        <label>Height</label>
+                        <input type="number" id="canvas-height" value="1080" min="100" max="4320" step="1">
+                    </div>
+                    <div class="toolbar-dropdown-row">
+                        <label>Lock to Canvas</label>
+                        <input type="checkbox" id="canvas-lock" checked>
+                    </div>
+                </div>
+            </details>
             <div id="window-controls">
                 <button id="win-minimize" class="win-ctrl-btn">─</button>
                 <button id="win-maximize" class="win-ctrl-btn">□</button>

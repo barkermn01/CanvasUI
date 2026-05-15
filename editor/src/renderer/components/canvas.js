@@ -188,8 +188,10 @@ class CanvasWorkspace {
 
             const mod = EditorState.getActiveSceneModules()[this.#dragging];
             if (mod) {
-                x = Math.max(0, Math.min(x, EditorState.canvasWidth - mod.area.width));
-                y = Math.max(0, Math.min(y, EditorState.canvasHeight - mod.area.height));
+                if (EditorState.lockToCanvas) {
+                    x = Math.max(0, Math.min(x, EditorState.canvasWidth - mod.area.width));
+                    y = Math.max(0, Math.min(y, EditorState.canvasHeight - mod.area.height));
+                }
                 EditorState.updateModuleArea(this.#dragging, { x, y });
                 this.#updateModuleElement(this.#dragging);
             }
@@ -226,8 +228,18 @@ class CanvasWorkspace {
 
         width = Math.max(minSize, width);
         height = Math.max(minSize, height);
-        x = Math.max(0, Math.min(x, EditorState.canvasWidth - minSize));
-        y = Math.max(0, Math.min(y, EditorState.canvasHeight - minSize));
+
+        if (EditorState.lockToCanvas) {
+            // Constrain position and size to stay within canvas
+            x = Math.max(0, x);
+            y = Math.max(0, y);
+            if (x + width > EditorState.canvasWidth) width = EditorState.canvasWidth - x;
+            if (y + height > EditorState.canvasHeight) height = EditorState.canvasHeight - y;
+            width = Math.max(minSize, width);
+            height = Math.max(minSize, height);
+            x = Math.min(x, EditorState.canvasWidth - minSize);
+            y = Math.min(y, EditorState.canvasHeight - minSize);
+        }
 
         EditorState.updateModuleArea(id, { x, y, width, height });
         this.#updateModuleElement(id);
