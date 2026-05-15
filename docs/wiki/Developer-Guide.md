@@ -156,6 +156,8 @@ Add your module to `www/modules/modules.json`:
 }
 ```
 
+If you install via the Module Manager (Settings → Modules → Install from .zip), steps 4 and 5 are handled automatically.
+
 ### 5. Enable in config
 
 Add `"mymodule"` to the `Modules` array in `www/config.js`:
@@ -165,6 +167,8 @@ Modules: ["emote", "chat", "mymodule", "scene"]
 ```
 
 The scene module should always be last.
+
+> **Note:** The Module Manager handles this automatically when installing from a .zip package. You only need to do this manually if you're developing a module by dropping files directly into the modules folder.
 
 ## Module Packaging
 

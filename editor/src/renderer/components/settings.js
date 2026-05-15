@@ -553,6 +553,17 @@ class SettingsPanel {
         container.querySelector('#mm-install-btn').addEventListener('click', async () => {
             const result = await window.api.moduleInstall();
             if (result.success) {
+                // Add to Config.Modules if not already there (so overlay loads it)
+                if (!EditorState.globalConfig.Modules.includes(result.name)) {
+                    // Insert before 'scene' (which should be last)
+                    const sceneIdx = EditorState.globalConfig.Modules.indexOf('scene');
+                    if (sceneIdx >= 0) {
+                        EditorState.globalConfig.Modules.splice(sceneIdx, 0, result.name);
+                    } else {
+                        EditorState.globalConfig.Modules.push(result.name);
+                    }
+                    EditorState.notify('settings');
+                }
                 // Refresh module registry
                 await this.#reloadModuleRegistry();
                 this.#renderModuleManager(container);
@@ -628,6 +639,13 @@ class SettingsPanel {
                         const currentMod = EditorState.getActiveSceneModules()[EditorState.selectedModule];
                         if (!currentMod) EditorState.selectedModule = null;
                     }
+
+                    // Remove from Config.Modules
+                    const modIdx = EditorState.globalConfig.Modules.indexOf(name);
+                    if (modIdx >= 0) {
+                        EditorState.globalConfig.Modules.splice(modIdx, 1);
+                    }
+
                     EditorState.notify('modules');
 
                     // Auto-save config to prevent stale module references
