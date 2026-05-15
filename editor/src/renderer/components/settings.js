@@ -43,11 +43,13 @@ class SettingsPanel {
         const tabsContainer = this.#overlay.querySelector('#settings-tabs');
         tabsContainer.innerHTML = '';
 
-        // Fixed tabs that always appear
-        const fixedTabs = [
+        // System tabs
+        const systemTabs = [
             { id: 'general', label: 'General' },
             { id: 'server', label: 'Server' },
-            { id: 'streamerbot', label: 'Streamer.bot' }
+            { id: 'streamerbot', label: 'Streamer.bot' },
+            { id: 'bots', label: 'Bots' },
+            { id: 'module-manager', label: 'Modules' }
         ];
 
         // Dynamic tabs from discovered modules with hasSettings
@@ -60,14 +62,15 @@ class SettingsPanel {
             }
         }
 
-        // Bots tab at the end
-        const endTabs = [
-            { id: 'bots', label: 'Bots' }
-        ];
-
-        const allTabs = [...fixedTabs, ...moduleTabs, ...endTabs];
+        const allTabs = [...systemTabs, ...(moduleTabs.length ? [{ id: '_divider', label: '' }] : []), ...moduleTabs];
 
         allTabs.forEach((tab, i) => {
+            if (tab.id === '_divider') {
+                const divider = document.createElement('div');
+                divider.className = 'settings-tab-divider';
+                tabsContainer.appendChild(divider);
+                return;
+            }
             const btn = document.createElement('button');
             btn.className = 'settings-tab' + (tab.id === this.#activeTab ? ' active' : '');
             btn.dataset.tab = tab.id;
@@ -170,6 +173,10 @@ class SettingsPanel {
                 });
                 return;
             case 'bots': content.innerHTML = this.#renderBots(); break;
+            case 'module-manager':
+                content.innerHTML = '';
+                this.#renderModuleManager(content);
+                return;
             default: {
                 // Dynamic module tab — find the module info and render its config
                 const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === this.#activeTab);
@@ -501,6 +508,200 @@ class SettingsPanel {
                 </div>
             </div>
         `;
+    }
+
+    async #renderModuleManager(container) {
+        container.innerHTML = '<p class="s-hint">Loading modules...</p>';
+
+        const modules = await window.api.moduleListInstalled();
+
+        let html = `
+            <div class="settings-section">
+                <h3>Installed Modules</h3>
+                <p class="s-hint">Manage installed modules. Built-in modules cannot be removed.</p>
+                <div class="module-manager-actions">
+                    <button id="mm-install-btn" class="mm-btn">📦 Install from .zip</button>
+                    <button id="mm-refresh-btn" class="mm-btn">🔄 Refresh Modules</button>
+                    <button id="mm-open-dir-btn" class="mm-btn">📂 Open Modules Folder</button>
+                </div>
+                <div id="mm-module-list" class="mm-list">
+        `;
+
+        for (const mod of modules) {
+            const isHidden = EditorPrefs.get('hiddenModules', []).includes(mod.dir);
+            html += `
+                <div class="mm-item ${mod.builtIn ? 'mm-builtin' : 'mm-thirdparty'}">
+                    <div class="mm-item-info">
+                        <input type="checkbox" class="mm-visible-check" data-module="${mod.dir}" ${!isHidden ? 'checked' : ''} title="Show in palette">
+                        <span class="mm-item-icon">${mod.icon}</span>
+                        <span class="mm-item-name">${mod.displayName}</span>
+                        ${mod.builtIn ? '<span class="mm-badge">Built-in</span>' : '<span class="mm-badge mm-badge-custom">Custom</span>'}
+                    </div>
+                    <div class="mm-item-desc">${mod.description}</div>
+                    <div class="mm-item-actions">
+                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-export-btn" data-module="${mod.dir}" title="Export as .zip">📤 Export</button>` : ''}
+                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-btn-danger mm-uninstall-btn" data-module="${mod.dir}" title="Uninstall">🗑 Uninstall</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div></div>`;
+        container.innerHTML = html;
+
+        // Bind events
+        container.querySelector('#mm-install-btn').addEventListener('click', async () => {
+            const result = await window.api.moduleInstall();
+            if (result.success) {
+                // Refresh module registry
+                await this.#reloadModuleRegistry();
+                this.#renderModuleManager(container);
+            } else if (result.error !== 'Cancelled') {
+                alert('Install failed: ' + result.error);
+            }
+        });
+
+        container.querySelector('#mm-refresh-btn').addEventListener('click', async () => {
+            await this.#reloadModuleRegistry();
+            this.#renderModuleManager(container);
+        });
+
+        container.querySelector('#mm-open-dir-btn').addEventListener('click', async () => {
+            await window.api.openModulesDir();
+        });
+
+        // Visibility checkboxes
+        container.querySelectorAll('.mm-visible-check').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const name = cb.dataset.module;
+                let hidden = EditorPrefs.get('hiddenModules', []);
+                if (cb.checked) {
+                    hidden = hidden.filter(m => m !== name);
+                } else {
+                    if (!hidden.includes(name)) hidden.push(name);
+                }
+                EditorPrefs.set('hiddenModules', hidden);
+                // Rebuild palette to reflect visibility
+                this.#rebuildPalette();
+            });
+        });
+
+        container.querySelectorAll('.mm-export-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const name = btn.dataset.module;
+                btn.textContent = '⏳...';
+                const result = await window.api.moduleExport(name);
+                if (result.success) {
+                    btn.textContent = '✓ Exported';
+                    setTimeout(() => { btn.textContent = '📤 Export'; }, 2000);
+                } else if (result.error !== 'Cancelled') {
+                    btn.textContent = '❌ Failed';
+                    setTimeout(() => { btn.textContent = '📤 Export'; }, 2000);
+                } else {
+                    btn.textContent = '📤 Export';
+                }
+            });
+        });
+
+        container.querySelectorAll('.mm-uninstall-btn').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const name = btn.dataset.module;
+                if (!btn.dataset.armed) {
+                    btn.dataset.armed = 'true';
+                    btn.textContent = '⚠️ Confirm?';
+                    setTimeout(() => { btn.dataset.armed = ''; btn.textContent = '🗑 Uninstall'; }, 3000);
+                    return;
+                }
+                const result = await window.api.moduleUninstall(name);
+                if (result.success) {
+                    // Remove all instances of this module from all scenes
+                    for (const [sceneName, scene] of Object.entries(EditorState.scenes)) {
+                        const toRemove = [];
+                        for (const [id, mod] of Object.entries(scene.modules)) {
+                            if (mod.type === name) toRemove.push(id);
+                        }
+                        for (const id of toRemove) {
+                            delete scene.modules[id];
+                        }
+                    }
+                    if (EditorState.selectedModule) {
+                        const currentMod = EditorState.getActiveSceneModules()[EditorState.selectedModule];
+                        if (!currentMod) EditorState.selectedModule = null;
+                    }
+                    EditorState.notify('modules');
+
+                    // Auto-save config to prevent stale module references
+                    if (EditorState.configPath) {
+                        const config = EditorState.buildConfig();
+                        await window.api.quickSave({ configData: config, savePath: EditorState.configPath });
+                    }
+
+                    // Reload module type in simulator
+                    ModuleSimulator.reloadModuleType(name);
+                    await this.#reloadModuleRegistry();
+                    this.#renderModuleManager(container);
+                } else {
+                    alert('Uninstall failed: ' + result.error);
+                }
+            });
+        });
+    }
+
+    async #reloadModuleRegistry() {
+        // Re-discover modules from disk
+        const modules = await window.api.discoverModules();
+        window.ModuleRegistry.modules = modules;
+
+        // Rebuild lookup maps
+        window.ModuleRegistry.icons = {};
+        window.ModuleRegistry.displayNames = {};
+        window.ModuleRegistry.allowMultiple = {};
+        window.ModuleRegistry.editorClasses = {};
+        window.ModuleRegistry.gradients = {};
+        window.ModuleRegistry.schemas = {};
+
+        for (const mod of modules) {
+            window.ModuleRegistry.icons[mod.name] = mod.icon;
+            window.ModuleRegistry.displayNames[mod.name] = mod.displayName;
+            window.ModuleRegistry.allowMultiple[mod.name] = mod.allowMultiple ?? true;
+            if (mod.editorClass) window.ModuleRegistry.editorClasses[mod.name] = mod.editorClass;
+            if (mod.gradient) window.ModuleRegistry.gradients[mod.name] = mod.gradient;
+            if (mod.schema) window.ModuleRegistry.schemas[mod.name] = mod.schema;
+        }
+
+        // Reload simulator classes
+        ModuleSimulator.reloadAll();
+
+        // Rebuild palette
+        this.#rebuildPalette();
+
+        // Rebuild settings tabs
+        this.#loadSchemas();
+        this.#buildTabs();
+    }
+
+    #rebuildPalette() {
+        const hidden = EditorPrefs.get('hiddenModules', []);
+        const palette = document.getElementById('palette');
+        if (!palette) return;
+
+        palette.innerHTML = '';
+        for (const mod of (window.ModuleRegistry.modules || [])) {
+            if (!mod.icon || mod.name.startsWith('_')) continue;
+            if (hidden.includes(mod.name)) continue;
+
+            const item = document.createElement('div');
+            item.className = 'palette-item';
+            item.dataset.module = mod.name;
+            item.draggable = true;
+            item.innerHTML = `<span class="palette-icon">${mod.icon}</span> ${mod.displayName}`;
+            item.title = mod.description || mod.displayName;
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('module-type', mod.name);
+                e.dataTransfer.effectAllowed = 'copy';
+            });
+            palette.appendChild(item);
+        }
     }
 
     #bindTab(content) {

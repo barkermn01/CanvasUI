@@ -65,9 +65,11 @@ class Palette {
 
     render(modules) {
         this.container.innerHTML = '';
+        const hidden = EditorPrefs.get('hiddenModules', []);
         for (const mod of modules) {
             // Skip non-module entries (like _global schema)
             if (!mod.icon || mod.name.startsWith('_')) continue;
+            if (hidden.includes(mod.name)) continue;
 
             const item = document.createElement('div');
             item.className = 'palette-item';

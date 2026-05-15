@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('api', {
     // Module discovery
     discoverModules: () => ipcRenderer.invoke('module-discover'),
 
+    // Module management
+    moduleListInstalled: () => ipcRenderer.invoke('module-list-installed'),
+    moduleInstall: () => ipcRenderer.invoke('module-install'),
+    moduleExport: (name) => ipcRenderer.invoke('module-export', name),
+    moduleUninstall: (name) => ipcRenderer.invoke('module-uninstall', name),
+    openModulesDir: () => ipcRenderer.invoke('open-modules-dir'),
+
     // File path helper (for drag-drop from OS in sandboxed mode)
     getPathForFile: getPathForFile,
 

@@ -300,4 +300,52 @@ class ModuleSimulator {
             }
         }
     }
+
+    /**
+     * Reload a specific module type — unregisters all instances of that type,
+     * removes the cached script, deletes the window class, so it can be re-loaded fresh.
+     */
+    static reloadModuleType(type) {
+        // Unregister all instances of this type
+        for (const [id, entry] of [...this.#registry]) {
+            if (entry.type === type) {
+                this.unregister(id);
+            }
+        }
+
+        // Remove the script tag
+        const script = document.querySelector(`script[data-module-type="${type}"]`);
+        if (script) script.remove();
+
+        // Clear from loaded set
+        this.#loadedScripts.delete(type);
+
+        // Delete the window class so the guard check passes on re-load
+        const mod = window.ModuleRegistry?.modules?.find(m => m.name === type);
+        if (mod?.editorClass && window[mod.editorClass]) {
+            delete window[mod.editorClass];
+        }
+    }
+
+    /**
+     * Reload all modules — full reset.
+     */
+    static reloadAll() {
+        this.unregisterAll();
+
+        // Remove all module script tags
+        document.querySelectorAll('script[data-module-type]').forEach(s => s.remove());
+
+        // Clear loaded tracking
+        this.#loadedScripts.clear();
+
+        // Delete all module window classes
+        if (window.ModuleRegistry?.modules) {
+            for (const mod of window.ModuleRegistry.modules) {
+                if (mod.editorClass && window[mod.editorClass]) {
+                    delete window[mod.editorClass];
+                }
+            }
+        }
+    }
 }

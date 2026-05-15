@@ -31,3 +31,6 @@ Thumbs.db
 
 # IDE
 .vscode/
+
+# Module packages (local testing)
+module-packages/

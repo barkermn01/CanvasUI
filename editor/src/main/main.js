@@ -114,7 +114,270 @@ ipcMain.handle('module-discover', () => {
     }
 });
 
+// ─── Module Management ────────────────────────────────────────────────────────
+
+const crypto = require('crypto');
+
+const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+
+function getModulesDir() {
+    const resourcesWww = path.join(process.resourcesPath || '', 'www');
+    const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
+    const wwwDir = (process.resourcesPath && fs.existsSync(resourcesWww)) ? resourcesWww : projectWww;
+    return path.join(wwwDir, 'modules');
+}
+
+function getModulesManifestPath() {
+    return path.join(getModulesDir(), 'modules.json');
+}
+
+function hashFile(filePath) {
+    const content = fs.readFileSync(filePath);
+    return crypto.createHash('sha256').update(content).digest('hex');
+}
+
+function getAllFiles(dir, base = '') {
+    const results = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        const rel = base ? `${base}/${entry.name}` : entry.name;
+        if (entry.isDirectory()) {
+            results.push(...getAllFiles(path.join(dir, entry.name), rel));
+        } else {
+            results.push(rel);
+        }
+    }
+    return results;
+}
+
+// List installed modules with built-in flag
+ipcMain.handle('module-list-installed', () => {
+    const modulesDir = getModulesDir();
+
+    try {
+        const entries = fs.readdirSync(modulesDir, { withFileTypes: true });
+        const modules = [];
+
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            const infoPath = path.join(modulesDir, entry.name, 'info.json');
+            if (!fs.existsSync(infoPath)) continue;
+
+            try {
+                const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+                modules.push({
+                    name: info.name || entry.name,
+                    displayName: info.displayName || entry.name,
+                    icon: info.icon || '📦',
+                    description: info.description || '',
+                    dir: entry.name,
+                    builtIn: BUILT_IN_MODULES.includes(entry.name)
+                });
+            } catch (e) {}
+        }
+
+        return modules;
+    } catch (e) {
+        return [];
+    }
+});
+
+// Install module from zip
+ipcMain.handle('module-install', async (event) => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Install Module Package',
+        filters: [{ name: 'Module Package', extensions: ['zip'] }],
+        properties: ['openFile']
+    });
+
+    if (canceled || !filePaths[0]) return { success: false, error: 'Cancelled' };
+
+    const zipPath = filePaths[0];
+    const modulesDir = getModulesDir();
+
+    try {
+        // Use Node's built-in zlib + tar... actually we need a zip library.
+        // Use extract-zip or handle manually with AdmZip pattern.
+        // Since we don't want extra deps, use PowerShell to extract.
+        const tempDir = path.join(require('os').tmpdir(), 'canvasui_module_install_' + Date.now());
+        fs.mkdirSync(tempDir, { recursive: true });
+
+        // Extract zip using PowerShell
+        const { execSync } = require('child_process');
+        execSync(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempDir}' -Force"`, { stdio: 'pipe' });
+
+        // Check for manifest.json
+        const manifestPath = path.join(tempDir, 'manifest.json');
+        if (!fs.existsSync(manifestPath)) {
+            fs.rmSync(tempDir, { recursive: true });
+            return { success: false, error: 'No manifest.json found in package' };
+        }
+
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (!manifest.name || !manifest.files) {
+            fs.rmSync(tempDir, { recursive: true });
+            return { success: false, error: 'Invalid manifest: missing name or files' };
+        }
+
+        // Verify file integrity
+        for (const file of manifest.files) {
+            const filePath = path.join(tempDir, file.path);
+            if (!fs.existsSync(filePath)) {
+                fs.rmSync(tempDir, { recursive: true });
+                return { success: false, error: `Missing file: ${file.path}` };
+            }
+            const hash = hashFile(filePath);
+            if (hash !== file.hash) {
+                fs.rmSync(tempDir, { recursive: true });
+                return { success: false, error: `Integrity check failed for: ${file.path}` };
+            }
+        }
+
+        // Check info.json exists
+        const infoPath = path.join(tempDir, 'info.json');
+        if (!fs.existsSync(infoPath)) {
+            fs.rmSync(tempDir, { recursive: true });
+            return { success: false, error: 'No info.json found in package' };
+        }
+
+        // Install: copy to modules directory
+        const destDir = path.join(modulesDir, manifest.name);
+        if (fs.existsSync(destDir)) {
+            fs.rmSync(destDir, { recursive: true });
+        }
+        fs.mkdirSync(destDir, { recursive: true });
+
+        // Copy all files (except manifest.json itself)
+        for (const file of manifest.files) {
+            const src = path.join(tempDir, file.path);
+            const dest = path.join(destDir, file.path);
+            fs.mkdirSync(path.dirname(dest), { recursive: true });
+            fs.copyFileSync(src, dest);
+        }
+
+        // Update modules.json
+        const modulesJsonPath = getModulesManifestPath();
+        let modulesJson = {};
+        if (fs.existsSync(modulesJsonPath)) {
+            modulesJson = JSON.parse(fs.readFileSync(modulesJsonPath, 'utf8'));
+        }
+        modulesJson[manifest.name] = `${manifest.name}/info.json`;
+        fs.writeFileSync(modulesJsonPath, JSON.stringify(modulesJson, null, 4), 'utf8');
+
+        // Cleanup temp
+        fs.rmSync(tempDir, { recursive: true });
+
+        return { success: true, name: manifest.name, displayName: manifest.displayName || manifest.name };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+// Export module as zip
+ipcMain.handle('module-export', async (event, moduleName) => {
+    const modulesDir = getModulesDir();
+    const moduleDir = path.join(modulesDir, moduleName);
+
+    if (!fs.existsSync(moduleDir)) {
+        return { success: false, error: 'Module not found' };
+    }
+
+    // Pick save location
+    const { canceled, filePath: savePath } = await dialog.showSaveDialog({
+        title: 'Export Module Package',
+        defaultPath: `${moduleName}.zip`,
+        filters: [{ name: 'Module Package', extensions: ['zip'] }]
+    });
+
+    if (canceled || !savePath) return { success: false, error: 'Cancelled' };
+
+    try {
+        // Read info.json for metadata
+        const infoPath = path.join(moduleDir, 'info.json');
+        const info = fs.existsSync(infoPath) ? JSON.parse(fs.readFileSync(infoPath, 'utf8')) : {};
+
+        // Get all files in the module directory
+        const files = getAllFiles(moduleDir);
+
+        // Generate manifest with hashes
+        const manifest = {
+            name: moduleName,
+            displayName: info.displayName || moduleName,
+            version: info.version || '1.0.0',
+            description: info.description || '',
+            files: files.map(f => ({
+                path: f,
+                hash: hashFile(path.join(moduleDir, f))
+            }))
+        };
+
+        // Create temp directory for packaging
+        const tempDir = path.join(require('os').tmpdir(), 'canvasui_module_export_' + Date.now());
+        fs.mkdirSync(tempDir, { recursive: true });
+
+        // Copy module files to temp
+        for (const file of files) {
+            const src = path.join(moduleDir, file);
+            const dest = path.join(tempDir, file);
+            fs.mkdirSync(path.dirname(dest), { recursive: true });
+            fs.copyFileSync(src, dest);
+        }
+
+        // Write manifest
+        fs.writeFileSync(path.join(tempDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+
+        // Create zip using PowerShell
+        const { execSync } = require('child_process');
+        if (fs.existsSync(savePath)) fs.unlinkSync(savePath);
+        execSync(`powershell -Command "Compress-Archive -Path '${tempDir}\\*' -DestinationPath '${savePath}'"`, { stdio: 'pipe' });
+
+        // Cleanup
+        fs.rmSync(tempDir, { recursive: true });
+
+        return { success: true, path: savePath };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+// Uninstall a module
+ipcMain.handle('module-uninstall', (event, moduleName) => {
+    if (BUILT_IN_MODULES.includes(moduleName)) {
+        return { success: false, error: 'Cannot uninstall built-in modules' };
+    }
+
+    const modulesDir = getModulesDir();
+    const moduleDir = path.join(modulesDir, moduleName);
+
+    if (!fs.existsSync(moduleDir)) {
+        return { success: false, error: 'Module not found' };
+    }
+
+    try {
+        // Remove directory
+        fs.rmSync(moduleDir, { recursive: true });
+
+        // Remove from modules.json
+        const modulesJsonPath = getModulesManifestPath();
+        if (fs.existsSync(modulesJsonPath)) {
+            const modulesJson = JSON.parse(fs.readFileSync(modulesJsonPath, 'utf8'));
+            delete modulesJson[moduleName];
+            fs.writeFileSync(modulesJsonPath, JSON.stringify(modulesJson, null, 4), 'utf8');
+        }
+
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
 // ─── Config File Operations ───────────────────────────────────────────────────
+
+// Open modules directory in file explorer
+ipcMain.handle('open-modules-dir', () => {
+    const modulesDir = getModulesDir();
+    require('electron').shell.openPath(modulesDir);
+});
 
 // Auto-load default config on startup
 ipcMain.handle('auto-load-config', () => {
