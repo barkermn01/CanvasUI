@@ -8,6 +8,11 @@
 
   IfFileExists "$INSTDIR\resources\www\media" 0 +2
     CopyFiles /SILENT "$INSTDIR\resources\www\media\*.*" "$TEMP\canvasui_media_backup"
+
+  ; Backup custom modules (any module not in the built-in list)
+  IfFileExists "$INSTDIR\resources\www\modules" 0 +3
+    CreateDirectory "$TEMP\canvasui_modules_backup"
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$builtIn = @(''chat'',''emote'',''audiovisualiser'',''webcam'',''image'',''video''); $$dir = ''$INSTDIR\resources\www\modules''; if (Test-Path $$dir) { Get-ChildItem $$dir -Directory | Where-Object { $$builtIn -notcontains $$_.Name } | ForEach-Object { Copy-Item $$_.FullName ''$TEMP\canvasui_modules_backup\'' -Recurse -Force } } }"'
 !macroend
 
 !macro customInstall
@@ -22,23 +27,15 @@
     CopyFiles /SILENT "$TEMP\canvasui_media_backup\*.*" "$INSTDIR\resources\www\media"
   RMDir /r "$TEMP\canvasui_media_backup"
 
-  ; Write a temp script to add to PATH, then execute it
-  FileOpen $0 "$TEMP\canvasui_path.ps1" w
-  FileWrite $0 '$$p = [Environment]::GetEnvironmentVariable("PATH", "User");'
-  FileWrite $0 'if ($$p -notlike "*$INSTDIR*") {'
-  FileWrite $0 '  [Environment]::SetEnvironmentVariable("PATH", "$$p;$INSTDIR", "User")'
-  FileWrite $0 '}'
-  FileClose $0
-  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\canvasui_path.ps1"'
-  Delete "$TEMP\canvasui_path.ps1"
+  ; Restore custom modules and update modules.json
+  IfFileExists "$TEMP\canvasui_modules_backup" 0 +2
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$bk = ''$TEMP\canvasui_modules_backup''; $$md = ''$INSTDIR\resources\www\modules''; if (Test-Path $$bk) { Get-ChildItem $$bk -Directory | ForEach-Object { Copy-Item $$_.FullName $$md -Recurse -Force }; $$mf = Join-Path $$md ''modules.json''; if (Test-Path $$mf) { $$j = Get-Content $$mf -Raw | ConvertFrom-Json; Get-ChildItem $$bk -Directory | ForEach-Object { if (-not ($$j.PSObject.Properties.Name -contains $$_.Name)) { $$ip = Join-Path $$md ($$_.Name + ''\info.json''); if (Test-Path $$ip) { $$j | Add-Member -NotePropertyName $$_.Name -NotePropertyValue ($$_.Name + ''/info.json'') } } }; $$j | ConvertTo-Json | Set-Content $$mf } } }"'
+  RMDir /r "$TEMP\canvasui_modules_backup"
+
+  ; Add to PATH
+  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); if ($$p -notlike ''*$INSTDIR*'') { [Environment]::SetEnvironmentVariable(''PATH'',''$$p;$INSTDIR'',''User'') } }"'
 !macroend
 
 !macro customUnInstall
-  FileOpen $0 "$TEMP\canvasui_unpath.ps1" w
-  FileWrite $0 '$$p = [Environment]::GetEnvironmentVariable("PATH", "User");'
-  FileWrite $0 '$$p = ($$p.Split(";") | Where-Object { $$_ -ne "$INSTDIR" }) -join ";";'
-  FileWrite $0 '[Environment]::SetEnvironmentVariable("PATH", $$p, "User")'
-  FileClose $0
-  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\canvasui_unpath.ps1"'
-  Delete "$TEMP\canvasui_unpath.ps1"
+  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); $$p = ($$p.Split('';'') | Where-Object { $$_ -ne ''$INSTDIR'' }) -join '';''; [Environment]::SetEnvironmentVariable(''PATH'',$$p,''User'') }"'
 !macroend
