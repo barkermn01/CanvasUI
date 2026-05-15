@@ -63,6 +63,38 @@ class ConfigIO {
                     EditorState.removeModuleFromScene(EditorState.selectedModule);
                 }
             }
+
+            // Arrow keys to move selected module
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && EditorState.selectedModule) {
+                const active = document.activeElement;
+                const isInput = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+                if (isInput) return;
+
+                e.preventDefault();
+                const mod = EditorState.getActiveSceneModules()[EditorState.selectedModule];
+                if (!mod) return;
+
+                // Step size: alt=1px, shift=20px, default=5px
+                let step = 5;
+                if (e.altKey) step = 1;
+                else if (e.shiftKey) step = 20;
+
+                let { x, y } = mod.area;
+                switch (e.key) {
+                    case 'ArrowUp': y -= step; break;
+                    case 'ArrowDown': y += step; break;
+                    case 'ArrowLeft': x -= step; break;
+                    case 'ArrowRight': x += step; break;
+                }
+
+                // Constrain if locked
+                if (EditorState.lockToCanvas) {
+                    x = Math.max(0, Math.min(x, EditorState.canvasWidth - mod.area.width));
+                    y = Math.max(0, Math.min(y, EditorState.canvasHeight - mod.area.height));
+                }
+
+                EditorState.updateModuleArea(EditorState.selectedModule, { x, y });
+            }
         });
     }
 

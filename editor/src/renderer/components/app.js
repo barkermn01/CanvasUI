@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mediaPanel = new MediaPanel();
     window.mediaPanel = mediaPanel; // Expose for properties panel
     const serverPanel = new ServerPanel();
+    const helpPanel = new HelpPanel();
 
     // Auto-load www/config.js
     const result = await window.api.autoLoadConfig();

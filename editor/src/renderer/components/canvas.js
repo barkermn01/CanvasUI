@@ -37,6 +37,9 @@ class CanvasWorkspace {
             if (['scenes', 'scene-switch', 'modules', 'load', 'selection'].includes(what)) {
                 this.render();
             }
+            if (what === 'module-area' && EditorState.selectedModule) {
+                this.#updateModuleElement(EditorState.selectedModule);
+            }
         });
     }
 
