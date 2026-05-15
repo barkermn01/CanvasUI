@@ -338,8 +338,15 @@ class CanvasChatMain {
         }
 
         // Draw messages
+        const allowClipping = boxes.allowClipping !== false;
         for (const { msg, boxW, boxH, y: msgY } of rendered) {
+            // Fully outside the area — skip
             if (msgY + boxH < area.y || msgY > area.y + area.height) continue;
+
+            // Partially outside the area — if clipping is disabled, skip partial messages
+            if (!allowClipping) {
+                if (msgY < area.y || msgY + boxH > area.y + area.height) continue;
+            }
 
             ctx.save();
             ctx.globalAlpha = msg.alpha;
