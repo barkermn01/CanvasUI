@@ -514,6 +514,8 @@ body {
 
 .layer-item:hover { background: var(--bg-surface); }
 .layer-item.active { background: var(--bg-tertiary); color: var(--accent); }
+.layer-item.layer-hidden { opacity: 0.4; }
+.layer-item.layer-hidden .layer-name { text-decoration: line-through; }
 .layer-item.dragging { opacity: 0.4; }
 .layer-item.drag-over-top { border-top: 2px solid var(--accent); margin-top: -2px; }
 .layer-item.drag-over-bottom { border-bottom: 2px solid var(--accent); margin-bottom: -2px; }

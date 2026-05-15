@@ -287,6 +287,9 @@ class CanvasWorkspace {
         window.Config = EditorState.globalConfig;
 
         for (const [id, mod] of Object.entries(modules)) {
+            // Skip hidden modules
+            if (mod.visible === false) continue;
+
             const isSelected = EditorState.selectedModule === id;
             const layerIndex = moduleKeys.indexOf(id);
             const el = document.createElement('div');

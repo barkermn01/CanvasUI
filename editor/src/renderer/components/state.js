@@ -348,6 +348,11 @@ const EditorState = {
 
                 sceneConfig.modules[configKey] = { area, _type: mod.type };
 
+                // Add visibility if hidden
+                if (mod.visible === false) {
+                    sceneConfig.modules[configKey].visible = false;
+                }
+
                 // Add media settings if applicable
                 if (mod.settings && Object.keys(mod.settings).length > 0) {
                     sceneConfig.modules[configKey].settings = mod.settings;
@@ -392,7 +397,8 @@ const EditorState = {
                         this.scenes[sceneName].modules[modKey] = {
                             type,
                             area: this.parseArea(modData.area),
-                            settings: modData.settings || this.getDefaultSettings(type)
+                            settings: modData.settings || this.getDefaultSettings(type),
+                            visible: modData.visible !== false
                         };
                     }
                 }

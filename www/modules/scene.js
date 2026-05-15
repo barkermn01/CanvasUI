@@ -176,6 +176,9 @@ class SceneManager {
 
         // Draw all modules in scene config order (this IS the z-order)
         for (const [key, mod] of Object.entries(scene.modules)) {
+            // Skip hidden modules
+            if (mod.visible === false) continue;
+
             const modType = (mod._type || key.replace(/_\d+$/, '')).toLowerCase();
             const wrapped = this.#wrappedModules.get(modType);
             if (!wrapped || !wrapped.originalDraw) continue;

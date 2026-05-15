@@ -23,6 +23,7 @@ class LayerPanel {
         entries.forEach(([id, mod], displayIndex) => {
             const item = document.createElement('div');
             item.className = 'layer-item' + (EditorState.selectedModule === id ? ' active' : '');
+            if (mod.visible === false) item.classList.add('layer-hidden');
             item.dataset.layerId = id;
             item.draggable = true;
 
@@ -111,6 +112,18 @@ class LayerPanel {
             const buttons = document.createElement('span');
             buttons.className = 'layer-buttons';
 
+            // Visibility toggle
+            const visBtn = document.createElement('button');
+            visBtn.className = 'layer-btn layer-btn-vis';
+            visBtn.textContent = mod.visible !== false ? '👁' : '👁‍🗨';
+            visBtn.title = mod.visible !== false ? 'Hide module' : 'Show module';
+            visBtn.style.opacity = mod.visible !== false ? '1' : '0.4';
+            visBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mod.visible = mod.visible === false ? true : false;
+                EditorState.notify('modules');
+            });
+
             // Move up (higher in render order = later in object = down in reversed list)
             const upBtn = document.createElement('button');
             upBtn.className = 'layer-btn';
@@ -142,6 +155,7 @@ class LayerPanel {
                 EditorState.removeModuleFromScene(id);
             });
 
+            buttons.appendChild(visBtn);
             buttons.appendChild(upBtn);
             buttons.appendChild(downBtn);
             buttons.appendChild(deleteBtn);
