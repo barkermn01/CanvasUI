@@ -17,8 +17,16 @@ class VideoDisplay {
         const entry = { video, ready: false };
         video.addEventListener('canplay', () => {
             entry.ready = true;
-            video.play();
+            video.play().catch(() => {});
         }, { once: true });
+
+        // Fallback loop: if loop attribute fails, restart manually
+        video.addEventListener('ended', () => {
+            if (video.loop) {
+                video.currentTime = 0;
+                video.play().catch(() => {});
+            }
+        });
 
         this.#cache.set(src, entry);
         return entry;
@@ -125,7 +133,13 @@ class VideoDisplay {
         if (!settings || !settings.src) return;
 
         const entry = this.#getVideo(settings.src, settings);
-        if (!entry.ready || entry.video.paused) return;
+        if (!entry.ready) return;
+
+        // Resume if paused (autoplay policy or ended without loop)
+        if (entry.video.paused) {
+            entry.video.play().catch(() => {});
+            return;
+        }
 
         const opacity = settings.opacity ?? 1;
         const objectFit = settings.objectFit || 'contain';
