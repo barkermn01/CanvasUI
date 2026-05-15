@@ -60,4 +60,6 @@ Output: `editor/dist/CanvasUI Setup x.x.x.xxx.exe`
 
 ## License
 
-MIT
+LGPL-3.0 — See [LICENSE](LICENSE) for details.
+
+The core application is licensed under the GNU Lesser General Public License v3. Third-party modules that communicate through the public module API (`window.Modules`, `editorRegister`, `info.json` schema) are NOT considered derivative works and may use any license.
