@@ -1,6 +1,17 @@
 # Developer Guide
 
-This guide covers creating custom modules, the schema system, and how the editor discovers and renders module settings.
+This guide covers creating custom modules, the schema system, the module packaging system, and how the editor discovers and renders module settings.
+
+## Licensing
+
+CanvasUI is licensed under **LGPL-3.0**. This means:
+
+- **The core application** (editor, server, overlay renderer, built-in modules) is copyleft. If you modify and distribute the core code, you must share your changes under the same license.
+- **Your custom modules are NOT derivative works.** Modules that communicate through the public API (`window.Modules`, `editorRegister()`, `info.json` schema) can use **any license** — proprietary, commercial, MIT, whatever you choose.
+- **You can sell your modules.** The LGPL explicitly permits this. Your module code remains yours.
+- **You must not** take the core CanvasUI code and integrate it into a closed-source product without open-sourcing that component.
+
+In short: build and sell modules freely, but don't steal the core.
 
 ## Creating a Module
 
@@ -154,6 +165,59 @@ Modules: ["emote", "chat", "mymodule", "scene"]
 ```
 
 The scene module should always be last.
+
+## Module Packaging
+
+Modules can be distributed as `.zip` packages for easy installation via the Module Manager (Settings → Modules).
+
+### Package Format
+
+```
+mymodule.zip
+├── manifest.json    # Package metadata + file integrity hashes
+├── info.json        # Standard module info
+└── mymodule.js      # Module code (+ any other files)
+```
+
+### manifest.json
+
+```json
+{
+    "name": "mymodule",
+    "displayName": "My Module",
+    "version": "1.0.0",
+    "description": "Does something cool",
+    "files": [
+        { "path": "info.json", "hash": "sha256-hex-hash-of-file" },
+        { "path": "mymodule.js", "hash": "sha256-hex-hash-of-file" }
+    ]
+}
+```
+
+The `files` array lists every file in the package with its SHA-256 hash. During installation, the Module Manager verifies each file's hash matches — if any file has been tampered with, installation is rejected.
+
+### Creating a Package
+
+Use the **📤 Export** button in Settings → Modules to package any installed custom module. It automatically generates the manifest with correct hashes.
+
+### Installing a Package
+
+Use the **📦 Install from .zip** button in Settings → Modules. The installer:
+1. Extracts the zip to a temp directory
+2. Validates `manifest.json` exists and has required fields
+3. Verifies SHA-256 hash of every file against the manifest
+4. Checks `info.json` exists
+5. Copies files to `www/modules/{name}/`
+6. Updates `modules.json`
+7. Refreshes the module registry (no restart needed)
+
+### Module Hot-Reload
+
+The Module Manager supports reloading modules without restarting the editor:
+- **🔄 Refresh Modules** re-discovers all modules from disk
+- Removes old script tags and class references from memory
+- Re-registers all module instances with fresh code
+- The overlay page still needs a manual reload (live-reload handles this on save)
 
 ## info.json Reference
 

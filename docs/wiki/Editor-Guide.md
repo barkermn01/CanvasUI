@@ -50,6 +50,11 @@ Drag image/video files from Windows Explorer directly onto the canvas. They get 
 ### Moving
 Click and drag a module on the canvas to reposition it.
 
+**Keyboard movement** (select a module first):
+- **Arrow keys** — move 5px
+- **Shift + Arrow** — move 20px
+- **Alt + Arrow** — move 1px
+
 ### Resizing
 Select a module, then drag the handles on its edges/corners.
 
@@ -71,6 +76,7 @@ The **Layers** panel (left sidebar) shows all modules in the current scene:
 ### Reordering
 - **Drag and drop** layers to reorder
 - Use **▲ ▼** buttons on hover
+- **👁** button to toggle visibility (hidden modules stay in config but don't render)
 - **🗑** button to delete
 
 ## Previewing
@@ -113,4 +119,5 @@ Files are stored in `www/media/` and referenced as `/media/filename.ext` in the 
 
 - **Ctrl+Z** — Undo
 - **Ctrl+Y** — Redo
+- **F1** — Open Help panel
 - Works for module moves, resizes, additions, deletions, and setting changes

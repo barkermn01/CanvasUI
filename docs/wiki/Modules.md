@@ -6,13 +6,26 @@ CanvasUI is built around a modular system. Each module handles a specific overla
 
 | Module | Icon | Description | Multiple Instances |
 |--------|------|-------------|-------------------|
-| `chat` | 💬 | Displays Twitch/YouTube chat messages | No |
+| `chat` | 💬 | Displays Twitch/YouTube/Kick chat messages | No |
 | `emote` | 😀 | Bouncing emote animations | No |
-| `audiovisualiser` | 🎵 | Real-time audio frequency bars | No |
-| `webcam` | 📷 | Live webcam feed | No |
+| `audiovisualiser` | 🎵 | Real-time audio frequency bars | Yes |
+| `webcam` | 📷 | Live webcam feed | Yes |
 | `image` | 🖼️ | Static image overlay | Yes |
 | `video` | 🎬 | Video playback overlay | Yes |
+| `pngtuber` | 🎭 | Audio-reactive PNG avatar | Yes |
 | `scene` | — | Scene switching and transitions (system) | — |
+
+## Installing Custom Modules
+
+Custom modules can be installed via the Module Manager in **Settings → Modules**:
+
+- **📦 Install from .zip** — install a packaged module with integrity verification
+- **📂 Open Modules Folder** — manually drop module folders in
+- **🔄 Refresh Modules** — re-discover modules without restarting
+
+Modules can also be hidden from the palette without uninstalling them using the visibility checkbox.
+
+See the [[Developer Guide]] for creating and packaging your own modules.
 
 ## Module Directory Structure
 
