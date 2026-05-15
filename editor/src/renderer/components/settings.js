@@ -127,6 +127,7 @@ class SettingsPanel {
     open() {
         this.#overlay.style.display = 'flex';
         // Rebuild tabs in case modules were discovered after initial creation
+        this.#loadSchemas();
         this.#buildTabs();
         this.#renderTab();
         // Sync admin button state
@@ -134,6 +135,11 @@ class SettingsPanel {
         btn.textContent = this.#adminMode ? '🔓 Admin' : '🔒 Admin';
         btn.classList.toggle('active', this.#adminMode);
         this.#renderTab();
+    }
+
+    openTo(tab) {
+        this.#activeTab = tab;
+        this.open();
     }
 
     close() {

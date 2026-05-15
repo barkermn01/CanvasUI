@@ -81,9 +81,142 @@ window.WebcamManager = class WebcamManager {
 
         return entry;
     }
+
+    releaseStream(deviceName) {
+        const key = deviceName || '_default';
+        const entry = this.#streams.get(key);
+        if (!entry) return;
+        entry.refCount--;
+        if (entry.refCount <= 0) {
+            if (entry.stream) entry.stream.getTracks().forEach(t => t.stop());
+            if (entry.video) entry.video.remove();
+            this.#streams.delete(key);
+        }
+    }
 };
 
 }
+
+/**
+ * WebcamDisplay — editor-facing class for webcam instances.
+ */
+if (!window.WebcamDisplay) {
+
+class WebcamDisplay {
+    #manager = null;
+    #stream = null;
+    #deviceName = null;
+
+    constructor() {
+        // Use shared manager
+        if (!window._webcamManagerInstance) {
+            window._webcamManagerInstance = new window.WebcamManager();
+        }
+        this.#manager = window._webcamManagerInstance;
+    }
+
+    /**
+     * Called by the editor to register preview and simulation hooks.
+     */
+    editorRegister(register) {
+        const self = this;
+
+        register({
+            preview: (container, settings, area) => {
+                container.innerHTML = '';
+                container.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; background: rgba(0,0,0,0.3); position: relative; overflow: hidden; gap: 4px;';
+
+                const icon = document.createElement('div');
+                icon.style.cssText = 'font-size: 28px; opacity: 0.8;';
+                icon.textContent = '📷';
+
+                const label = document.createElement('div');
+                label.style.cssText = 'font-size: 10px; color: #aaa;';
+                label.textContent = settings?.device || 'Default camera';
+
+                container.appendChild(icon);
+                container.appendChild(label);
+            },
+            simulate: {
+                start: (canvas, settings, area) => {
+                    self.#deviceName = settings?.device || '';
+                    self.#manager.getStream(self.#deviceName);
+                },
+                draw: (ctx, settings, area, dt) => {
+                    const device = settings?.device || '';
+                    const mirror = settings?.mirror ?? false;
+                    const mask = settings?.mask || 'none';
+                    const borderRadius = settings?.borderRadius || '0';
+
+                    const entry = self.#manager.getEntry(device);
+                    if (!entry || !entry.ready || !entry.video || entry.video.readyState < 2) return;
+
+                    ctx.save();
+
+                    // Mask clipping
+                    if (mask === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(area.x + area.width / 2, area.y + area.height / 2, Math.min(area.width, area.height) / 2, 0, Math.PI * 2);
+                        ctx.clip();
+                    } else if (mask === 'rounded' && borderRadius !== '0') {
+                        const r = Math.min(parseInt(borderRadius) || 16, area.width / 2, area.height / 2);
+                        ctx.beginPath();
+                        ctx.moveTo(area.x + r, area.y);
+                        ctx.lineTo(area.x + area.width - r, area.y);
+                        ctx.quadraticCurveTo(area.x + area.width, area.y, area.x + area.width, area.y + r);
+                        ctx.lineTo(area.x + area.width, area.y + area.height - r);
+                        ctx.quadraticCurveTo(area.x + area.width, area.y + area.height, area.x + area.width - r, area.y + area.height);
+                        ctx.lineTo(area.x + r, area.y + area.height);
+                        ctx.quadraticCurveTo(area.x, area.y + area.height, area.x, area.y + area.height - r);
+                        ctx.lineTo(area.x, area.y + r);
+                        ctx.quadraticCurveTo(area.x, area.y, area.x + r, area.y);
+                        ctx.closePath();
+                        ctx.clip();
+                    }
+
+                    // Mirror
+                    if (mirror) {
+                        ctx.translate(area.x + area.width, 0);
+                        ctx.scale(-1, 1);
+                    }
+
+                    // Cover-fit draw
+                    const vw = entry.video.videoWidth;
+                    const vh = entry.video.videoHeight;
+                    const scale = Math.max(area.width / vw, area.height / vh);
+                    const sw = area.width / scale;
+                    const sh = area.height / scale;
+                    const sx = (vw - sw) / 2;
+                    const sy = (vh - sh) / 2;
+                    ctx.drawImage(entry.video, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
+
+                    ctx.restore();
+                },
+                stop: () => {
+                    if (self.#deviceName !== null) {
+                        self.#manager.releaseStream(self.#deviceName);
+                        self.#deviceName = null;
+                    }
+                }
+            },
+            dispose: () => {
+                if (self.#deviceName !== null) {
+                    self.#manager.releaseStream(self.#deviceName);
+                    self.#deviceName = null;
+                }
+            }
+        });
+    }
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+window.WebcamDisplay = {
+    _main: WebcamDisplay,
+    _simulator: WebcamDisplay
+};
+
+} // end if (!window.WebcamDisplay)
 
 if (document.getElementById('canvas')) {
     const manager = new window.WebcamManager();

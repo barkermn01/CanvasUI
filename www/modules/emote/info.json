@@ -5,6 +5,7 @@
     "type": "canvas",
     "configKey": "emote",
     "entrypoint": "emote.js",
+    "editorClass": "Emote",
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Bouncing emotes from chat",

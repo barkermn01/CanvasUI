@@ -5,6 +5,7 @@
     "type": "canvas",
     "configKey": "video",
     "entrypoint": "video.js",
+    "editorClass": "VideoDisplay",
     "hasSettings": true,
     "allowMultiple": true,
     "description": "Video playback overlay",

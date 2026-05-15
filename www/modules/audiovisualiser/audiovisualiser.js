@@ -1,6 +1,6 @@
 if (!window.AudioVisualiser) {
 
-window.AudioVisualiser = class AudioVisualiser {
+class AudioVisualiserMain {
     constructor() {
         this.name = "audiovisualiser";
         this.audioContext = null;
@@ -434,11 +434,104 @@ window.AudioVisualiser = class AudioVisualiser {
         this.analyser.getByteFrequencyData(this.dataArray);
         this.drawBars(ctx, sceneArea);
     }
+
+    /**
+     * Called by the editor to register preview and simulation hooks.
+     */
+    editorRegister(register) {
+        const self = this;
+
+        register({
+            preview: (container, settings, area) => {
+                container.innerHTML = '';
+                const av = window.Config?.AudioVisualiser || {};
+                const colors = av.colors || {};
+                const direction = settings?.direction || av.direction || 'right-left';
+                const mirrored = settings?.mirrored ?? av.mirrored ?? false;
+                const barWidth = settings?.barWidth || av.barWidth || 5;
+                const barSpacing = settings?.barSpacing || av.barSpacing || 2;
+
+                container.style.cssText = `display: flex; align-items: ${mirrored ? 'center' : 'flex-end'}; gap: ${barSpacing}px; padding: 0; pointer-events: none; overflow: hidden;`;
+
+                if (direction === 'right-left') {
+                    container.style.flexDirection = 'row-reverse';
+                    container.style.justifyContent = 'flex-start';
+                } else {
+                    container.style.flexDirection = 'row';
+                    container.style.justifyContent = 'flex-start';
+                }
+
+                const barCount = 120;
+                for (let i = 0; i < barCount; i++) {
+                    const noise = Math.sin(i * 0.3) * 30 + Math.sin(i * 0.7) * 20 + Math.sin(i * 1.5) * 10;
+                    const height = Math.max(5, Math.min(95, 40 + noise + (Math.random() * 15 - 7)));
+
+                    const getBarColor = (h) => {
+                        if (colors.mode === 'gradient' && colors.gradient?.stops?.length) {
+                            const stops = colors.gradient.stops;
+                            const gradientCSS = stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
+                            return `linear-gradient(to top, ${gradientCSS})`;
+                        }
+                        const level = h < 35 ? 'level1' : h < 50 ? 'level2' : h < 70 ? 'level3' : 'level4';
+                        return colors[level] || '#885ab4';
+                    };
+
+                    if (mirrored) {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.cssText = `display: flex; flex-direction: column; justify-content: center; width: ${barWidth}px; min-width: ${barWidth}px; height: 100%; flex-shrink: 0;`;
+                        const topBar = document.createElement('div');
+                        topBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
+                        topBar.style.background = getBarColor(height);
+                        const bottomBar = document.createElement('div');
+                        bottomBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
+                        bottomBar.style.background = getBarColor(height);
+                        wrapper.appendChild(topBar);
+                        wrapper.appendChild(bottomBar);
+                        container.appendChild(wrapper);
+                    } else {
+                        const bar = document.createElement('div');
+                        bar.style.cssText = `width: ${barWidth}px; min-width: ${barWidth}px; height: ${height}%; border-radius: 1px; flex-shrink: 0;`;
+                        bar.style.background = getBarColor(height);
+                        container.appendChild(bar);
+                    }
+                }
+            },
+            simulate: {
+                start: (canvas, settings, area) => {
+                    // Audio init happens in constructor — nothing extra needed
+                },
+                draw: (ctx, settings, area, dt) => {
+                    if (!self.initialized) return;
+                    window.Config = window.Config || {};
+                    self.analyser.getByteFrequencyData(self.dataArray);
+                    self.drawBars(ctx, area);
+                },
+                stop: () => {
+                    // Don't close audio context here — keep it for re-start
+                }
+            },
+            dispose: () => {
+                if (self.mediaStream) {
+                    self.mediaStream.getTracks().forEach(t => t.stop());
+                }
+                if (self.audioContext) {
+                    self.audioContext.close();
+                }
+            }
+        });
+    }
     
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+window.AudioVisualiser = {
+    _main: AudioVisualiserMain,
+    _simulator: AudioVisualiserMain  // Same class — simulator needs real audio pipeline
 };
 
 if (document.getElementById('canvas')) {
-    const system = new window.AudioVisualiser();
+    const system = new AudioVisualiserMain();
     window.Modules.push({
         name: "AudioVisualiser",
         draw: (ctx, settings, area) => {

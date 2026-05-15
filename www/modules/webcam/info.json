@@ -5,6 +5,7 @@
     "type": "canvas",
     "configKey": "webcam",
     "entrypoint": "webcam.js",
+    "editorClass": "WebcamDisplay",
     "hasSettings": true,
     "allowMultiple": true,
     "description": "Live webcam feed",

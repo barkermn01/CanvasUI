@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const toolbar = new Toolbar(canvasWorkspace);
     const configIO = new ConfigIO();
     const settings = new SettingsPanel();
+    window.settingsPanel = settings;
     const sidebar = new Sidebar();
     const mediaPanel = new MediaPanel();
     window.mediaPanel = mediaPanel; // Expose for properties panel
@@ -32,12 +33,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     EditorState.onChange(() => { window.Config = EditorState.globalConfig; });
 
     // Play All / Stop All buttons
-    document.getElementById('btn-play-all').addEventListener('click', () => {
+    document.getElementById('btn-play-all').addEventListener('click', async () => {
         const modules = EditorState.getActiveSceneModules();
         for (const [id, mod] of Object.entries(modules)) {
             if (!ModuleSimulator.isPlaying(id)) {
+                // Ensure module is registered before starting
+                if (ModuleSimulator.hasEditorSupport(mod.type) && !ModuleSimulator.getEntry(id)) {
+                    await ModuleSimulator.register(id, mod.type);
+                }
                 const el = document.querySelector(`[data-module-id="${id}"] .module-preview`);
-                if (el) ModuleSimulator.start(id, mod, el);
+                if (el) ModuleSimulator.start(id, el);
             }
         }
         // Update play button states

@@ -5,6 +5,7 @@
     "type": "canvas",
     "configKey": "AudioVisualiser",
     "entrypoint": "audiovisualiser.js",
+    "editorClass": "AudioVisualiser",
     "hasSettings": true,
     "allowMultiple": true,
     "description": "Audio frequency visualisation bars",

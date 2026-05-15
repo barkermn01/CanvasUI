@@ -10,6 +10,7 @@ window.ModuleRegistry = {
     gradients: {},
     displayNames: {},
     allowMultiple: {},
+    editorClasses: {},
 
     getIcon(type) {
         return this.icons[type] || '📦';
@@ -44,6 +45,9 @@ class Palette {
                 window.ModuleRegistry.icons[mod.name] = mod.icon;
                 window.ModuleRegistry.displayNames[mod.name] = mod.displayName;
                 window.ModuleRegistry.allowMultiple[mod.name] = mod.allowMultiple ?? true;
+                if (mod.editorClass) {
+                    window.ModuleRegistry.editorClasses[mod.name] = mod.editorClass;
+                }
                 if (mod.gradient) {
                     window.ModuleRegistry.gradients[mod.name] = mod.gradient;
                 }

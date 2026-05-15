@@ -5,24 +5,17 @@
     "type": "canvas",
     "configKey": "chat",
     "entrypoint": "chat.js",
+    "editorClass": "CanvasChat",
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Displays Twitch/YouTube chat messages",
     "gradient": { "from": "rgba(59, 130, 246, 0.08)", "to": "rgba(59, 130, 246, 0.25)" },
     "schema": {
-        "_type": {
-            "BeforeCanvas": "bool",
-            "hideBots": "bool"
-        },
-        "_labels": {
-            "BeforeCanvas": { "label": "Behind Canvas", "tooltip": "Render chat behind the canvas layer" },
-            "hideBots": { "label": "Hide Bots", "tooltip": "Hide messages from bot accounts listed in the Bots tab" }
-        },
+        "_type": {},
+        "_labels": {},
         "_item_type": {
             "ExtendedEmotesServices": "object",
-            "MessageArea": "css",
             "AutoHide": "object",
-            "platforms": "object",
             "ChatBoxes": "object",
             "RemovedMessage": "object"
         },
@@ -55,6 +48,8 @@
                 "ShowBadges": "bool",
                 "ShowEmotes": "bool",
                 "UserColon": "bool",
+                "NameOnNewLine": "bool",
+                "hideBots": "bool",
                 "allowClipping": "bool",
                 "NewMessages": { "type": "select", "options": ["below", "above"] },
                 "position": { "type": "select", "options": ["top", "bottom"] }
@@ -63,13 +58,14 @@
                 "ShowBadges": { "label": "Show Badges", "tooltip": "Display user badges (sub, mod, etc.)" },
                 "ShowEmotes": { "label": "Show Emotes", "tooltip": "Render emote images inline" },
                 "UserColon": { "label": "Show Colon", "tooltip": "Show ':' after username" },
+                "NameOnNewLine": { "label": "Name On New Line", "tooltip": "Display username on a separate line above the message" },
+                "hideBots": { "label": "Hide Bots", "tooltip": "Hide messages from bot accounts listed in the Bots tab" },
                 "allowClipping": { "label": "Allow Clipping", "tooltip": "Allow messages to overflow the container" },
                 "NewMessages": { "label": "New Messages", "tooltip": "Where new messages appear relative to existing ones" },
                 "position": { "label": "Position", "tooltip": "Where chat starts from (top or bottom of area)" }
             },
             "_item_type": {
                 "BadgeSettings": "object",
-                "HideSpecificBadges": "object",
                 "messageStyle": "css",
                 "style": "css"
             },

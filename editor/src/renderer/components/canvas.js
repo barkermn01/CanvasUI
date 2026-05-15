@@ -244,254 +244,35 @@ class CanvasWorkspace {
         el.style.height = (mod.area.height * this.#scale) + 'px';
     }
 
-    #buildChatPreview() {
-        const container = document.createElement('div');
-        container.className = 'module-preview chat-preview';
-        container.style.cssText = 'position: relative; overflow: hidden;';
-
-        // Live canvas for chat rendering
-        const canvas = document.createElement('canvas');
-        canvas.style.cssText = 'width: 100%; height: 100%; pointer-events: none;';
-        container.appendChild(canvas);
-
-        // Load CanvasChat from server and start rendering
-        this.#loadChatModule(container, canvas);
-
-        return container;
-    }
-
-    #loadChatModule(container, canvas) {
-        const host = EditorPrefs.get('serverHost', '127.0.0.1');
-        const port = EditorPrefs.get('serverPort', 31589);
-
-        if (window.CanvasChat) {
-            this.#startChatPreview(container, canvas);
-            return;
-        }
-
-        if (document.querySelector('script[data-chat-module]')) {
-            const check = setInterval(() => {
-                if (window.CanvasChat) {
-                    clearInterval(check);
-                    this.#startChatPreview(container, canvas);
-                }
-            }, 100);
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = `http://${host}:${port}/modules/chat/chat.js`;
-        script.dataset.chatModule = 'true';
-        script.onload = () => {
-            this.#startChatPreview(container, canvas);
-        };
-        script.onerror = () => {
-            canvas.remove();
-            const fallback = document.createElement('div');
-            fallback.style.cssText = 'display:flex; align-items:center; justify-content:center; width:100%; height:100%; color:var(--text-secondary); font-size:11px;';
-            fallback.textContent = 'Start server to preview chat';
-            container.appendChild(fallback);
-        };
-        document.head.appendChild(script);
-    }
-
-    #startChatPreview(container, canvas) {
-        if (!window.CanvasChat) return;
-
-        window.Config = EditorState.globalConfig;
-        const chatInstance = new window.CanvasChat();
-        container._chatInstance = chatInstance;
-
-        let lastTime = performance.now();
-        const animate = () => {
-            if (!container.isConnected) return;
-
-            const now = performance.now();
-            const dt = (now - lastTime) / 1000;
-            lastTime = now;
-
-            // Get the module's real area dimensions (not the scaled editor size)
-            const moduleId = container.closest('[data-module-id]')?.dataset.moduleId;
-            const mod = moduleId ? EditorState.getActiveSceneModules()[moduleId] : null;
-            const w = mod ? mod.area.width : (container.clientWidth || 300);
-            const h = mod ? mod.area.height : (container.clientHeight || 200);
-
-            if (!w || !h) {
-                requestAnimationFrame(animate);
-                return;
-            }
-            if (canvas.width !== w || canvas.height !== h) {
-                canvas.width = w;
-                canvas.height = h;
-            }
-
-            const ctx = canvas.getContext('2d');
-            ctx.clearRect(0, 0, w, h);
-
-            window.Config = EditorState.globalConfig;
-            chatInstance.update(dt);
-            chatInstance.draw(ctx, {}, { x: 0, y: 0, width: w, height: h });
-
-            requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-    }
-
-    #buildEmotePreview() {
-        const container = document.createElement('div');
-        container.className = 'module-preview emote-preview';
-        container.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 24px; pointer-events: none;';
-        container.textContent = '😀 🎉 ❤️ 🔥 👀';
-        return container;
-    }
-
-    #buildAudioVisualiserPreview(mod) {
-        const av = EditorState.globalConfig.AudioVisualiser || {};
-        const settings = mod.settings || {};
-        const colors = av.colors || {};
-        const direction = settings.direction || av.direction || 'right-left';
-        const mirrored = settings.mirrored ?? av.mirrored ?? false;
-        const barWidth = settings.barWidth || av.barWidth || 5;
-        const barSpacing = settings.barSpacing || av.barSpacing || 2;
-
-        const container = document.createElement('div');
-        container.className = 'module-preview av-preview';
-        container.style.cssText = `display: flex; align-items: ${mirrored ? 'center' : 'flex-end'}; gap: ${barSpacing}px; padding: 0; pointer-events: none; overflow: hidden;`;
-
-        if (direction === 'right-left') {
-            container.style.flexDirection = 'row-reverse';
-            container.style.justifyContent = 'flex-start';
-        } else {
-            container.style.flexDirection = 'row';
-            container.style.justifyContent = 'flex-start';
-        }
-
-        const barCount = 120;
-        for (let i = 0; i < barCount; i++) {
-            const noise = Math.sin(i * 0.3) * 30 + Math.sin(i * 0.7) * 20 + Math.sin(i * 1.5) * 10;
-            const height = Math.max(5, Math.min(95, 40 + noise + (Math.random() * 15 - 7)));
-
-            if (mirrored) {
-                const wrapper = document.createElement('div');
-                wrapper.style.cssText = `display: flex; flex-direction: column; justify-content: center; width: ${barWidth}px; min-width: ${barWidth}px; height: 100%; flex-shrink: 0;`;
-                const topBar = document.createElement('div');
-                topBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
-                topBar.style.background = this.#getAvBarBackground(colors, height);
-                const bottomBar = document.createElement('div');
-                bottomBar.style.cssText = `width: ${barWidth}px; height: ${height / 2}%; border-radius: 1px;`;
-                bottomBar.style.background = this.#getAvBarBackground(colors, height);
-                wrapper.appendChild(topBar);
-                wrapper.appendChild(bottomBar);
-                container.appendChild(wrapper);
-            } else {
-                const bar = document.createElement('div');
-                bar.style.cssText = `width: ${barWidth}px; min-width: ${barWidth}px; height: ${height}%; border-radius: 1px; flex-shrink: 0;`;
-                bar.style.background = this.#getAvBarBackground(colors, height);
-                container.appendChild(bar);
-            }
-        }
-
-        return container;
-    }
-
-    #getAvBarBackground(colors, height) {
-        if (colors.mode === 'gradient' && colors.gradient?.stops?.length) {
-            const stops = colors.gradient.stops;
-            const gradientCSS = stops.map(s => `${s.color} ${s.position * 100}%`).join(', ');
-            return `linear-gradient(to top, ${gradientCSS})`;
-        }
-        const level = height < 35 ? 'level1' : height < 50 ? 'level2' : height < 70 ? 'level3' : 'level4';
-        return colors[level] || '#885ab4';
-    }
-
-    #buildWebcamPreview(mod) {
-        const container = document.createElement('div');
-        container.className = 'module-preview webcam-preview';
-        container.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; background: rgba(0,0,0,0.3); position: relative; overflow: hidden; gap: 4px;';
-
-        const icon = document.createElement('div');
-        icon.style.cssText = 'font-size: 28px; opacity: 0.8;';
-        icon.textContent = '📷';
-
-        const label = document.createElement('div');
-        label.style.cssText = 'font-size: 10px; color: #aaa;';
-        label.textContent = mod.settings?.device || 'Default camera';
-
-        container.appendChild(icon);
-        container.appendChild(label);
-        return container;
-    }
-
-    #buildPreview(mod) {
-        switch (mod.type) {
-            case 'chat':
-                return this.#buildChatPreview();
-            case 'emote':
-                return this.#buildEmotePreview();
-            case 'audiovisualiser':
-                return this.#buildAudioVisualiserPreview(mod);
-            case 'webcam':
-                return this.#buildWebcamPreview(mod);
-            case 'image':
-                if (mod.settings.src) {
-                    const container = document.createElement('div');
-                    container.className = 'module-preview';
-                    const img = document.createElement('img');
-                    const host = EditorPrefs.get('serverHost', '127.0.0.1');
-                    const port = EditorPrefs.get('serverPort', 31589);
-                    img.src = `http://${host}:${port}${mod.settings.src}`;
-                    img.style.objectFit = mod.settings.objectFit || 'contain';
-                    container.appendChild(img);
-                    return container;
-                } else {
-                    return this.#buildNoMediaPreview('No image selected');
-                }
-            case 'video':
-                if (mod.settings.src) {
-                    const container = document.createElement('div');
-                    container.className = 'module-preview';
-                    const vid = document.createElement('video');
-                    // Use server URL for playback since src is a web-relative path
-                    const host = EditorPrefs.get('serverHost', '127.0.0.1');
-                    const port = EditorPrefs.get('serverPort', 31589);
-                    vid.src = `http://${host}:${port}${mod.settings.src}`;
-                    vid.muted = true;
-                    vid.loop = true;
-                    vid.style.objectFit = mod.settings.objectFit || 'contain';
-                    vid.style.width = '100%';
-                    vid.style.height = '100%';
-                    container.appendChild(vid);
-                    return container;
-                } else {
-                    return this.#buildNoMediaPreview('No video selected');
-                }
-        }
-
-        // Fallback: icon
+    /**
+     * Build the preview for a module instance using the registered preview callback.
+     * Falls back to a simple icon if no registration exists yet.
+     */
+    #buildPreview(id, mod) {
         const container = document.createElement('div');
         container.className = 'module-preview';
-        container.textContent = getModuleIcon(mod.type);
-        return container;
-    }
 
-    #buildNoMediaPreview(text) {
-        const container = document.createElement('div');
-        container.className = 'module-preview module-preview-error';
-        container.innerHTML = `
-            <div class="module-no-media">
-                <span class="module-no-media-icon">⚠️</span>
-                <span class="module-no-media-text">${text}</span>
-            </div>
-        `;
+        const reg = ModuleSimulator.getRegistration(id);
+        if (reg?.preview) {
+            reg.preview(container, mod.settings, mod.area);
+        } else {
+            // Fallback: just show the icon
+            container.style.cssText = 'display: flex; align-items: center; justify-content: center; font-size: 32px; pointer-events: none;';
+            container.textContent = getModuleIcon(mod.type);
+        }
+
         return container;
     }
 
     render() {
-        // Stop any running simulations before rebuilding DOM
-        ModuleSimulator.stopAll();
+        // Unregister all module instances — they'll be re-registered as we rebuild
+        ModuleSimulator.unregisterAll();
         this.#canvas.innerHTML = '';
         const modules = EditorState.getActiveSceneModules();
         const moduleKeys = Object.keys(modules);
+
+        // Set global config for modules
+        window.Config = EditorState.globalConfig;
 
         for (const [id, mod] of Object.entries(modules)) {
             const isSelected = EditorState.selectedModule === id;
@@ -516,19 +297,19 @@ class CanvasWorkspace {
             label.textContent = `${getModuleIcon(mod.type)} ${id}`;
             el.appendChild(label);
 
-            // Play/Stop simulation button
-            if (['emote', 'audiovisualiser', 'video', 'webcam', 'image'].includes(mod.type)) {
+            // Play/Stop simulation button — shown for any module with editorClass
+            if (ModuleSimulator.hasEditorSupport(mod.type)) {
                 const playBtn = document.createElement('button');
                 playBtn.className = 'module-play-btn';
-                playBtn.textContent = ModuleSimulator.isPlaying(id) ? '⏹' : '▶';
-                playBtn.title = ModuleSimulator.isPlaying(id) ? 'Stop simulation' : 'Play simulation';
+                playBtn.textContent = '▶';
+                playBtn.title = 'Play simulation';
                 playBtn.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                 });
                 playBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const preview = el.querySelector('.module-preview');
-                    ModuleSimulator.toggle(id, mod, preview);
+                    ModuleSimulator.toggle(id, preview);
                     playBtn.textContent = ModuleSimulator.isPlaying(id) ? '⏹' : '▶';
                     playBtn.title = ModuleSimulator.isPlaying(id) ? 'Stop simulation' : 'Play simulation';
                 });
@@ -545,13 +326,15 @@ class CanvasWorkspace {
                 chatTestBtn.addEventListener('mousedown', (e) => e.stopPropagation());
                 chatTestBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const preview = el.querySelector('.chat-preview');
-                    if (!preview || !preview._chatInstance) return;
+                    // Access the chat instance from the registry
+                    const entry = ModuleSimulator.getEntry(id);
+                    const chatInstance = entry?.classInstance;
+                    if (!chatInstance || typeof chatInstance.onMessage !== 'function') return;
                     const names = ['Viewer42', 'NightOwl', 'GamerPro', 'LurkKing', 'SubHype', 'ChillDude'];
                     const colors = ['#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#f39c12', '#1abc9c'];
                     const msgs = ['Hello! 👋', 'GG well played', 'Lets gooo 🎉', 'Nice stream!', 'First time here!', '❤️❤️❤️'];
                     const i = Math.floor(Math.random() * names.length);
-                    preview._chatInstance.onMessage({
+                    chatInstance.onMessage({
                         Type: 'MessageAdded',
                         ID: 'test_' + Date.now(),
                         DisplayName: names[i],
@@ -572,15 +355,17 @@ class CanvasWorkspace {
                 chatClearBtn.addEventListener('mousedown', (e) => e.stopPropagation());
                 chatClearBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const preview = el.querySelector('.chat-preview');
-                    if (preview && preview._chatInstance) preview._chatInstance.onMessage({ Type: 'ClearChat' });
+                    const entry = ModuleSimulator.getEntry(id);
+                    const chatInstance = entry?.classInstance;
+                    if (chatInstance && typeof chatInstance.onMessage === 'function') {
+                        chatInstance.onMessage({ Type: 'ClearChat' });
+                    }
                 });
                 el.appendChild(chatClearBtn);
             }
 
-            // Config-driven preview
-            const preview = this.#buildPreview(mod);
-            el.appendChild(preview);
+            // Build preview — register module and use its preview callback
+            this.#registerAndBuildPreview(id, mod, el);
 
             // Resize handles
             ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].forEach(h => {
@@ -621,5 +406,20 @@ class CanvasWorkspace {
 
             this.#canvas.appendChild(el);
         }
+    }
+
+    /**
+     * Asynchronously register a module instance and build its preview.
+     * Appends the preview to the element once ready.
+     */
+    async #registerAndBuildPreview(id, mod, el) {
+        // Try to register (loads script if needed)
+        if (ModuleSimulator.hasEditorSupport(mod.type)) {
+            await ModuleSimulator.register(id, mod.type);
+        }
+
+        // Build preview using registration (or fallback)
+        const preview = this.#buildPreview(id, mod);
+        el.appendChild(preview);
     }
 }

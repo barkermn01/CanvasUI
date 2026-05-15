@@ -403,13 +403,17 @@ class PropertiesPanel {
         if (settingsBtn) {
             settingsBtn.addEventListener('click', () => {
                 const tab = settingsBtn.dataset.tab;
-                // Find the settings panel instance and open it to the right tab
-                const settingsOverlay = document.getElementById('settings-overlay');
-                if (settingsOverlay) {
-                    settingsOverlay.style.display = 'flex';
-                    // Click the matching tab
-                    const tabBtn = settingsOverlay.querySelector(`.settings-tab[data-tab="${tab}"]`);
-                    if (tabBtn) tabBtn.click();
+                // Use the settings panel's open method, then switch to the right tab
+                if (window.settingsPanel) {
+                    window.settingsPanel.openTo(tab);
+                } else {
+                    // Fallback: open overlay and click tab
+                    const settingsOverlay = document.getElementById('settings-overlay');
+                    if (settingsOverlay) {
+                        settingsOverlay.style.display = 'flex';
+                        const tabBtn = settingsOverlay.querySelector(`.settings-tab[data-tab="${tab}"]`);
+                        if (tabBtn) tabBtn.click();
+                    }
                 }
             });
         }

@@ -8,7 +8,7 @@
 
 if (!window.CanvasChat) {
 
-window.CanvasChat = class CanvasChat {
+class CanvasChatMain {
     #messages = [];
     #bttvEmotes = [];
     #ffzEmotes = [];
@@ -176,7 +176,7 @@ window.CanvasChat = class CanvasChat {
 
     #addMessage(data) {
         if (!data.DisplayName) return;
-        if (Config.Bots?.find(b => b.toLowerCase() === data.DisplayName.toLowerCase())) return;
+        if (Config.chat?.ChatBoxes?.hideBots !== false && Config.Bots?.find(b => b.toLowerCase() === data.DisplayName.toLowerCase())) return;
 
         const now = performance.now();
         const segments = this.#parseSegments(data.Message || '', data.Emotes);
@@ -279,13 +279,15 @@ window.CanvasChat = class CanvasChat {
         const textColor = style.color || '#ffffff';
         const borderRadius = parseInt(style['border-radius']) || 3;
         const marginBottom = parseInt(style['margin-bottom']) || 3;
-        const borderWidth = parseInt(style['border-width']) || 0;
+        const hasBorderStyle = !!style['border-style'];
+        const borderWidth = parseInt(style['border-width']) || (hasBorderStyle ? 3 : 0);
         const fitContent = style.width === 'fit-content';
         const alignRight = style['align-self'] === 'flex-end' || style['justify-content'] === 'right';
         const badgeSize = boxes.BadgeSettings?.width || 18;
         const emoteSize = fontSize + 4;
         const showBadges = boxes.ShowBadges !== false;
         const showColon = boxes.UserColon !== false;
+        const nameOnNewLine = boxes.NameOnNewLine || false;
 
         // Parse text-shadow: "3px 3px 3px #000000"
         const textShadow = this.#parseTextShadow(style['text-shadow']);
@@ -301,7 +303,7 @@ window.CanvasChat = class CanvasChat {
         ctx.rect(area.x, area.y, area.width, area.height);
         ctx.clip();
 
-        const lineHeight = fontSize + 6;
+        const lineHeight = Math.max(fontSize + 6, badgeSize + 4);
         const maxTextWidth = area.width - padding * 2 - borderWidth * 2;
 
         // Measure all visible messages
@@ -310,8 +312,8 @@ window.CanvasChat = class CanvasChat {
             if (msg.hidden) continue;
             ctx.font = `bold ${fontSize}px ${fontFamily}`;
 
-            const contentWidth = this.#measureMessageWidth(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon);
-            const contentHeight = this.#measureMessageHeight(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight);
+            const contentWidth = this.#measureMessageWidth(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, nameOnNewLine);
+            const contentHeight = this.#measureMessageHeight(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight, nameOnNewLine);
 
             const boxW = fitContent ? Math.min(contentWidth + padding * 2 + borderWidth * 2, area.width) : area.width;
             const boxH = contentHeight + padding * 2 + borderWidth * 2;
@@ -351,42 +353,44 @@ window.CanvasChat = class CanvasChat {
                 ctx.translate(msg.slideOffset, 0);
             }
 
-            // Drop shadow on box
+            // Drop shadow on box — use a separate save/restore so shadow only affects the box outline
             if (dropShadow) {
+                ctx.save();
                 ctx.shadowColor = dropShadow.color;
                 ctx.shadowBlur = dropShadow.blur;
                 ctx.shadowOffsetX = dropShadow.x;
                 ctx.shadowOffsetY = dropShadow.y;
-            }
-
-            // Background (supports multiple gradients layered)
-            this.#drawBackground(ctx, bgStyle, boxX, msgY, boxW, boxH, borderRadius);
-
-            // Reset shadow after background
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
-
-            // Border
-            if (borderWidth > 0) {
-                ctx.strokeStyle = style['border-color'] || 'rgba(255,255,255,0.3)';
-                ctx.lineWidth = borderWidth;
+                // Clip out the box area so only the shadow (outside the box) is visible
+                ctx.beginPath();
+                ctx.rect(boxX - 100, msgY - 100, boxW + 200, boxH + 200);
                 this.#roundRect(ctx, boxX, msgY, boxW, boxH, borderRadius);
-                ctx.stroke();
+                // Use evenodd to cut out the inner shape — shadow renders outside
+                ctx.clip('evenodd');
+                ctx.fillStyle = 'rgba(0,0,0,1)';
+                this.#roundRect(ctx, boxX, msgY, boxW, boxH, borderRadius);
+                ctx.fill();
+                ctx.restore();
+                // Re-apply globalAlpha for the actual content
+                ctx.globalAlpha = msg.alpha;
             }
+
+            // Background + Border — rendered together via CSS for accurate styling
+            this.#drawMessageBox(ctx, style, bgStyle, boxX, msgY, boxW, boxH, borderRadius, borderWidth, dropShadow);
 
             // Draw text content
             let drawX = boxX + padding + borderWidth;
-            let drawY = msgY + padding + borderWidth + fontSize;
+            // Vertical position: account for the taller of badge or font
+            const lineItemHeight = Math.max(badgeSize, fontSize);
+            let drawY = msgY + padding + borderWidth + lineItemHeight;
 
-            // Badges
+            // Badges — vertically centered on the line
             if (showBadges && msg.badges.length > 0) {
+                const badgeY = drawY - lineItemHeight + (lineItemHeight - badgeSize) / 2;
                 for (const badge of msg.badges) {
                     if (badge.imageUrl) {
                         const entry = this.#getBadgeImage(badge.imageUrl);
                         if (entry.ready) {
-                            ctx.drawImage(entry.img, drawX, drawY - badgeSize + 2, badgeSize, badgeSize);
+                            ctx.drawImage(entry.img, drawX, badgeY, badgeSize, badgeSize);
                         }
                         drawX += badgeSize + 3;
                     }
@@ -401,18 +405,25 @@ window.CanvasChat = class CanvasChat {
                 ctx.shadowOffsetY = textShadow.y;
             }
 
-            // Username
+            // Username — vertically centered on the line
             ctx.font = `bold ${fontSize}px ${fontFamily}`;
             ctx.fillStyle = msg.color;
-            ctx.fillText(msg.display, drawX, drawY);
+            const textY = drawY - lineItemHeight + (lineItemHeight + fontSize) / 2 - 2;
+            ctx.fillText(msg.display, drawX, textY);
             drawX += ctx.measureText(msg.display).width;
 
             // Separator
             ctx.fillStyle = textColor;
             ctx.font = `${fontSize}px ${fontFamily}`;
             const sep = showColon ? ': ' : ' ';
-            ctx.fillText(sep, drawX, drawY);
+            ctx.fillText(sep, drawX, textY);
             drawX += ctx.measureText(sep).width;
+
+            // If name on new line, move to next line for message content
+            if (nameOnNewLine) {
+                drawX = boxX + padding + borderWidth;
+                drawY += lineHeight;
+            }
 
             // Message content
             if (msg.removed) {
@@ -422,11 +433,12 @@ window.CanvasChat = class CanvasChat {
                 if (rmConfig.italics) rmFont = `italic ${rmFont}`;
                 if (rmConfig.bold) rmFont = `bold ${rmFont}`;
                 ctx.font = rmFont;
-                ctx.fillText(msg.segments[0]?.value || '', drawX, drawY);
+                ctx.fillText(msg.segments[0]?.value || '', drawX, nameOnNewLine ? drawY - lineItemHeight + (lineItemHeight + fontSize) / 2 - 2 : textY);
             } else {
                 ctx.fillStyle = textColor;
                 ctx.font = `${fontSize}px ${fontFamily}`;
-                this.#drawSegments(ctx, msg.segments, drawX, drawY, maxTextWidth, boxX + padding + borderWidth, lineHeight, fontSize, fontFamily, textColor, emoteSize);
+                const msgDrawY = nameOnNewLine ? drawY - lineItemHeight + (lineItemHeight + fontSize) / 2 - 2 : textY;
+                this.#drawSegments(ctx, msg.segments, drawX, msgDrawY, maxTextWidth, boxX + padding + borderWidth, lineHeight, fontSize, fontFamily, textColor, emoteSize);
             }
 
             ctx.restore();
@@ -435,7 +447,7 @@ window.CanvasChat = class CanvasChat {
         ctx.restore();
     }
 
-    #measureMessageWidth(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon) {
+    #measureMessageWidth(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, nameOnNewLine) {
         let x = 0;
         ctx.font = `bold ${fontSize}px ${fontFamily}`;
         if (showBadges && msg.badges.length > 0) {
@@ -444,6 +456,21 @@ window.CanvasChat = class CanvasChat {
         x += ctx.measureText(msg.display).width;
         ctx.font = `${fontSize}px ${fontFamily}`;
         x += ctx.measureText(showColon ? ': ' : ' ').width;
+
+        // If name on new line, width is max of name line and message line
+        if (nameOnNewLine) {
+            const nameWidth = x;
+            let msgWidth = 0;
+            for (const seg of msg.segments) {
+                if (seg.type === 'emote') {
+                    msgWidth += emoteSize + 4;
+                } else {
+                    msgWidth += ctx.measureText(seg.value).width;
+                }
+            }
+            return Math.min(Math.max(nameWidth, msgWidth), maxWidth);
+        }
+
         for (const seg of msg.segments) {
             if (seg.type === 'emote') {
                 x += emoteSize + 4;
@@ -454,9 +481,32 @@ window.CanvasChat = class CanvasChat {
         return Math.min(x, maxWidth);
     }
 
-    #measureMessageHeight(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight) {
+    #measureMessageHeight(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight, nameOnNewLine) {
         ctx.font = `bold ${fontSize}px ${fontFamily}`;
         let x = 0;
+        let lines = 1;
+
+        if (nameOnNewLine) {
+            // Name line is always 1 line, then message starts on next line
+            lines = 2; // name line + at least one message line
+            x = 0; // message starts fresh on new line
+            ctx.font = `${fontSize}px ${fontFamily}`;
+            for (const seg of msg.segments) {
+                if (seg.type === 'emote') {
+                    if (x + emoteSize + 4 > maxWidth && x > 0) { lines++; x = 0; }
+                    x += emoteSize + 4;
+                } else {
+                    const words = seg.value.split(' ');
+                    for (const word of words) {
+                        const w = ctx.measureText(word + ' ').width;
+                        if (x + w > maxWidth && x > 0) { lines++; x = 0; }
+                        x += w;
+                    }
+                }
+            }
+            return lines * lineHeight;
+        }
+
         if (showBadges && msg.badges.length > 0) {
             x += msg.badges.length * (badgeSize + 3);
         }
@@ -464,7 +514,6 @@ window.CanvasChat = class CanvasChat {
         ctx.font = `${fontSize}px ${fontFamily}`;
         x += ctx.measureText(showColon ? ': ' : ' ').width;
 
-        let lines = 1;
         for (const seg of msg.segments) {
             if (seg.type === 'emote') {
                 if (x + emoteSize + 4 > maxWidth && x > 0) { lines++; x = 0; }
@@ -523,33 +572,96 @@ window.CanvasChat = class CanvasChat {
         return { x: parseFloat(match[1]), y: parseFloat(match[2]), blur: parseFloat(match[3]), color: match[4].trim() };
     }
 
-    #drawBackground(ctx, bgStyle, x, y, w, h, borderRadius) {
-        // Parse all background layers from the CSS background value
-        // CSS background can have: linear-gradient(...), linear-gradient(...) color
-        // Layers are comma-separated at the top level (outside parentheses)
-        const layers = this.#parseBackgroundLayers(bgStyle);
+    // Cache for rendered message box images (style hash -> { canvas, ready })
+    #bgCache = new Map();
+    #bgCacheDiv = null;
+    #lastStyleHash = '';
 
-        // CSS draws last layer first (bottom), first layer on top
-        // So we draw in reverse order
-        for (let i = layers.length - 1; i >= 0; i--) {
-            const layer = layers[i].trim();
-            if (!layer) continue;
+    #drawMessageBox(ctx, style, bgStyle, x, y, w, h, borderRadius, borderWidth, dropShadow) {
+        // Build a CSS string that captures background, border, and drop-shadow
+        let css = `width:${Math.ceil(w)}px;height:${Math.ceil(h)}px;box-sizing:border-box;`;
+        css += `background:${bgStyle};`;
+        css += `border-radius:${borderRadius}px;`;
 
-            const gradMatch = layer.match(/linear-gradient\(\s*(.+)\)/);
-            if (gradMatch) {
-                const fill = this.#createGradient(ctx, gradMatch[1], x, y, w, h);
-                if (fill) {
-                    ctx.fillStyle = fill;
-                    this.#roundRect(ctx, x, y, w, h, borderRadius);
-                    ctx.fill();
-                }
-            } else {
-                // Solid color
-                ctx.fillStyle = layer;
+        if (borderWidth > 0) {
+            const borderStyle = style['border-style'] || 'solid';
+            const borderColor = style['border-color'] || 'rgba(255,255,255,0.5)';
+            css += `border-width:${borderWidth}px;`;
+            css += `border-style:${borderStyle};`;
+            css += `border-color:${borderColor};`;
+        }
+
+        if (dropShadow) {
+            css += `filter:drop-shadow(${dropShadow.x}px ${dropShadow.y}px ${dropShadow.blur}px ${dropShadow.color});`;
+        }
+
+        // Invalidate cache if style config changed
+        const styleHash = JSON.stringify(style) + bgStyle;
+        if (styleHash !== this.#lastStyleHash) {
+            this.#bgCache.clear();
+            this.#lastStyleHash = styleHash;
+        }
+
+        const cacheKey = `${css}`;
+        const rw = Math.ceil(w) + (dropShadow ? Math.abs(dropShadow.x) + dropShadow.blur * 2 : 0);
+        const rh = Math.ceil(h) + (dropShadow ? Math.abs(dropShadow.y) + dropShadow.blur * 2 : 0);
+        const offsetX = dropShadow ? dropShadow.blur : 0;
+        const offsetY = dropShadow ? dropShadow.blur : 0;
+
+        // Check cache
+        if (this.#bgCache.has(cacheKey)) {
+            const cached = this.#bgCache.get(cacheKey);
+            if (cached.ready) {
+                ctx.drawImage(cached.canvas, x - offsetX, y - offsetY);
+                return;
+            }
+            // Still loading — draw fallback and wait
+            const fallbackColor = this.#extractFallbackColor(bgStyle);
+            if (fallbackColor) {
+                ctx.fillStyle = fallbackColor;
                 this.#roundRect(ctx, x, y, w, h, borderRadius);
                 ctx.fill();
             }
+            return;
         }
+
+        // Build SVG with foreignObject to render the CSS natively
+        // Add padding around the div for drop-shadow overflow
+        const divCss = css + `margin:${offsetY}px 0 0 ${offsetX}px;`;
+        const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${rw}" height="${rh}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${divCss}"></div></foreignObject></svg>`;
+
+        const entry = { canvas: null, ready: false };
+        this.#bgCache.set(cacheKey, entry);
+
+        const img = new Image();
+        // Use data URL for faster (potentially synchronous) loading
+        const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+
+        img.onload = () => {
+            const offscreen = document.createElement('canvas');
+            offscreen.width = rw;
+            offscreen.height = rh;
+            const offCtx = offscreen.getContext('2d');
+            offCtx.drawImage(img, 0, 0);
+            entry.canvas = offscreen;
+            entry.ready = true;
+        };
+        img.onerror = () => {};
+        img.src = dataUrl;
+
+        // First frame fallback: draw a simple filled rect
+        const fallbackColor = this.#extractFallbackColor(bgStyle);
+        if (fallbackColor) {
+            ctx.fillStyle = fallbackColor;
+            this.#roundRect(ctx, x, y, w, h, borderRadius);
+            ctx.fill();
+        }
+    }
+
+    #extractFallbackColor(bgStyle) {
+        // Try to find a solid color in the background string as a rough first-frame fallback
+        const match = bgStyle.match(/(rgba?\([^)]+\)|#[0-9a-fA-F]{3,8})\s*$/);
+        return match ? match[1] : 'rgba(0,0,0,0.3)';
     }
 
     #parseBackgroundLayers(bgStyle) {
@@ -662,10 +774,52 @@ window.CanvasChat = class CanvasChat {
         ctx.quadraticCurveTo(x, y, x + r, y);
         ctx.closePath();
     }
+
+    /**
+     * Called by the editor to register preview and simulation hooks.
+     */
+    editorRegister(register) {
+        const self = this;
+
+        register({
+            preview: (container, settings, area) => {
+                // Chat preview is a live canvas that renders messages
+                container.innerHTML = '';
+                container.style.cssText = 'position: relative; overflow: hidden;';
+
+                const canvas = document.createElement('canvas');
+                canvas.style.cssText = 'width: 100%; height: 100%; pointer-events: none;';
+                container.appendChild(canvas);
+                container._chatInstance = self;
+                container._chatCanvas = canvas;
+            },
+            simulate: {
+                start: (canvas, settings, area) => {
+                    // Chat is always "simulating" via its preview — nothing extra needed
+                },
+                draw: (ctx, settings, area, dt) => {
+                    window.Config = window.Config || {};
+                    self.update(dt);
+                    self.draw(ctx, settings, area);
+                },
+                stop: () => {}
+            },
+            dispose: () => {
+                // Chat persists messages in localStorage, no cleanup needed
+            }
+        });
+    }
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+window.CanvasChat = {
+    _main: CanvasChatMain,
+    _simulator: CanvasChatMain  // Same class — editorRegister is on it
 };
 
 if (document.getElementById('canvas')) {
-    const canvasChat = new window.CanvasChat();
+    const canvasChat = new CanvasChatMain();
 
     window.Modules.push({
         name: "chat",

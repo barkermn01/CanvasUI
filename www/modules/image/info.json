@@ -5,6 +5,7 @@
     "type": "canvas",
     "configKey": "image",
     "entrypoint": "image.js",
+    "editorClass": "ImageDisplay",
     "hasSettings": true,
     "allowMultiple": true,
     "description": "Static image overlay",

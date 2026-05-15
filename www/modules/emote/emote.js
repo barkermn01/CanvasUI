@@ -1,4 +1,17 @@
-class Emote {
+/**
+ * Emote Module
+ * 
+ * window.Emote = {
+ *   _main: EmoteInstance — the core emote class (single bouncing emote)
+ *   _simulator: EmoteSimulator — editor simulation class with editorRegister()
+ * }
+ */
+
+if (!window.Emote) {
+
+// ─── _main: Individual bouncing emote (used by overlay) ─────────────────────
+
+class EmoteInstance {
     isFinished = false;
     isReady = false;
     Expires = new Date(Date.now() + 30000)
@@ -7,7 +20,6 @@ class Emote {
     height = 96;
     top = rndInt(this.width, window.innerHeight)-this.width;
     left = rndInt(this.height, window.innerWidth)-this.height;
-
 
     #moveVertical;
     #moveHorizontal;
@@ -131,24 +143,122 @@ class Emote {
     }
 }
 
-let Emotes = [];
+// ─── _simulator: Editor simulation (bouncing emoji preview) ─────────────────
 
-window.Modules.push({
-    name: "Emote",
-    draw: (ctx) => {
-        Emotes.forEach(emote => { 
-            if(!emote.isFinished){
-                emote.draw(ctx);  
+class EmoteSimulator {
+    #emotes = [];
+    #spawnInterval = null;
+
+    editorRegister(register) {
+        const self = this;
+
+        register({
+            preview: (container, settings, area) => {
+                container.innerHTML = '';
+                container.style.cssText = 'display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 24px; pointer-events: none;';
+                container.textContent = '😀 🎉 ❤️ 🔥 👀';
+            },
+            simulate: {
+                start: (canvas, settings, area) => {
+                    self.#emotes = [];
+                    const spawn = () => {
+                        const icons = ['😀', '🎉', '❤️', '🔥', '👀', '💀', '🤣', '✨', '🎮', '💜'];
+                        const icon = icons[Math.floor(Math.random() * icons.length)];
+                        const w = area.width || 300;
+                        const h = area.height || 200;
+                        const config = window.Config?.emote || {};
+
+                        self.#emotes.push({
+                            icon,
+                            x: Math.random() * (w - 30),
+                            y: Math.random() * (h - 30),
+                            vx: (Math.random() - 0.5) * (config.Speed?.Min || 100),
+                            vy: (Math.random() - 0.5) * (config.Speed?.Max || 200),
+                            life: (config.AnimationTime?.Min || 10) + Math.random() * ((config.AnimationTime?.Max || 20) - (config.AnimationTime?.Min || 10)),
+                            size: 24
+                        });
+                    };
+                    for (let i = 0; i < 4; i++) spawn();
+                    self.#spawnInterval = setInterval(spawn, 1200);
+                },
+                update: (settings, area, dt) => {
+                    const w = area.width || 300;
+                    const h = area.height || 200;
+
+                    self.#emotes.forEach(e => {
+                        e.x += e.vx * dt;
+                        e.y += e.vy * dt;
+                        e.life -= dt;
+
+                        if (e.x <= 0 || e.x >= w - e.size) e.vx *= -1;
+                        if (e.y <= 0 || e.y >= h - e.size) e.vy *= -1;
+                        e.x = Math.max(0, Math.min(w - e.size, e.x));
+                        e.y = Math.max(0, Math.min(h - e.size, e.y));
+                    });
+
+                    self.#emotes = self.#emotes.filter(e => e.life > 0);
+                },
+                draw: (ctx, settings, area, dt) => {
+                    self.#emotes.forEach(e => {
+                        let alpha = 1;
+                        if (e.life <= 2) alpha = Math.max(0, e.life / 2);
+
+                        ctx.globalAlpha = alpha;
+                        ctx.font = `${e.size}px serif`;
+                        ctx.fillText(e.icon, e.x, e.y + e.size);
+                    });
+                    ctx.globalAlpha = 1;
+                },
+                stop: () => {
+                    if (self.#spawnInterval) {
+                        clearInterval(self.#spawnInterval);
+                        self.#spawnInterval = null;
+                    }
+                    self.#emotes = [];
+                }
+            },
+            dispose: () => {
+                if (self.#spawnInterval) {
+                    clearInterval(self.#spawnInterval);
+                    self.#spawnInterval = null;
+                }
+                self.#emotes = [];
             }
         });
-    },
-    update: (dt) => {
-        Emotes.forEach(emote => { 
-            emote.update(dt); 
-        });
-        Emotes = Emotes.filter(emote => !emote.isFinished);
-    },
-    message: (data) => {
-        Emotes.push(new Emote(data.imageUrl));
     }
-});
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+window.Emote = {
+    _main: EmoteInstance,
+    _simulator: EmoteSimulator
+};
+
+} // end if (!window.Emote)
+
+// ─── Overlay registration ───────────────────────────────────────────────────
+
+if (document.getElementById('canvas')) {
+    let Emotes = [];
+
+    window.Modules.push({
+        name: "Emote",
+        draw: (ctx) => {
+            Emotes.forEach(emote => { 
+                if(!emote.isFinished){
+                    emote.draw(ctx);  
+                }
+            });
+        },
+        update: (dt) => {
+            Emotes.forEach(emote => { 
+                emote.update(dt); 
+            });
+            Emotes = Emotes.filter(emote => !emote.isFinished);
+        },
+        message: (data) => {
+            Emotes.push(new window.Emote._main(data.imageUrl));
+        }
+    });
+}

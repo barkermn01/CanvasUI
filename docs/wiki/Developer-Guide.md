@@ -22,6 +22,7 @@ www/modules/mymodule/
     "type": "canvas",
     "configKey": "mymodule",
     "entrypoint": "mymodule.js",
+    "editorClass": "MyModule",
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Does something cool",
@@ -38,17 +39,24 @@ www/modules/mymodule/
 
 ### 3. Write the module code
 
+The module exposes `window[editorClass]` as an object with two properties:
+- `_main` — the core module class used by the overlay (and optionally the editor)
+- `_simulator` — the class the editor instantiates for preview/simulation (must have `editorRegister()`)
+
+These can be the same class if your module handles both roles.
+
 ```javascript
 if (!window.MyModule) {
 
-window.MyModule = class MyModule {
+// ─── _main: Core module logic (used by overlay) ─────────────────────────────
+
+class MyModuleMain {
     constructor() {
         // Initialise your module
     }
 
     draw(ctx, settings, area) {
         if (!area) return;
-        // Draw within the area bounds
         ctx.fillStyle = settings?.color || '#ffffff';
         ctx.fillRect(area.x, area.y, area.width, area.height);
     }
@@ -60,10 +68,60 @@ window.MyModule = class MyModule {
     onMessage(data) {
         // Handle WebSocket messages from Streamer.bot
     }
+
+    /**
+     * Called by the editor after loading the script.
+     * Register preview rendering and simulation callbacks.
+     * Called once per placed instance — supports multiple instances.
+     */
+    editorRegister(register) {
+        const self = this;
+
+        register({
+            // Build the static preview shown on the editor canvas
+            preview: (container, settings, area) => {
+                container.innerHTML = '';
+                container.style.cssText = 'display:flex; align-items:center; justify-content:center;';
+                container.textContent = '🔮 Preview';
+            },
+            // Simulation callbacks for the play button
+            simulate: {
+                start: (canvas, settings, area) => {
+                    // Called when simulation starts — init state here
+                },
+                update: (settings, area, dt) => {
+                    // Called every frame — update logic, dt in seconds
+                },
+                draw: (ctx, settings, area, dt) => {
+                    // Called every frame — draw to the canvas context
+                    ctx.fillStyle = settings?.color || '#ffffff';
+                    ctx.fillRect(area.x, area.y, area.width, area.height);
+                },
+                stop: () => {
+                    // Called when simulation stops — cleanup timers etc.
+                }
+            },
+            // Called when the instance is removed from the scene
+            dispose: () => {
+                // Full teardown — release resources, streams, etc.
+            }
+        });
+    }
+}
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+
+window.MyModule = {
+    _main: MyModuleMain,
+    _simulator: MyModuleMain  // Can be a separate class if needed
 };
 
+} // end if (!window.MyModule)
+
+// ─── Overlay registration ───────────────────────────────────────────────────
+
 if (document.getElementById('canvas')) {
-    const instance = new window.MyModule();
+    const instance = new window.MyModule._main();
 
     window.Modules.push({
         name: "mymodule",
@@ -72,8 +130,6 @@ if (document.getElementById('canvas')) {
         message: (data) => instance.onMessage(data)
     });
 }
-
-} // end if (!window.MyModule)
 ```
 
 ### 4. Register in modules.json
@@ -109,6 +165,7 @@ The scene module should always be last.
 | `type` | string | Always `"canvas"` |
 | `configKey` | string | Key in `Config` where global settings live |
 | `entrypoint` | string | JS filename to load (relative to module dir) |
+| `editorClass` | string | Window property name exposing `{ _main, _simulator }` for editor |
 | `hasSettings` | bool | Whether a settings tab appears in Global Settings |
 | `allowMultiple` | bool | Whether multiple instances can exist per scene |
 | `description` | string | Tooltip in the palette |
