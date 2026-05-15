@@ -1,8 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+let getPathForFile = null;
+try {
+    const { webUtils } = require('electron');
+    if (webUtils && webUtils.getPathForFile) {
+        getPathForFile = (file) => webUtils.getPathForFile(file);
+    }
+} catch (e) {}
+
 contextBridge.exposeInMainWorld('api', {
     // Module discovery
     discoverModules: () => ipcRenderer.invoke('module-discover'),
+
+    // File path helper (for drag-drop from OS in sandboxed mode)
+    getPathForFile: getPathForFile,
 
     // Config operations
     autoLoadConfig: () => ipcRenderer.invoke('auto-load-config'),

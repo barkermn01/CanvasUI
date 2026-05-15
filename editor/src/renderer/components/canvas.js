@@ -149,7 +149,9 @@ class CanvasWorkspace {
                 else continue;
 
                 // Copy file to www/media/
-                const results = await window.api.mediaDrop([file.path], null);
+                const fileSrcPath = window.api.getPathForFile ? window.api.getPathForFile(file) : file.path;
+                if (!fileSrcPath) continue;
+                const results = await window.api.mediaDrop([fileSrcPath], null);
                 if (!results || !results[0]?.success) continue;
 
                 const filePath = results[0].path;

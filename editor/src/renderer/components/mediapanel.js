@@ -224,7 +224,8 @@ class MediaPanel {
             const files = [...e.dataTransfer.files];
             if (files.length === 0) return;
 
-            const paths = files.map(f => f.path).filter(p => p);
+            // Use Electron's webUtils to get real file paths (File.path is empty in sandbox mode)
+            const paths = files.map(f => window.api.getPathForFile ? window.api.getPathForFile(f) : f.path).filter(p => p);
             if (paths.length > 0) {
                 const results = await window.api.mediaDrop(paths, this.#currentPath);
                 this.refresh();
