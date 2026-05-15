@@ -35,7 +35,7 @@ class CanvasChatMain {
                     color: msg.DisplayNameColor || '#ffffff',
                     badges: msg.Badges || [],
                     platform: msg.Platform || 'twitch',
-                    segments: this.#parseSegments(msg.Message || '', msg.Emotes),
+                    segments: msg.Segments || this.#parseSegments(msg.Message || '', msg.Emotes),
                     removed: msg.isRemoved || false,
                     createdAt: now,
                     alpha: 1,
@@ -56,7 +56,8 @@ class CanvasChatMain {
                 DisplayName: m.display,
                 DisplayNameColor: m.color,
                 Message: m.segments.filter(s => s.type === 'text').map(s => s.value).join(''),
-                Emotes: [],
+                Emotes: m.segments.filter(s => s.type === 'emote').map(s => ({ imageUrl: s.url, text: s.value })),
+                Segments: m.segments,
                 Badges: m.badges,
                 Platform: m.platform,
                 isRemoved: m.removed
@@ -308,7 +309,12 @@ class CanvasChatMain {
 
         // Measure all visible messages
         const rendered = [];
-        for (const msg of this.#messages) {
+        const newMessagesAbove = (boxes.NewMessages === 'above');
+
+        // Build render list — if NewMessages is "above", reverse so newest is first
+        const messageOrder = newMessagesAbove ? [...this.#messages].reverse() : this.#messages;
+
+        for (const msg of messageOrder) {
             if (msg.hidden) continue;
             ctx.font = `bold ${fontSize}px ${fontFamily}`;
 
@@ -337,8 +343,58 @@ class CanvasChatMain {
             }
         }
 
-        // Draw messages
+        // When clipping is disabled, remove oldest messages that overflow the area
         const allowClipping = boxes.allowClipping !== false;
+        if (!allowClipping) {
+            // Determine which end has the oldest messages to remove
+            // newMessagesAbove=true: newest at start (index 0), oldest at end
+            // newMessagesAbove=false: oldest at start (index 0), newest at end
+            const oldestAtEnd = newMessagesAbove;
+
+            if (position === 'top') {
+                // Messages laid out top-down, overflow at bottom
+                while (rendered.length > 0 && rendered[rendered.length - 1].y + rendered[rendered.length - 1].boxH > area.y + area.height) {
+                    if (oldestAtEnd) {
+                        // Oldest is at end — remove it (good, that's what overflows)
+                        rendered.pop();
+                    } else {
+                        // Oldest is at start — remove from start, reposition
+                        rendered.shift();
+                        let ry = area.y;
+                        for (let i = 0; i < rendered.length; i++) {
+                            rendered[i].y = ry;
+                            ry += rendered[i].boxH + marginBottom;
+                        }
+                    }
+                }
+            } else {
+                // Messages laid out bottom-up, overflow at top
+                while (rendered.length > 0 && rendered[0].y < area.y) {
+                    if (!oldestAtEnd) {
+                        // Oldest is at start — remove it (good, that's what overflows)
+                        rendered.shift();
+                    } else {
+                        // Oldest is at end — remove from end, reposition
+                        rendered.pop();
+                        let ry = area.y + area.height;
+                        for (let i = rendered.length - 1; i >= 0; i--) {
+                            ry -= rendered[i].boxH + marginBottom;
+                            rendered[i].y = ry;
+                        }
+                    }
+                    // Reposition after shift
+                    if (!oldestAtEnd) {
+                        let ry = area.y + area.height;
+                        for (let i = rendered.length - 1; i >= 0; i--) {
+                            ry -= rendered[i].boxH + marginBottom;
+                            rendered[i].y = ry;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Draw messages
         for (const { msg, boxW, boxH, y: msgY } of rendered) {
             // Fully outside the area — skip
             if (msgY + boxH < area.y || msgY > area.y + area.height) continue;
