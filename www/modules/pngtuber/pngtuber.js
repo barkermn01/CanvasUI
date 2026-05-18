@@ -86,13 +86,24 @@ class PNGTuberMain {
 
     #getImage(src) {
         if (!src) return null;
-        if (this.#imageCache.has(src)) return this.#imageCache.get(src);
+
+        // In the editor context, resolve relative paths against the server
+        let resolvedSrc = src;
+        if (typeof EditorPrefs !== 'undefined' && src.startsWith('/')) {
+            const host = EditorPrefs.get('serverHost', '127.0.0.1');
+            const port = EditorPrefs.get('serverPort', 31589);
+            resolvedSrc = `http://${host}:${port}${src}`;
+        }
+
+        if (this.#imageCache.has(resolvedSrc)) return this.#imageCache.get(resolvedSrc);
 
         const img = new Image();
-        img.src = src;
+        img.crossOrigin = 'anonymous';
+        img.src = resolvedSrc;
         const entry = { img, ready: false };
         img.onload = () => { entry.ready = true; };
-        this.#imageCache.set(src, entry);
+        img.onerror = () => { console.warn('[PNGTuber] Failed to load image:', resolvedSrc); };
+        this.#imageCache.set(resolvedSrc, entry);
         return entry;
     }
 
@@ -220,17 +231,29 @@ class PNGTuberMain {
         register({
             preview: (container, settings, area) => {
                 container.innerHTML = '';
-                container.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; pointer-events:none;';
+                container.style.cssText = 'display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; pointer-events:none; overflow:hidden;';
 
-                const icon = document.createElement('div');
-                icon.style.cssText = 'font-size:32px;';
-                icon.textContent = '🎭';
-                container.appendChild(icon);
+                const idleSrc = settings?.idleImage;
+                if (idleSrc) {
+                    const host = (typeof EditorPrefs !== 'undefined') ? EditorPrefs.get('serverHost', '127.0.0.1') : '127.0.0.1';
+                    const port = (typeof EditorPrefs !== 'undefined') ? EditorPrefs.get('serverPort', 31589) : 31589;
+                    const resolvedSrc = idleSrc.startsWith('/') ? `http://${host}:${port}${idleSrc}` : idleSrc;
 
-                const label = document.createElement('div');
-                label.style.cssText = 'font-size:10px; color:#aaa;';
-                label.textContent = settings?.device || 'No device set';
-                container.appendChild(label);
+                    const img = document.createElement('img');
+                    img.src = resolvedSrc;
+                    img.style.cssText = 'max-width:100%; max-height:100%; object-fit:contain;';
+                    container.appendChild(img);
+                } else {
+                    const icon = document.createElement('div');
+                    icon.style.cssText = 'font-size:32px;';
+                    icon.textContent = '🎭';
+                    container.appendChild(icon);
+
+                    const label = document.createElement('div');
+                    label.style.cssText = 'font-size:10px; color:#aaa;';
+                    label.textContent = settings?.device || 'No device set';
+                    container.appendChild(label);
+                }
             },
             simulate: {
                 start: (canvas, settings, area) => {
@@ -275,15 +298,18 @@ window.PNGTuber = {
 
 if (document.getElementById('canvas')) {
     const instance = new window.PNGTuber._main();
+    let lastSettings = null;
 
     window.Modules.push({
         name: "pngtuber",
         draw: (ctx, settings, area) => {
+            // Store settings from scene draw call for use in update
+            if (settings) lastSettings = settings;
             instance.draw(ctx, settings, area);
         },
         update: (dt) => {
-            // Get settings from the scene module data
-            instance.update(dt, Config.pngtuber || {});
+            // Use per-instance settings from last draw call, fall back to global config
+            instance.update(dt, lastSettings || Config.pngtuber || {});
         }
     });
 }
