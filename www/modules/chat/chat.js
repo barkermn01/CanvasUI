@@ -129,13 +129,20 @@ class CanvasChatMain {
         let cursor = 0;
         for (const ep of emotePositions) {
             if (ep.start > cursor) {
-                segments.push(...this.#parseTextForExtendedEmotes(text.substring(cursor, ep.start)));
+                const between = text.substring(cursor, ep.start);
+                // Skip pure whitespace between emotes — spacing is handled by the renderer
+                if (between.trim().length > 0) {
+                    segments.push(...this.#parseTextForExtendedEmotes(between));
+                }
             }
             segments.push({ type: 'emote', value: text.substring(ep.start, ep.end + 1), url: ep.url });
             cursor = ep.end + 1;
         }
         if (cursor < text.length) {
-            segments.push(...this.#parseTextForExtendedEmotes(text.substring(cursor)));
+            const trailing = text.substring(cursor);
+            if (trailing.trim().length > 0) {
+                segments.push(...this.#parseTextForExtendedEmotes(trailing));
+            }
         }
         if (emotePositions.length === 0) {
             return this.#parseTextForExtendedEmotes(text);
@@ -523,25 +530,39 @@ class CanvasChatMain {
         // If name on new line, width is max of name line and message line
         if (nameOnNewLine) {
             const nameWidth = x;
-            let msgWidth = 0;
-            for (const seg of msg.segments) {
-                if (seg.type === 'emote') {
-                    msgWidth += emoteSize + 4;
-                } else {
-                    msgWidth += ctx.measureText(seg.value).width;
-                }
-            }
+            let msgWidth = this.#measureSegmentsWidth(ctx, msg.segments, emoteSize, fontSize, fontFamily);
             return Math.min(Math.max(nameWidth, msgWidth), maxWidth);
         }
 
-        for (const seg of msg.segments) {
+        x += this.#measureSegmentsWidth(ctx, msg.segments, emoteSize, fontSize, fontFamily);
+        return Math.min(x, maxWidth);
+    }
+
+    #measureSegmentsWidth(ctx, segments, emoteSize, fontSize, fontFamily) {
+        let width = 0;
+        ctx.font = `${fontSize}px ${fontFamily}`;
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
             if (seg.type === 'emote') {
-                x += emoteSize + 4;
+                width += emoteSize;
+                // Small gap between consecutive emotes
+                const next = segments[i + 1];
+                if (next && next.type === 'emote') {
+                    width += 2;
+                }
             } else {
-                x += ctx.measureText(seg.value).width;
+                const words = seg.value.split(' ').filter(w => w !== '');
+                for (let wi = 0; wi < words.length; wi++) {
+                    const isLast = wi === words.length - 1;
+                    width += ctx.measureText(isLast ? words[wi] : words[wi] + ' ').width;
+                }
+                // Space before next emote if text doesn't end with space
+                if (!seg.value.endsWith(' ') && segments[i + 1]?.type === 'emote') {
+                    width += ctx.measureText(' ').width;
+                }
             }
         }
-        return Math.min(x, maxWidth);
+        return width;
     }
 
     #measureMessageHeight(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight, nameOnNewLine) {
@@ -554,16 +575,22 @@ class CanvasChatMain {
             lines = 2; // name line + at least one message line
             x = 0; // message starts fresh on new line
             ctx.font = `${fontSize}px ${fontFamily}`;
-            for (const seg of msg.segments) {
+            for (let i = 0; i < msg.segments.length; i++) {
+                const seg = msg.segments[i];
                 if (seg.type === 'emote') {
-                    if (x + emoteSize + 4 > maxWidth && x > 0) { lines++; x = 0; }
-                    x += emoteSize + 4;
+                    const emoteW = emoteSize + (msg.segments[i + 1]?.type === 'emote' ? 2 : 0);
+                    if (x + emoteSize > maxWidth && x > 0) { lines++; x = 0; }
+                    x += emoteW;
                 } else {
-                    const words = seg.value.split(' ');
-                    for (const word of words) {
-                        const w = ctx.measureText(word + ' ').width;
+                    const words = seg.value.split(' ').filter(w => w !== '');
+                    for (let wi = 0; wi < words.length; wi++) {
+                        const isLast = wi === words.length - 1;
+                        const w = ctx.measureText(isLast ? words[wi] : words[wi] + ' ').width;
                         if (x + w > maxWidth && x > 0) { lines++; x = 0; }
                         x += w;
+                    }
+                    if (!seg.value.endsWith(' ') && msg.segments[i + 1]?.type === 'emote') {
+                        x += ctx.measureText(' ').width;
                     }
                 }
             }
@@ -577,16 +604,24 @@ class CanvasChatMain {
         ctx.font = `${fontSize}px ${fontFamily}`;
         x += ctx.measureText(showColon ? ': ' : ' ').width;
 
-        for (const seg of msg.segments) {
+        for (let i = 0; i < msg.segments.length; i++) {
+            const seg = msg.segments[i];
             if (seg.type === 'emote') {
-                if (x + emoteSize + 4 > maxWidth && x > 0) { lines++; x = 0; }
-                x += emoteSize + 4;
+                if (x + emoteSize > maxWidth && x > 0) { lines++; x = 0; }
+                x += emoteSize;
+                if (msg.segments[i + 1]?.type === 'emote') {
+                    x += 2;
+                }
             } else {
-                const words = seg.value.split(' ');
-                for (const word of words) {
-                    const w = ctx.measureText(word + ' ').width;
+                const words = seg.value.split(' ').filter(w => w !== '');
+                for (let wi = 0; wi < words.length; wi++) {
+                    const isLast = wi === words.length - 1;
+                    const w = ctx.measureText(isLast ? words[wi] : words[wi] + ' ').width;
                     if (x + w > maxWidth && x > 0) { lines++; x = 0; }
                     x += w;
+                }
+                if (!seg.value.endsWith(' ') && msg.segments[i + 1]?.type === 'emote') {
+                    x += ctx.measureText(' ').width;
                 }
             }
         }
@@ -596,24 +631,39 @@ class CanvasChatMain {
     #drawSegments(ctx, segments, startX, startY, maxWidth, leftEdge, lineHeight, fontSize, fontFamily, textColor, emoteSize) {
         let x = startX;
         let y = startY;
-        for (const seg of segments) {
+        for (let si = 0; si < segments.length; si++) {
+            const seg = segments[si];
             if (seg.type === 'emote') {
                 if (x + emoteSize > leftEdge + maxWidth) { x = leftEdge; y += lineHeight; }
                 const entry = this.#getImage(seg.url);
                 if (entry.ready) {
                     ctx.drawImage(entry.img, x, y - emoteSize + 4, emoteSize, emoteSize);
                 }
-                x += emoteSize + 4;
+                x += emoteSize;
+                // Add a small gap only if the next segment is also an emote (no text space between them)
+                const next = segments[si + 1];
+                if (next && next.type === 'emote') {
+                    x += 2;
+                }
             } else {
                 ctx.font = `${fontSize}px ${fontFamily}`;
                 ctx.fillStyle = textColor;
                 const words = seg.value.split(' ');
-                for (const word of words) {
-                    const text = word + ' ';
+                for (let wi = 0; wi < words.length; wi++) {
+                    const word = words[wi];
+                    if (word === '') continue; // skip empty strings from split
+                    const isLast = wi === words.length - 1;
+                    const text = isLast ? word : word + ' ';
                     const w = ctx.measureText(text).width;
                     if (x + w > leftEdge + maxWidth && x > leftEdge) { x = leftEdge; y += lineHeight; }
                     ctx.fillText(text, x, y);
                     x += w;
+                }
+                // If the text segment ends and next is an emote, add a space gap
+                if (seg.value.endsWith(' ') || (segments[si + 1] && segments[si + 1].type === 'emote' && !seg.value.endsWith(' '))) {
+                    if (!seg.value.endsWith(' ') && segments[si + 1]?.type === 'emote') {
+                        x += ctx.measureText(' ').width;
+                    }
                 }
             }
         }
