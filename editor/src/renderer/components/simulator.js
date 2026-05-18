@@ -84,6 +84,23 @@ class ModuleSimulator {
         const port = EditorPrefs.get('serverPort', 31589);
         const dir = mod._dir || mod.name;
 
+        // Load dependency scripts first (e.g. chromakey.js)
+        if (mod.scripts && Array.isArray(mod.scripts)) {
+            for (const depScript of mod.scripts) {
+                if (document.querySelector(`script[src*="${dir}/${depScript}"]`)) continue;
+                await new Promise((resolve) => {
+                    const s = document.createElement('script');
+                    s.src = `http://${host}:${port}/modules/${dir}/${depScript}`;
+                    s.onload = resolve;
+                    s.onerror = () => {
+                        console.warn(`[ModuleSimulator] Failed to load dependency ${depScript} for ${type}`);
+                        resolve();
+                    };
+                    document.head.appendChild(s);
+                });
+            }
+        }
+
         const promise = new Promise((resolve) => {
             const script = document.createElement('script');
             script.src = `http://${host}:${port}/modules/${dir}/${mod.entrypoint}`;

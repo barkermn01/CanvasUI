@@ -8,20 +8,31 @@
     "editorClass": "WebcamDisplay",
     "hasSettings": true,
     "allowMultiple": true,
-    "description": "Live webcam feed",
+    "description": "Live webcam feed with optional chroma key",
     "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
+    "scripts": ["chromakey.js"],
     "schema": {
         "_type": {
             "device": "string",
             "mirror": "bool",
             "mask": { "type": "select", "options": ["none", "circle", "rounded"] },
-            "borderRadius": "string"
+            "borderRadius": "string",
+            "chromaKey": "bool",
+            "chromaKeyColor": { "type": "color", "showWhen": { "field": "chromaKey", "value": true } },
+            "chromaKeySimilarity": { "type": "number", "showWhen": { "field": "chromaKey", "value": true } },
+            "chromaKeySmoothness": { "type": "number", "showWhen": { "field": "chromaKey", "value": true } },
+            "chromaKeySpill": { "type": "number", "showWhen": { "field": "chromaKey", "value": true } }
         },
         "_labels": {
             "device": { "label": "Camera Device", "tooltip": "Name of the camera to use (blank for default)" },
             "mirror": { "label": "Mirror", "tooltip": "Flip the video horizontally" },
             "mask": { "label": "Mask Shape", "tooltip": "Clip the webcam feed to a shape" },
-            "borderRadius": { "label": "Border Radius", "tooltip": "Corner rounding for the 'rounded' mask (e.g. 16px)" }
+            "borderRadius": { "label": "Border Radius", "tooltip": "Corner rounding for the 'rounded' mask (e.g. 16px)" },
+            "chromaKey": { "label": "Chroma Key", "tooltip": "Enable green/blue screen removal (GPU accelerated)" },
+            "chromaKeyColor": { "label": "Key Color", "tooltip": "The background color to remove (default: green)" },
+            "chromaKeySimilarity": { "label": "Similarity", "tooltip": "How close a color must be to the key to be removed (0.0-1.0, default 0.4)" },
+            "chromaKeySmoothness": { "label": "Smoothness", "tooltip": "Edge softness for smoother blending (0.0-1.0, default 0.08)" },
+            "chromaKeySpill": { "label": "Spill Reduction", "tooltip": "Desaturate color spill near edges (0.0-1.0, default 0.1)" }
         }
     }
 }

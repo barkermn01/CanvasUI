@@ -54,6 +54,14 @@ class ModuleManager {
                 const infoResp = await fetch(`/modules/${infoPath}`);
                 const info = await infoResp.json();
                 const dir = infoPath.substring(0, infoPath.lastIndexOf('/'));
+
+                // Load additional scripts first (e.g. dependencies like chromakey.js)
+                if (info.scripts && Array.isArray(info.scripts)) {
+                    for (const script of info.scripts) {
+                        await this.loadModuleScript(null, `/modules/${dir}/${script}`);
+                    }
+                }
+
                 const scriptPath = `/modules/${dir}/${info.entrypoint}`;
                 await this.loadModuleScript(moduleName, scriptPath);
             } catch (e) {
@@ -65,8 +73,10 @@ class ModuleManager {
     loadModuleScript(name, scriptPath) {
         return new Promise((resolve, reject) => {
             loadJS(scriptPath, () => {
-                const module = window.Modules[window.Modules.length - 1];
-                this.modules.set(name, module);
+                if (name) {
+                    const module = window.Modules[window.Modules.length - 1];
+                    this.modules.set(name, module);
+                }
                 resolve();
             });
         });

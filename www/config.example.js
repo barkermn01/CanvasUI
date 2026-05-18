@@ -150,7 +150,12 @@ const Config = {
         device: "",
         mirror: false,
         mask: "none",
-        borderRadius: "0"
+        borderRadius: "0",
+        chromaKey: false,
+        chromaKeyColor: "#00ff00",
+        chromaKeySimilarity: 0.4,
+        chromaKeySmoothness: 0.08,
+        chromaKeySpill: 0.1
     },
 
     // PNGTuber settings

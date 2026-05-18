@@ -147,9 +147,25 @@ class WebcamDisplay {
                     const mirror = settings?.mirror ?? false;
                     const mask = settings?.mask || 'none';
                     const borderRadius = settings?.borderRadius || '0';
+                    const chromaEnabled = settings?.chromaKey ?? false;
+                    const chromaColor = settings?.chromaKeyColor || '#00ff00';
+                    const chromaSimilarity = settings?.chromaKeySimilarity ?? 0.4;
+                    const chromaSmoothness = settings?.chromaKeySmoothness ?? 0.08;
+                    const chromaSpill = settings?.chromaKeySpill ?? 0.1;
 
                     const entry = self.#manager.getEntry(device);
                     if (!entry || !entry.ready || !entry.video || entry.video.readyState < 2) return;
+
+                    // Determine source (video or chroma-keyed canvas)
+                    let source = entry.video;
+                    if (chromaEnabled && window.ChromaKey) {
+                        if (!self._chromaKey) self._chromaKey = new window.ChromaKey();
+                        if (self._chromaKey.isAvailable) {
+                            self._chromaKey.setKey(chromaColor, chromaSimilarity, chromaSmoothness, chromaSpill);
+                            const processed = self._chromaKey.process(entry.video);
+                            if (processed) source = processed;
+                        }
+                    }
 
                     ctx.save();
 
@@ -181,14 +197,14 @@ class WebcamDisplay {
                     }
 
                     // Cover-fit draw
-                    const vw = entry.video.videoWidth;
-                    const vh = entry.video.videoHeight;
+                    const vw = source === entry.video ? entry.video.videoWidth : source.width;
+                    const vh = source === entry.video ? entry.video.videoHeight : source.height;
                     const scale = Math.max(area.width / vw, area.height / vh);
                     const sw = area.width / scale;
                     const sh = area.height / scale;
                     const sx = (vw - sw) / 2;
                     const sy = (vh - sh) / 2;
-                    ctx.drawImage(entry.video, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
+                    ctx.drawImage(source, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
 
                     ctx.restore();
                 },
@@ -197,12 +213,20 @@ class WebcamDisplay {
                         self.#manager.releaseStream(self.#deviceName);
                         self.#deviceName = null;
                     }
+                    if (self._chromaKey) {
+                        self._chromaKey.dispose();
+                        self._chromaKey = null;
+                    }
                 }
             },
             dispose: () => {
                 if (self.#deviceName !== null) {
                     self.#manager.releaseStream(self.#deviceName);
                     self.#deviceName = null;
+                }
+                if (self._chromaKey) {
+                    self._chromaKey.dispose();
+                    self._chromaKey = null;
                 }
             }
         });
@@ -222,6 +246,16 @@ if (document.getElementById('canvas')) {
     const manager = new window.WebcamManager();
     // Track which devices have been requested
     const requestedDevices = new Set();
+    // ChromaKey instances per device
+    const chromaKeys = new Map();
+
+    function getChromaKey(device) {
+        const key = device || '_default';
+        if (!chromaKeys.has(key)) {
+            chromaKeys.set(key, new window.ChromaKey());
+        }
+        return chromaKeys.get(key);
+    }
 
     window.Modules.push({
         name: "webcam",
@@ -232,26 +266,33 @@ if (document.getElementById('canvas')) {
             const mirror = settings?.mirror ?? false;
             const mask = settings?.mask || 'none';
             const borderRadius = settings?.borderRadius || '0';
-
-            // Debug: log what settings each instance receives
-            if (!window._webcamDebugLogged) window._webcamDebugLogged = {};
-            const debugKey = `${area.x},${area.y}`;
-            if (!window._webcamDebugLogged[debugKey]) {
-                console.log('[Webcam Draw]', debugKey, 'device:', JSON.stringify(device), 'settings:', JSON.stringify(settings));
-                window._webcamDebugLogged[debugKey] = true;
-            }
+            const chromaEnabled = settings?.chromaKey ?? false;
+            const chromaColor = settings?.chromaKeyColor || '#00ff00';
+            const chromaSimilarity = settings?.chromaKeySimilarity ?? 0.4;
+            const chromaSmoothness = settings?.chromaKeySmoothness ?? 0.08;
+            const chromaSpill = settings?.chromaKeySpill ?? 0.1;
 
             // Request stream if not already done
             const key = device || '_default';
             if (!requestedDevices.has(key)) {
                 requestedDevices.add(key);
-                console.log('[Webcam] Requesting stream for key:', JSON.stringify(key), 'device:', JSON.stringify(device));
                 manager.getStream(device);
             }
 
             // Get cached entry
             const entry = manager.getEntry(device);
             if (!entry || !entry.ready || !entry.video || entry.video.readyState < 2) return;
+
+            // Determine the source to draw (video or chroma-keyed canvas)
+            let source = entry.video;
+            if (chromaEnabled && window.ChromaKey) {
+                const ck = getChromaKey(device);
+                if (ck.isAvailable) {
+                    ck.setKey(chromaColor, chromaSimilarity, chromaSmoothness, chromaSpill);
+                    const processed = ck.process(entry.video);
+                    if (processed) source = processed;
+                }
+            }
 
             ctx.save();
 
@@ -283,14 +324,14 @@ if (document.getElementById('canvas')) {
             }
 
             // Cover-fit draw
-            const vw = entry.video.videoWidth;
-            const vh = entry.video.videoHeight;
+            const vw = source === entry.video ? entry.video.videoWidth : source.width;
+            const vh = source === entry.video ? entry.video.videoHeight : source.height;
             const scale = Math.max(area.width / vw, area.height / vh);
             const sw = area.width / scale;
             const sh = area.height / scale;
             const sx = (vw - sw) / 2;
             const sy = (vh - sh) / 2;
-            ctx.drawImage(entry.video, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
+            ctx.drawImage(source, sx, sy, sw, sh, mirror ? area.x : area.x, area.y, area.width, area.height);
 
             ctx.restore();
         }
