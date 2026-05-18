@@ -11,8 +11,12 @@
     "description": "Displays Twitch/YouTube chat messages",
     "gradient": { "from": "rgba(59, 130, 246, 0.08)", "to": "rgba(59, 130, 246, 0.25)" },
     "schema": {
-        "_type": {},
-        "_labels": {},
+        "_type": {
+            "hideMessageStartingWith": "string"
+        },
+        "_labels": {
+            "hideMessageStartingWith": { "label": "Hide Messages Starting With", "tooltip": "Comma-separated characters — messages starting with any of these are hidden (e.g. !,/,. to hide commands)" }
+        },
         "_item_type": {
             "ExtendedEmotesServices": "object",
             "AutoHide": "object",

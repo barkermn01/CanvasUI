@@ -98,6 +98,7 @@ const Config = {
     chat: {
         BeforeCanvas: true,
         hideBots: true,
+        hideMessageStartingWith: ["!"],
         ExtendedEmotesServices: {
             BTTV: true,
             FFZ: true

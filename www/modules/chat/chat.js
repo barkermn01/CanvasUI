@@ -186,6 +186,18 @@ class CanvasChatMain {
         if (!data.DisplayName) return;
         if (Config.chat?.ChatBoxes?.hideBots !== false && Config.Bots?.find(b => b.toLowerCase() === data.DisplayName.toLowerCase())) return;
 
+        // Filter messages starting with specified characters (e.g. '!' for commands)
+        const hideCharsRaw = Config.chat?.hideMessageStartingWith;
+        if (hideCharsRaw && data.Message) {
+            const hideChars = Array.isArray(hideCharsRaw)
+                ? hideCharsRaw
+                : hideCharsRaw.split(',').map(c => c.trim()).filter(c => c.length > 0);
+            if (hideChars.length > 0) {
+                const firstChar = data.Message.charAt(0);
+                if (hideChars.includes(firstChar)) return;
+            }
+        }
+
         const now = performance.now();
         const segments = this.#parseSegments(data.Message || '', data.Emotes);
 
