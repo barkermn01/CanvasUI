@@ -40,13 +40,45 @@ function getUserWwwDir() {
 function getModulesDir() {
     const userWww = getUserWwwDir();
     const modulesDir = path.join(userWww, 'modules');
+    const builtInNames = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+
     if (!fs.existsSync(modulesDir)) {
-        // Copy built-in modules on first run (macOS/Linux)
+        // First run: copy all built-in modules to user directory
         const builtInModules = path.join(getWwwDir(), 'modules');
         if (fs.existsSync(builtInModules) && userWww !== getWwwDir()) {
             fs.cpSync(builtInModules, modulesDir, { recursive: true });
         } else {
             fs.mkdirSync(modulesDir, { recursive: true });
+        }
+    } else if (userWww !== getWwwDir()) {
+        // Subsequent runs: sync only built-in modules (leave custom ones untouched)
+        const builtInModules = path.join(getWwwDir(), 'modules');
+        if (fs.existsSync(builtInModules)) {
+            // Overwrite built-in module directories
+            for (const name of builtInNames) {
+                const src = path.join(builtInModules, name);
+                const dest = path.join(modulesDir, name);
+                if (fs.existsSync(src)) {
+                    fs.cpSync(src, dest, { recursive: true });
+                }
+            }
+            // Copy top-level files (modules.json, global.info.json, scene.js, config-validator.js)
+            const topFiles = fs.readdirSync(builtInModules, { withFileTypes: true })
+                .filter(e => e.isFile());
+            for (const file of topFiles) {
+                fs.copyFileSync(path.join(builtInModules, file.name), path.join(modulesDir, file.name));
+            }
+            // Merge modules.json: ensure built-in entries exist without removing custom ones
+            const builtInManifest = path.join(builtInModules, 'modules.json');
+            const userManifest = path.join(modulesDir, 'modules.json');
+            if (fs.existsSync(builtInManifest) && fs.existsSync(userManifest)) {
+                try {
+                    const builtIn = JSON.parse(fs.readFileSync(builtInManifest, 'utf8'));
+                    const user = JSON.parse(fs.readFileSync(userManifest, 'utf8'));
+                    const merged = { ...user, ...builtIn };
+                    fs.writeFileSync(userManifest, JSON.stringify(merged, null, 4), 'utf8');
+                } catch (e) {}
+            }
         }
     }
     return modulesDir;
