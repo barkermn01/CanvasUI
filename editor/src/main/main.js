@@ -117,6 +117,7 @@ ipcMain.handle('module-discover', () => {
 // ─── Module Management ────────────────────────────────────────────────────────
 
 const crypto = require('crypto');
+const AdmZip = require('adm-zip');
 
 const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
 
@@ -196,15 +197,12 @@ ipcMain.handle('module-install', async (event) => {
     const modulesDir = getModulesDir();
 
     try {
-        // Use Node's built-in zlib + tar... actually we need a zip library.
-        // Use extract-zip or handle manually with AdmZip pattern.
-        // Since we don't want extra deps, use PowerShell to extract.
         const tempDir = path.join(require('os').tmpdir(), 'canvasui_module_install_' + Date.now());
         fs.mkdirSync(tempDir, { recursive: true });
 
-        // Extract zip using PowerShell
-        const { execSync } = require('child_process');
-        execSync(`powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${tempDir}' -Force"`, { stdio: 'pipe' });
+        // Extract zip using adm-zip (cross-platform)
+        const zip = new AdmZip(zipPath);
+        zip.extractAllTo(tempDir, true);
 
         // Check for manifest.json
         const manifestPath = path.join(tempDir, 'manifest.json');
@@ -326,10 +324,22 @@ ipcMain.handle('module-export', async (event, moduleName) => {
         // Write manifest
         fs.writeFileSync(path.join(tempDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
 
-        // Create zip using PowerShell
-        const { execSync } = require('child_process');
-        if (fs.existsSync(savePath)) fs.unlinkSync(savePath);
-        execSync(`powershell -Command "Compress-Archive -Path '${tempDir}\\*' -DestinationPath '${savePath}'"`, { stdio: 'pipe' });
+        // Create zip using adm-zip (cross-platform)
+        const zip = new AdmZip();
+        const addDirRecursive = (dir, zipPath) => {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                const entryZipPath = zipPath ? `${zipPath}/${entry.name}` : entry.name;
+                if (entry.isDirectory()) {
+                    addDirRecursive(fullPath, entryZipPath);
+                } else {
+                    zip.addLocalFile(fullPath, zipPath || '');
+                }
+            }
+        };
+        addDirRecursive(tempDir, '');
+        zip.writeZip(savePath);
 
         // Cleanup
         fs.rmSync(tempDir, { recursive: true });

@@ -13,6 +13,7 @@
     "screenshots": "electron screenshot.js"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
     "ws": "^8.16.0"
   },
   "devDependencies": {
