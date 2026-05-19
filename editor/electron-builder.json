@@ -26,6 +26,17 @@
         "icon": "../icon.png",
         "executableName": "canvasui"
     },
+    "mac": {
+        "target": ["dmg"],
+        "icon": "../icon.png",
+        "category": "public.app-category.video"
+    },
+    "linux": {
+        "target": ["AppImage", "deb"],
+        "icon": "../icon.png",
+        "category": "AudioVideo",
+        "executableName": "canvasui"
+    },
     "nsis": {
         "oneClick": false,
         "allowToChangeInstallationDirectory": true,

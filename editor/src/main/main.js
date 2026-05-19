@@ -7,6 +7,68 @@ const server = require('./server');
 // (XSplit VCam, OBS Virtual Camera). MF takes exclusive locks; DirectShow allows sharing.
 app.commandLine.appendSwitch('disable-features', 'MediaFoundationVideoCapture');
 
+// ─── Platform-aware path resolution ──────────────────────────────────────────
+// Windows: user data lives inside the install directory (resources/www/)
+// macOS/Linux: user data lives in the OS user data directory
+function getWwwDir() {
+    if (app.isPackaged) {
+        if (process.platform === 'win32') {
+            // Windows: www is inside the app resources
+            return path.join(process.resourcesPath, 'www');
+        } else {
+            // macOS/Linux: www base is in resources, but user data is in userData
+            return path.join(process.resourcesPath, 'www');
+        }
+    }
+    // Dev mode: project root www/
+    return path.resolve(__dirname, '..', '..', '..', 'www');
+}
+
+function getUserWwwDir() {
+    if (app.isPackaged && process.platform !== 'win32') {
+        // macOS/Linux: user-writable data goes in userData
+        const userDir = path.join(app.getPath('userData'), 'www');
+        if (!fs.existsSync(userDir)) {
+            fs.mkdirSync(userDir, { recursive: true });
+        }
+        return userDir;
+    }
+    // Windows (packaged) or dev mode: same as wwwDir
+    return getWwwDir();
+}
+
+function getModulesDir() {
+    const userWww = getUserWwwDir();
+    const modulesDir = path.join(userWww, 'modules');
+    if (!fs.existsSync(modulesDir)) {
+        // Copy built-in modules on first run (macOS/Linux)
+        const builtInModules = path.join(getWwwDir(), 'modules');
+        if (fs.existsSync(builtInModules) && userWww !== getWwwDir()) {
+            fs.cpSync(builtInModules, modulesDir, { recursive: true });
+        } else {
+            fs.mkdirSync(modulesDir, { recursive: true });
+        }
+    }
+    return modulesDir;
+}
+
+function getModulesManifestPath() {
+    return path.join(getModulesDir(), 'modules.json');
+}
+
+function getMediaDir() {
+    const userWww = getUserWwwDir();
+    const mediaDir = path.join(userWww, 'media');
+    if (!fs.existsSync(mediaDir)) {
+        fs.mkdirSync(mediaDir, { recursive: true });
+    }
+    return mediaDir;
+}
+
+function getConfigPath() {
+    return path.join(getUserWwwDir(), 'config.js');
+}
+
 let mainWindow;
 
 function createWindow() {
@@ -73,10 +135,7 @@ app.on('before-quit', async () => {
 // ─── Module Discovery ─────────────────────────────────────────────────────────
 
 ipcMain.handle('module-discover', () => {
-    const resourcesWww = path.join(process.resourcesPath || '', 'www');
-    const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
-    const wwwDir = (process.resourcesPath && fs.existsSync(resourcesWww)) ? resourcesWww : projectWww;
-    const modulesDir = path.join(wwwDir, 'modules');
+    const modulesDir = getModulesDir();
 
     try {
         const entries = fs.readdirSync(modulesDir, { withFileTypes: true });
@@ -120,17 +179,6 @@ const crypto = require('crypto');
 const AdmZip = require('adm-zip');
 
 const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
-
-function getModulesDir() {
-    const resourcesWww = path.join(process.resourcesPath || '', 'www');
-    const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
-    const wwwDir = (process.resourcesPath && fs.existsSync(resourcesWww)) ? resourcesWww : projectWww;
-    return path.join(wwwDir, 'modules');
-}
-
-function getModulesManifestPath() {
-    return path.join(getModulesDir(), 'modules.json');
-}
 
 function hashFile(filePath) {
     const content = fs.readFileSync(filePath);
@@ -391,18 +439,7 @@ ipcMain.handle('open-modules-dir', () => {
 
 // Auto-load default config on startup
 ipcMain.handle('auto-load-config', () => {
-    // Check packaged resources first, then project root (dev mode only)
-    let configPath;
-
-    if (app.isPackaged) {
-        // Packaged app: only look in resources
-        const resourcesWww = path.join(process.resourcesPath, 'www');
-        configPath = path.join(resourcesWww, 'config.js');
-    } else {
-        // Dev mode: look in project www/
-        const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
-        configPath = path.join(projectWww, 'config.js');
-    }
+    const configPath = getConfigPath();
 
     try {
         if (!fs.existsSync(configPath)) return null;
@@ -499,17 +536,6 @@ ipcMain.handle('quick-save', async (event, { configData, savePath }) => {
 });
 
 // ─── Media Operations ─────────────────────────────────────────────────────────
-
-function getMediaDir() {
-    const resourcesWww = path.join(process.resourcesPath || '', 'www');
-    const projectWww = path.resolve(__dirname, '..', '..', '..', 'www');
-    const wwwDir = (process.resourcesPath && fs.existsSync(resourcesWww)) ? resourcesWww : projectWww;
-    const mediaDir = path.join(wwwDir, 'media');
-    if (!fs.existsSync(mediaDir)) {
-        fs.mkdirSync(mediaDir, { recursive: true });
-    }
-    return mediaDir;
-}
 
 ipcMain.handle('media-list', (event, subPath) => {
     const mediaDir = getMediaDir();
