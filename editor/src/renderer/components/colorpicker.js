@@ -39,10 +39,29 @@ class ColorPicker {
             </div>
         `;
 
-        // Position near the swatch
+        // Position near the swatch, but keep within viewport
         const rect = swatch.getBoundingClientRect();
-        popup.style.top = (rect.bottom + 4) + 'px';
-        popup.style.left = rect.left + 'px';
+        const popupWidth = 220;
+        const popupHeight = 210;
+
+        let top = rect.bottom + 4;
+        let left = rect.left;
+
+        // If popup would go below viewport, position above the swatch
+        if (top + popupHeight > window.innerHeight) {
+            top = rect.top - popupHeight - 4;
+        }
+        // If popup would go off the right edge, align to right side of swatch
+        if (left + popupWidth > window.innerWidth) {
+            left = rect.right - popupWidth;
+        }
+        // If still off-screen left, clamp to 4px from edge
+        if (left < 4) left = 4;
+        // If still off-screen top, clamp to 4px from edge
+        if (top < 4) top = 4;
+
+        popup.style.top = top + 'px';
+        popup.style.left = left + 'px';
 
         document.body.appendChild(popup);
         ColorPicker.#activePopup = popup;

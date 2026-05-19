@@ -167,6 +167,18 @@ class PropertiesPanel {
         html += `<div class="prop-row"><label>Border Radius</label><input type="text" id="prop-webcam-borderRadius" value="${settings.borderRadius || '0'}" placeholder="e.g. 16px"></div>`;
         html += `</div>`;
 
+        // Chroma Key settings
+        html += `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Chroma Key</div>`;
+        html += `<div class="prop-row"><label>Enabled</label><input type="checkbox" id="prop-webcam-chromaKey" ${settings.chromaKey ? 'checked' : ''}></div>`;
+        html += `<div id="prop-chromakey-options" style="${settings.chromaKey ? '' : 'display:none'}">`;
+        html += `<div class="prop-row"><label>Key Color</label><div class="cp-placeholder" id="prop-webcam-chromaKeyColor-cp" data-cp-field="chromaKeyColor" data-cp-value="${settings.chromaKeyColor || '#00ff00'}"></div></div>`;
+        html += `<div class="prop-row"><label>Similarity</label><input type="range" id="prop-webcam-chromaKeySimilarity" min="0" max="1" step="0.01" value="${settings.chromaKeySimilarity ?? 0.4}"><span id="prop-chromakey-sim-val">${settings.chromaKeySimilarity ?? 0.4}</span></div>`;
+        html += `<div class="prop-row"><label>Smoothness</label><input type="range" id="prop-webcam-chromaKeySmoothness" min="0" max="1" step="0.01" value="${settings.chromaKeySmoothness ?? 0.08}"><span id="prop-chromakey-smooth-val">${settings.chromaKeySmoothness ?? 0.08}</span></div>`;
+        html += `<div class="prop-row"><label>Spill</label><input type="range" id="prop-webcam-chromaKeySpill" min="0" max="1" step="0.01" value="${settings.chromaKeySpill ?? 0.1}"><span id="prop-chromakey-spill-val">${settings.chromaKeySpill ?? 0.1}</span></div>`;
+        html += `</div>`;
+        html += `</div>`;
+
         // Enumerate cameras and bind events after render
         setTimeout(() => this.#populateWebcamDevices(settings), 0);
         setTimeout(() => this.#bindWebcamEvents(), 0);
@@ -179,6 +191,11 @@ class PropertiesPanel {
         const mirrorEl = document.getElementById('prop-webcam-mirror');
         const maskEl = document.getElementById('prop-webcam-mask');
         const radiusEl = document.getElementById('prop-webcam-borderRadius');
+        const chromaKeyEl = document.getElementById('prop-webcam-chromaKey');
+        const chromaOptionsEl = document.getElementById('prop-chromakey-options');
+        const simEl = document.getElementById('prop-webcam-chromaKeySimilarity');
+        const smoothEl = document.getElementById('prop-webcam-chromaKeySmoothness');
+        const spillEl = document.getElementById('prop-webcam-chromaKeySpill');
 
         if (mirrorEl) {
             mirrorEl.addEventListener('change', () => {
@@ -194,6 +211,41 @@ class PropertiesPanel {
             radiusEl.addEventListener('change', () => {
                 EditorState.updateModuleSetting(id, 'borderRadius', radiusEl.value);
             });
+        }
+        if (chromaKeyEl) {
+            chromaKeyEl.addEventListener('change', () => {
+                EditorState.updateModuleSetting(id, 'chromaKey', chromaKeyEl.checked);
+                if (chromaOptionsEl) chromaOptionsEl.style.display = chromaKeyEl.checked ? '' : 'none';
+            });
+        }
+        if (simEl) {
+            simEl.addEventListener('input', () => {
+                document.getElementById('prop-chromakey-sim-val').textContent = simEl.value;
+                EditorState.updateModuleSetting(id, 'chromaKeySimilarity', parseFloat(simEl.value));
+            });
+        }
+        if (smoothEl) {
+            smoothEl.addEventListener('input', () => {
+                document.getElementById('prop-chromakey-smooth-val').textContent = smoothEl.value;
+                EditorState.updateModuleSetting(id, 'chromaKeySmoothness', parseFloat(smoothEl.value));
+            });
+        }
+        if (spillEl) {
+            spillEl.addEventListener('input', () => {
+                document.getElementById('prop-chromakey-spill-val').textContent = spillEl.value;
+                EditorState.updateModuleSetting(id, 'chromaKeySpill', parseFloat(spillEl.value));
+            });
+        }
+
+        // Color picker for chroma key color
+        const cpEl = document.getElementById('prop-webcam-chromaKeyColor-cp');
+        if (cpEl) {
+            const currentColor = cpEl.dataset.cpValue || '#00ff00';
+            const swatch = ColorPicker.create(currentColor, (hex) => {
+                EditorState.updateModuleSetting(id, 'chromaKeyColor', hex);
+            });
+            cpEl.innerHTML = '';
+            cpEl.appendChild(swatch);
         }
     }
 

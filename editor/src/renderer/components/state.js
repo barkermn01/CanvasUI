@@ -228,7 +228,7 @@ const EditorState = {
             case 'chat': return {};
             case 'emote': return {};
             case 'audiovisualiser': return { device: '', direction: 'right-left', mirrored: true, barWidth: 5, barSpacing: 2 };
-            case 'webcam': return { device: '', mirror: false, mask: 'none', borderRadius: '0' };
+            case 'webcam': return { device: '', mirror: false, mask: 'none', borderRadius: '0', chromaKey: false, chromaKeyColor: '#00ff00', chromaKeySimilarity: 0.4, chromaKeySmoothness: 0.08, chromaKeySpill: 0.1 };
             case 'pngtuber': return { device: '', threshold: 30, holdTime: 200, frequencyMin: 85, frequencyMax: 300, idleImage: '', talkingImage: '', blinkImage: '', blinkInterval: 4, blinkDuration: 150, bounce: true, bounceAmount: 5 };
             default: return {};
         }
