@@ -83,21 +83,6 @@ class PropertiesPanel {
             html += this.#pngtuberProps(mod);
         }
 
-        // Transition (scene-level)
-        if (EditorState.activeScene && EditorState.scenes[EditorState.activeScene]) {
-            const scene = EditorState.scenes[EditorState.activeScene];
-            html += `<div class="prop-group">`;
-            html += `<div class="prop-group-title">Scene Settings</div>`;
-            html += `<div class="prop-row"><label>OBS Scene</label><input type="text" data-prop="obs-scene" value="${scene.obsScene || ''}" placeholder="OBS scene name"></div>`;
-            html += `<div class="prop-row"><label>Type</label>`;
-            html += `<select id="prop-transition-type">`;
-            html += `<option value="fade" ${scene.transition?.type === 'fade' ? 'selected' : ''}>Fade</option>`;
-            html += `<option value="none" ${scene.transition?.type === 'none' ? 'selected' : ''}>None</option>`;
-            html += `</select></div>`;
-            html += this.#numRow('Duration', 'transition-dur', scene.transition?.duration || 0.5, 0.1, 0, 5);
-            html += `</div>`;
-        }
-
         // Module settings button (opens settings panel to the relevant tab)
         // Dynamic: show button if the module has hasSettings in its registry info
         const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
@@ -507,31 +492,6 @@ class PropertiesPanel {
             };
             input.addEventListener('change', handler);
         });
-
-        // Transition
-        const transType = document.getElementById('prop-transition-type');
-        if (transType) {
-            transType.addEventListener('change', () => {
-                EditorState.scenes[EditorState.activeScene].transition.type = transType.value;
-                EditorState.notify('module-settings');
-            });
-        }
-        const transDur = this.#container.querySelector('[data-prop="transition-dur"]');
-        if (transDur) {
-            transDur.addEventListener('change', () => {
-                EditorState.scenes[EditorState.activeScene].transition.duration = parseFloat(transDur.value) || 0.5;
-                EditorState.notify('module-settings');
-            });
-        }
-
-        // OBS Scene name
-        const obsSceneInput = this.#container.querySelector('[data-prop="obs-scene"]');
-        if (obsSceneInput) {
-            obsSceneInput.addEventListener('change', () => {
-                EditorState.scenes[EditorState.activeScene].obsScene = obsSceneInput.value || '';
-                EditorState.notify('module-settings');
-            });
-        }
 
         // Media pickers — use in-app media panel
         const pickImage = document.getElementById('btn-pick-image');
