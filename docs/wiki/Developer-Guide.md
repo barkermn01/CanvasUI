@@ -1,6 +1,6 @@
 # Developer Guide
 
-This guide covers creating custom modules, the schema system, the module packaging system, and how the editor discovers and renders module settings.
+This guide covers creating custom modules, the schema system, the properties system, module packaging, and how the editor discovers and renders module settings.
 
 ## Licensing
 
@@ -19,7 +19,7 @@ In short: build and sell modules freely, but don't steal the core.
 
 ```
 www/modules/mymodule/
-├── info.json       # Metadata, schema, entrypoint
+├── info.json       # Metadata, properties, schema, entrypoint
 └── mymodule.js     # Module code
 ```
 
@@ -34,16 +34,15 @@ www/modules/mymodule/
     "configKey": "mymodule",
     "entrypoint": "mymodule.js",
     "editorClass": "MyModule",
-    "hasSettings": true,
-    "allowMultiple": false,
+    "hasSettings": false,
+    "allowMultiple": true,
     "description": "Does something cool",
     "gradient": { "from": "rgba(100, 200, 50, 0.08)", "to": "rgba(100, 200, 50, 0.25)" },
-    "schema": {
-        "_type": {
-            "speed": "number",
-            "enabled": "bool",
-            "color": "color"
-        }
+    "properties": {
+        "speed": { "type": "range", "label": "Speed", "min": 0, "max": 100, "step": 1, "default": 50 },
+        "enabled": { "type": "bool", "label": "Enabled", "default": true },
+        "color": { "type": "color", "label": "Color", "default": "#ff0000" },
+        "src": { "type": "media", "label": "Image", "mediaType": "image" }
     }
 }
 ```
@@ -58,8 +57,6 @@ These can be the same class if your module handles both roles.
 
 ```javascript
 if (!window.MyModule) {
-
-// ─── _main: Core module logic (used by overlay) ─────────────────────────────
 
 class MyModuleMain {
     constructor() {
@@ -80,56 +77,34 @@ class MyModuleMain {
         // Handle WebSocket messages from Streamer.bot
     }
 
-    /**
-     * Called by the editor after loading the script.
-     * Register preview rendering and simulation callbacks.
-     * Called once per placed instance — supports multiple instances.
-     */
     editorRegister(register) {
         const self = this;
 
         register({
-            // Build the static preview shown on the editor canvas
             preview: (container, settings, area) => {
                 container.innerHTML = '';
                 container.style.cssText = 'display:flex; align-items:center; justify-content:center;';
                 container.textContent = '🔮 Preview';
             },
-            // Simulation callbacks for the play button
             simulate: {
-                start: (canvas, settings, area) => {
-                    // Called when simulation starts — init state here
-                },
-                update: (settings, area, dt) => {
-                    // Called every frame — update logic, dt in seconds
-                },
+                start: (canvas, settings, area) => {},
+                update: (settings, area, dt) => {},
                 draw: (ctx, settings, area, dt) => {
-                    // Called every frame — draw to the canvas context
-                    ctx.fillStyle = settings?.color || '#ffffff';
-                    ctx.fillRect(area.x, area.y, area.width, area.height);
+                    self.draw(ctx, settings, area);
                 },
-                stop: () => {
-                    // Called when simulation stops — cleanup timers etc.
-                }
+                stop: () => {}
             },
-            // Called when the instance is removed from the scene
-            dispose: () => {
-                // Full teardown — release resources, streams, etc.
-            }
+            dispose: () => {}
         });
     }
 }
 
-// ─── Export ──────────────────────────────────────────────────────────────────
-
 window.MyModule = {
     _main: MyModuleMain,
-    _simulator: MyModuleMain  // Can be a separate class if needed
+    _simulator: MyModuleMain
 };
 
 } // end if (!window.MyModule)
-
-// ─── Overlay registration ───────────────────────────────────────────────────
 
 if (document.getElementById('canvas')) {
     const instance = new window.MyModule._main();
@@ -156,8 +131,6 @@ Add your module to `www/modules/modules.json`:
 }
 ```
 
-If you install via the Module Manager (Settings → Modules → Install from .zip), steps 4 and 5 are handled automatically.
-
 ### 5. Enable in config
 
 Add `"mymodule"` to the `Modules` array in `www/config.js`:
@@ -168,81 +141,115 @@ Modules: ["emote", "chat", "mymodule", "scene"]
 
 The scene module should always be last.
 
-> **Note:** The Module Manager handles this automatically when installing from a .zip package. You only need to do this manually if you're developing a module by dropping files directly into the modules folder.
+> **Note:** The Module Manager handles steps 4 and 5 automatically when installing from a .zip package. You only need to do this manually if developing a module by dropping files directly into the modules folder.
 
-## Module Packaging
-
-Modules can be distributed as `.zip` packages for easy installation via the Module Manager (Settings → Modules).
-
-### Package Format
-
-```
-mymodule.zip
-├── manifest.json    # Package metadata + file integrity hashes
-├── info.json        # Standard module info
-└── mymodule.js      # Module code (+ any other files)
-```
-
-### manifest.json
-
-```json
-{
-    "name": "mymodule",
-    "displayName": "My Module",
-    "version": "1.0.0",
-    "description": "Does something cool",
-    "files": [
-        { "path": "info.json", "hash": "sha256-hex-hash-of-file" },
-        { "path": "mymodule.js", "hash": "sha256-hex-hash-of-file" }
-    ]
-}
-```
-
-The `files` array lists every file in the package with its SHA-256 hash. During installation, the Module Manager verifies each file's hash matches — if any file has been tampered with, installation is rejected.
-
-### Creating a Package
-
-Use the **📤 Export** button in Settings → Modules to package any installed custom module. It automatically generates the manifest with correct hashes.
-
-### Installing a Package
-
-Use the **📦 Install from .zip** button in Settings → Modules. The installer:
-1. Extracts the zip to a temp directory
-2. Validates `manifest.json` exists and has required fields
-3. Verifies SHA-256 hash of every file against the manifest
-4. Checks `info.json` exists
-5. Copies files to `www/modules/{name}/`
-6. Updates `modules.json`
-7. Refreshes the module registry (no restart needed)
-
-### Module Hot-Reload
-
-The Module Manager supports reloading modules without restarting the editor:
-- **🔄 Refresh Modules** re-discovers all modules from disk
-- Removes old script tags and class references from memory
-- Re-registers all module instances with fresh code
-- The overlay page still needs a manual reload (live-reload handles this on save)
+---
 
 ## info.json Reference
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Internal identifier, matches config keys |
-| `displayName` | string | Shown in the editor palette |
-| `icon` | string | Emoji for palette and layer list |
-| `type` | string | Always `"canvas"` |
-| `configKey` | string | Key in `Config` where global settings live |
-| `entrypoint` | string | JS filename to load (relative to module dir) |
-| `editorClass` | string | Window property name exposing `{ _main, _simulator }` for editor |
-| `hasSettings` | bool | Whether a settings tab appears in Global Settings |
-| `allowMultiple` | bool | Whether multiple instances can exist per scene |
-| `description` | string | Tooltip in the palette |
-| `gradient` | object | `{ from, to }` — editor highlight colours |
-| `schema` | object | Settings schema for the editor UI |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Internal identifier, matches config keys |
+| `displayName` | string | Yes | Shown in the editor palette |
+| `icon` | string | Yes | Emoji for palette and layer list |
+| `type` | string | Yes | Always `"canvas"` |
+| `configKey` | string | Yes | Key in `Config` where global settings live |
+| `entrypoint` | string | Yes | JS filename to load (relative to module dir) |
+| `editorClass` | string | No | Window property name exposing `{ _main, _simulator }` |
+| `hasSettings` | bool | No | Whether a global settings tab appears (default: false) |
+| `allowMultiple` | bool | No | Whether multiple instances can exist per scene (default: true) |
+| `description` | string | No | Tooltip in the palette |
+| `gradient` | object | No | `{ from, to }` — editor highlight colours |
+| `scripts` | array | No | Dependency scripts to load before entrypoint (e.g. `["chromakey.js"]`) |
+| `properties` | object | No | Per-instance property definitions for the Properties panel |
+| `schema` | object | No | Global settings schema for the Settings panel |
 
-## Schema System
+---
 
-The schema defines what controls the editor renders for your module's settings. It replaces the old `_type` / `_item_type` metadata that used to live inside the config.
+## Properties System (Per-Instance)
+
+The `"properties"` field in info.json defines the controls shown in the Properties panel when a module instance is selected. Each property maps to a key in `mod.settings`.
+
+### Property Types
+
+| Type | Widget | Description |
+|------|--------|-------------|
+| `string` | Text input | Free text entry |
+| `number` | Number input | Numeric with optional min/max/step |
+| `bool` | Checkbox | True/false toggle |
+| `color` | Color picker | Click to open color picker popup |
+| `select` | Dropdown | Choose from predefined options |
+| `range` | Slider | Numeric slider with live value display |
+| `media` | Browse button | Opens media panel for file selection |
+| `audioDevice` | Dropdown | Populated with system audio input devices |
+| `cameraDevice` | Dropdown | Populated with system video input devices |
+
+### Property Definition Format
+
+```json
+"properties": {
+    "settingKey": {
+        "type": "range",
+        "label": "Display Label",
+        "min": 0,
+        "max": 100,
+        "step": 1,
+        "default": 50,
+        "showWhen": { "field": "otherKey", "value": true }
+    }
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `type` | Yes | Widget type (see table above) |
+| `label` | Yes | Display label in the Properties panel |
+| `default` | No | Default value for new instances |
+| `min` | No | Minimum value (number/range) |
+| `max` | No | Maximum value (number/range) |
+| `step` | No | Step increment (number/range) |
+| `options` | No | Array of choices (select type) |
+| `mediaType` | No | `"image"` or `"video"` (media type) |
+| `placeholder` | No | Placeholder text (string type) |
+| `showWhen` | No | Conditional visibility (see below) |
+
+### Conditional Visibility (showWhen)
+
+Show a property only when another property has a specific value:
+
+```json
+"chromaKey": { "type": "bool", "label": "Chroma Key", "default": false },
+"chromaKeyColor": {
+    "type": "color",
+    "label": "Key Color",
+    "default": "#00ff00",
+    "showWhen": { "field": "chromaKey", "value": true }
+}
+```
+
+When `chromaKey` is toggled, the panel re-renders and shows/hides dependent fields.
+
+### Example: Full Properties Definition
+
+```json
+"properties": {
+    "device": { "type": "cameraDevice", "label": "Camera" },
+    "mirror": { "type": "bool", "label": "Mirror", "default": false },
+    "mask": { "type": "select", "label": "Mask", "options": ["none", "circle", "rounded"], "default": "none" },
+    "borderRadius": { "type": "string", "label": "Border Radius", "placeholder": "16px", "showWhen": { "field": "mask", "value": "rounded" } },
+    "opacity": { "type": "range", "label": "Opacity", "min": 0, "max": 1, "step": 0.1, "default": 1 },
+    "tint": { "type": "color", "label": "Tint Color", "default": "#ffffff" },
+    "src": { "type": "media", "label": "Overlay Image", "mediaType": "image" }
+}
+```
+
+---
+
+## Schema System (Global Settings)
+
+If your module has `"hasSettings": true`, it gets a tab in the Global Settings panel (Settings → your module name). The `"schema"` field defines what controls appear there.
+
+Global settings are stored in `Config[configKey]` and are shared across all instances of the module.
 
 ### Basic Types
 
@@ -254,6 +261,9 @@ The schema defines what controls the editor renders for your module's settings. 
         "enabled": "bool",
         "color": "color",
         "device": "audioDevice"
+    },
+    "_labels": {
+        "name": { "label": "Display Name", "tooltip": "Help text on hover" }
     }
 }
 ```
@@ -278,14 +288,10 @@ The schema defines what controls the editor renders for your module's settings. 
 
 ### Conditional Visibility (showWhen)
 
-Show a field only when another field has a specific value:
-
 ```json
 "level1": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
 "gradient": { "type": "gradient", "showWhen": { "field": "mode", "value": "gradient" } }
 ```
-
-When `mode` changes, the UI re-renders and shows/hides fields accordingly.
 
 ### Sub-Objects
 
@@ -293,18 +299,10 @@ Use `_item_type` to define how sub-objects render:
 
 ```json
 "schema": {
-    "_type": {
-        "enabled": "bool"
-    },
-    "_item_type": {
-        "colors": "object",
-        "style": "css"
-    },
+    "_type": { "enabled": "bool" },
+    "_item_type": { "colors": "object", "style": "css" },
     "colors": {
-        "_type": {
-            "primary": "color",
-            "secondary": "color"
-        }
+        "_type": { "primary": "color", "secondary": "color" }
     }
 }
 ```
@@ -314,26 +312,46 @@ Use `_item_type` to define how sub-objects render:
 | `"object"` | Collapsible group, rendered recursively |
 | `"css"` | Key-value CSS property editor |
 
-### Nested Schemas
+---
 
-Sub-objects can have their own `_type` and `_item_type`:
+## Editor Registration (editorRegister)
 
-```json
-"schema": {
-    "_item_type": {
-        "ChatBoxes": "object"
-    },
-    "ChatBoxes": {
-        "_type": {
-            "ShowBadges": "bool",
-            "position": { "type": "select", "options": ["top", "bottom"] }
+The `editorRegister` method is called by the editor after loading your module's script. It lets you provide:
+
+- **preview** — static preview shown on the editor canvas
+- **simulate** — animation callbacks for the play button
+- **dispose** — cleanup when the instance is removed
+
+```javascript
+editorRegister(register) {
+    register({
+        preview: (container, settings, area) => {
+            // Build DOM preview inside container
         },
-        "_item_type": {
-            "style": "css"
+        simulate: {
+            start: (canvas, settings, area) => {
+                // Init simulation state
+            },
+            update: (settings, area, dt) => {
+                // Per-frame logic, dt in seconds
+            },
+            draw: (ctx, settings, area, dt) => {
+                // Per-frame canvas rendering
+            },
+            stop: () => {
+                // Cleanup on stop (timers, etc.)
+            }
+        },
+        dispose: () => {
+            // Full teardown (streams, contexts, etc.)
         }
-    }
+    });
 }
 ```
+
+If `simulate` is not provided (or has no `draw`/`update`), the play button won't appear for that module.
+
+---
 
 ## Module Draw Signature
 
@@ -346,10 +364,12 @@ draw(ctx, settings, area)
 | Parameter | Description |
 |-----------|-------------|
 | `ctx` | Canvas 2D rendering context |
-| `settings` | The instance's settings from the scene config (e.g. `{ src: "/media/bg.png", opacity: 1 }`) |
+| `settings` | The instance's settings from the scene config |
 | `area` | `{ x, y, width, height }` — where to draw on the canvas |
 
 For modules with `allowMultiple: true`, `draw` is called once per instance with different settings/area each time.
+
+---
 
 ## Scene Config Format
 
@@ -365,27 +385,58 @@ Each module instance in a scene has:
 
 - `_type` — which module renders this instance
 - `area` — pixel position and size
-- `settings` — passed to the module's `draw` function
+- `settings` — passed to the module's `draw` function (matches `properties` keys)
 
-The key (`"my_overlay"`) is the user-defined ID shown in the editor.
+---
 
-## Global Settings Tabs
+## Module Packaging
 
-If your module has `"hasSettings": true` in info.json, it automatically gets a tab in the Global Settings panel. The tab renders your schema using the TypeRenderer, reading/writing to `Config[configKey]`.
+Modules can be distributed as `.zip` packages for installation via the Module Manager (Settings → Modules).
 
-## File Storage
+### Package Format
 
-| Path | Purpose |
-|------|---------|
-| `www/config.js` | User's config (gitignored) |
-| `www/config.example.js` | Template for new installs |
-| `www/modules/modules.json` | Master manifest |
-| `www/modules/{name}/info.json` | Module metadata + schema |
-| `www/modules/{name}/{entrypoint}` | Module code |
-| `www/modules/global.info.json` | Schema for root config fields |
-| `www/media/` | User-uploaded media (gitignored) |
-| `editor/src/main/` | Electron main process |
-| `www/lib/` | Shared libraries (wsclient, livereload, etc.) |
+```
+mymodule.zip
+├── manifest.json    # Package metadata + file integrity hashes
+├── info.json        # Standard module info
+└── mymodule.js      # Module code (+ any other files)
+```
+
+### manifest.json
+
+```json
+{
+    "name": "mymodule",
+    "displayName": "My Module",
+    "version": "1.0.0",
+    "description": "Does something cool",
+    "files": [
+        { "path": "info.json", "hash": "sha256-hex-hash" },
+        { "path": "mymodule.js", "hash": "sha256-hex-hash" }
+    ]
+}
+```
+
+The `files` array lists every file with its SHA-256 hash. Installation verifies each file — tampered packages are rejected.
+
+### Creating a Package
+
+Use **📤 Export** in Settings → Modules to package any installed custom module. It generates the manifest with correct hashes automatically.
+
+### Installing a Package
+
+Use **📦 Install from .zip** in Settings → Modules. The installer:
+1. Extracts and validates the manifest
+2. Verifies SHA-256 hash of every file
+3. Copies to `www/modules/{name}/`
+4. Updates `modules.json` and `Config.Modules`
+5. Refreshes the module registry (no restart needed)
+
+### Module Hot-Reload
+
+**🔄 Refresh Modules** re-discovers all modules from disk, removes old script tags and class references, and re-registers everything fresh. The overlay page needs a manual reload (live-reload handles this on save).
+
+---
 
 ## WebSocket Message Format
 
@@ -407,11 +458,40 @@ Messages from Streamer.bot arrive via `wsclient.js` and are routed by module nam
 
 The `Module` field matches the module's registered `name`. The `Data` object is passed to the module's `message(data)` function.
 
+---
+
 ## Editor WebSocket (Live Reload)
 
-The editor's server also has a WebSocket for:
+The editor's server has a WebSocket for:
 - `{ type: "config-reload" }` — triggers page reload in overlay
 - `{ type: "module-message", module: "chat", data: {...} }` — sends a message to a specific module
 - `{ type: "raw", data: {...} }` — broadcasts to all modules
 
 Use the 📡 WebSocket Admin tool in the editor to test messages.
+
+---
+
+## File Storage
+
+| Path | Purpose |
+|------|---------|
+| `www/config.js` | User's config (gitignored) |
+| `www/config.example.js` | Template for new installs |
+| `www/modules/modules.json` | Master manifest |
+| `www/modules/{name}/info.json` | Module metadata + properties + schema |
+| `www/modules/{name}/{entrypoint}` | Module code |
+| `www/modules/{name}/{scripts[]}` | Dependency scripts (loaded before entrypoint) |
+| `www/modules/global.info.json` | Schema for root config fields |
+| `www/media/` | User-uploaded media (gitignored) |
+| `editor/src/main/` | Electron main process |
+| `www/lib/` | Shared libraries (wsclient, livereload, etc.) |
+
+### Platform-Specific Data Locations
+
+| Platform | User Data (config, media, custom modules) |
+|----------|------------------------------------------|
+| Windows | Inside install directory (`resources/www/`) |
+| macOS | `~/Library/Application Support/CanvasUI/www/` |
+| Linux | `~/.config/CanvasUI/www/` |
+
+Built-in modules are synced from the app bundle on every launch (macOS/Linux). Custom modules are never overwritten by updates.
