@@ -10,6 +10,13 @@
     "allowMultiple": true,
     "description": "Audio frequency visualisation bars",
     "gradient": { "from": "rgba(168, 85, 247, 0.08)", "to": "rgba(168, 85, 247, 0.25)" },
+    "properties": {
+        "device": { "type": "audioDevice", "label": "Audio Device" },
+        "direction": { "type": "select", "label": "Direction", "options": ["left-right", "right-left", "top-down", "bottom-up"], "default": "right-left" },
+        "mirrored": { "type": "bool", "label": "Mirrored", "default": true },
+        "barWidth": { "type": "number", "label": "Bar Width", "min": 1, "max": 50, "default": 5 },
+        "barSpacing": { "type": "number", "label": "Bar Spacing", "min": 0, "max": 20, "default": 2 }
+    },
     "schema": {
         "_type": {
             "device": "audioDevice",

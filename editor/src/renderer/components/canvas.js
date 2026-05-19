@@ -34,7 +34,7 @@ class CanvasWorkspace {
         this.#setupEvents();
 
         EditorState.onChange((what) => {
-            if (['scenes', 'scene-switch', 'modules', 'load', 'selection'].includes(what)) {
+            if (['scenes', 'scene-switch', 'modules', 'load', 'selection', 'module-settings'].includes(what)) {
                 this.render();
             }
             if (what === 'module-area' && EditorState.selectedModule) {

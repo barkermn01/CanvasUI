@@ -6,23 +6,20 @@
     "configKey": "webcam",
     "entrypoint": "webcam.js",
     "editorClass": "WebcamDisplay",
-    "hasSettings": true,
+    "hasSettings": false,
     "allowMultiple": true,
     "description": "Live webcam feed with optional chroma key",
     "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
     "scripts": ["chromakey.js"],
-    "schema": {
-        "_type": {
-            "device": "string",
-            "mirror": "bool",
-            "mask": { "type": "select", "options": ["none", "circle", "rounded"] },
-            "borderRadius": "string"
-        },
-        "_labels": {
-            "device": { "label": "Camera Device", "tooltip": "Name of the camera to use (blank for default)" },
-            "mirror": { "label": "Mirror", "tooltip": "Flip the video horizontally" },
-            "mask": { "label": "Mask Shape", "tooltip": "Clip the webcam feed to a shape" },
-            "borderRadius": { "label": "Border Radius", "tooltip": "Corner rounding for the 'rounded' mask (e.g. 16px)" }
-        }
+    "properties": {
+        "device": { "type": "cameraDevice", "label": "Camera Device" },
+        "mirror": { "type": "bool", "label": "Mirror", "default": false },
+        "mask": { "type": "select", "label": "Mask Shape", "options": ["none", "circle", "rounded"], "default": "none" },
+        "borderRadius": { "type": "string", "label": "Border Radius", "placeholder": "e.g. 16px", "default": "0", "showWhen": { "field": "mask", "value": "rounded" } },
+        "chromaKey": { "type": "bool", "label": "Chroma Key", "default": false },
+        "chromaKeyColor": { "type": "color", "label": "Key Color", "default": "#00ff00", "showWhen": { "field": "chromaKey", "value": true } },
+        "chromaKeySimilarity": { "type": "range", "label": "Similarity", "min": 0, "max": 1, "step": 0.01, "default": 0.4, "showWhen": { "field": "chromaKey", "value": true } },
+        "chromaKeySmoothness": { "type": "range", "label": "Smoothness", "min": 0, "max": 1, "step": 0.01, "default": 0.08, "showWhen": { "field": "chromaKey", "value": true } },
+        "chromaKeySpill": { "type": "range", "label": "Spill Reduction", "min": 0, "max": 1, "step": 0.01, "default": 0.1, "showWhen": { "field": "chromaKey", "value": true } }
     }
 }

@@ -70,22 +70,14 @@ class PropertiesPanel {
         html += this.#numRow('Height', 'area-h', Math.round(mod.area.height));
         html += `</div>`;
 
-        // Type-specific settings
-        if (mod.type === 'image') {
-            html += this.#imageProps(mod);
-        } else if (mod.type === 'video') {
-            html += this.#videoProps(mod);
-        } else if (mod.type === 'webcam') {
-            html += this.#webcamProps(mod);
-        } else if (mod.type === 'audiovisualiser') {
-            html += this.#audioVisualiserProps(mod);
-        } else if (mod.type === 'pngtuber') {
-            html += this.#pngtuberProps(mod);
+        // Type-specific settings — dynamically built from info.json properties field
+        const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
+        if (modInfo?.properties) {
+            html += this.#dynamicProps(mod, modInfo.properties);
         }
 
         // Module settings button (opens settings panel to the relevant tab)
         // Dynamic: show button if the module has hasSettings in its registry info
-        const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
         if (modInfo?.hasSettings) {
             const displayName = modInfo.displayName || mod.type.charAt(0).toUpperCase() + mod.type.slice(1);
             html += `<button class="prop-btn-settings" id="btn-module-settings" data-tab="${mod.type}">⚙️ ${displayName} Settings</button>`;
@@ -102,354 +94,170 @@ class PropertiesPanel {
         return `<div class="prop-row"><label>${label}</label><input type="number" data-prop="${dataId}" value="${value}" step="${step}" min="${min}" max="${max}"></div>`;
     }
 
-    #imageProps(mod) {
-        let html = `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Image Settings</div>`;
-        html += `<div class="prop-row"><label>Source</label><button id="btn-pick-image">Browse...</button></div>`;
-        if (mod.settings.src) {
-            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${mod.settings.src.split(/[/\\]/).pop()}</span></div>`;
-        }
-        html += `<div class="prop-row"><label>Opacity</label><input type="number" data-prop="setting-opacity" value="${mod.settings.opacity ?? 1}" step="0.1" min="0" max="1"></div>`;
-        html += `<div class="prop-row"><label>Fit</label><select data-prop="setting-objectFit">`;
-        ['contain', 'cover', 'fill', 'none'].forEach(v => {
-            html += `<option value="${v}" ${mod.settings.objectFit === v ? 'selected' : ''}>${v}</option>`;
-        });
-        html += `</select></div>`;
-        html += `</div>`;
-        return html;
-    }
-
-    #videoProps(mod) {
-        let html = `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Video Settings</div>`;
-        html += `<div class="prop-row"><label>Source</label><button id="btn-pick-video">Browse...</button></div>`;
-        if (mod.settings.src) {
-            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${mod.settings.src.split(/[/\\]/).pop()}</span></div>`;
-        }
-        html += `<div class="prop-row"><label>Loop</label><input type="checkbox" data-prop="setting-loop" ${mod.settings.loop ? 'checked' : ''}></div>`;
-        html += `<div class="prop-row"><label>Muted</label><input type="checkbox" data-prop="setting-muted" ${mod.settings.muted ? 'checked' : ''}></div>`;
-        html += `<div class="prop-row"><label>Opacity</label><input type="number" data-prop="setting-opacity" value="${mod.settings.opacity ?? 1}" step="0.1" min="0" max="1"></div>`;
-        html += `<div class="prop-row"><label>Fit</label><select data-prop="setting-objectFit">`;
-        ['contain', 'cover', 'fill', 'none'].forEach(v => {
-            html += `<option value="${v}" ${mod.settings.objectFit === v ? 'selected' : ''}>${v}</option>`;
-        });
-        html += `</select></div>`;
-        html += `</div>`;
-        return html;
-    }
-
-    #webcamProps(mod) {
+    #dynamicProps(mod, properties) {
         const settings = mod.settings || {};
         let html = `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Webcam Settings</div>`;
-        html += `<div class="prop-row"><label>Device</label><select id="prop-webcam-device"><option value="">Loading cameras...</option></select></div>`;
-        html += `<div class="prop-row"><label>Mirror</label><input type="checkbox" id="prop-webcam-mirror" ${settings.mirror ? 'checked' : ''}></div>`;
-        html += `<div class="prop-row"><label>Mask</label><select id="prop-webcam-mask">`;
-        ['none', 'circle', 'rounded'].forEach(v => {
-            html += `<option value="${v}" ${settings.mask === v ? 'selected' : ''}>${v}</option>`;
-        });
-        html += `</select></div>`;
-        html += `<div class="prop-row"><label>Border Radius</label><input type="text" id="prop-webcam-borderRadius" value="${settings.borderRadius || '0'}" placeholder="e.g. 16px"></div>`;
-        html += `</div>`;
+        html += `<div class="prop-group-title">${window.ModuleRegistry?.getDisplayName(mod.type) || mod.type} Settings</div>`;
 
-        // Chroma Key settings
-        html += `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Chroma Key</div>`;
-        html += `<div class="prop-row"><label>Enabled</label><input type="checkbox" id="prop-webcam-chromaKey" ${settings.chromaKey ? 'checked' : ''}></div>`;
-        html += `<div id="prop-chromakey-options" style="${settings.chromaKey ? '' : 'display:none'}">`;
-        html += `<div class="prop-row"><label>Key Color</label><div class="cp-placeholder" id="prop-webcam-chromaKeyColor-cp" data-cp-field="chromaKeyColor" data-cp-value="${settings.chromaKeyColor || '#00ff00'}"></div></div>`;
-        html += `<div class="prop-row"><label>Similarity</label><input type="range" id="prop-webcam-chromaKeySimilarity" min="0" max="1" step="0.01" value="${settings.chromaKeySimilarity ?? 0.4}"><span id="prop-chromakey-sim-val">${settings.chromaKeySimilarity ?? 0.4}</span></div>`;
-        html += `<div class="prop-row"><label>Smoothness</label><input type="range" id="prop-webcam-chromaKeySmoothness" min="0" max="1" step="0.01" value="${settings.chromaKeySmoothness ?? 0.08}"><span id="prop-chromakey-smooth-val">${settings.chromaKeySmoothness ?? 0.08}</span></div>`;
-        html += `<div class="prop-row"><label>Spill</label><input type="range" id="prop-webcam-chromaKeySpill" min="0" max="1" step="0.01" value="${settings.chromaKeySpill ?? 0.1}"><span id="prop-chromakey-spill-val">${settings.chromaKeySpill ?? 0.1}</span></div>`;
-        html += `</div>`;
-        html += `</div>`;
-
-        // Enumerate cameras and bind events after render
-        setTimeout(() => this.#populateWebcamDevices(settings), 0);
-        setTimeout(() => this.#bindWebcamEvents(), 0);
-
-        return html;
-    }
-
-    #bindWebcamEvents() {
-        const id = EditorState.selectedModule;
-        const mirrorEl = document.getElementById('prop-webcam-mirror');
-        const maskEl = document.getElementById('prop-webcam-mask');
-        const radiusEl = document.getElementById('prop-webcam-borderRadius');
-        const chromaKeyEl = document.getElementById('prop-webcam-chromaKey');
-        const chromaOptionsEl = document.getElementById('prop-chromakey-options');
-        const simEl = document.getElementById('prop-webcam-chromaKeySimilarity');
-        const smoothEl = document.getElementById('prop-webcam-chromaKeySmoothness');
-        const spillEl = document.getElementById('prop-webcam-chromaKeySpill');
-
-        if (mirrorEl) {
-            mirrorEl.addEventListener('change', () => {
-                EditorState.updateModuleSetting(id, 'mirror', mirrorEl.checked);
-            });
-        }
-        if (maskEl) {
-            maskEl.addEventListener('change', () => {
-                EditorState.updateModuleSetting(id, 'mask', maskEl.value);
-            });
-        }
-        if (radiusEl) {
-            radiusEl.addEventListener('change', () => {
-                EditorState.updateModuleSetting(id, 'borderRadius', radiusEl.value);
-            });
-        }
-        if (chromaKeyEl) {
-            chromaKeyEl.addEventListener('change', () => {
-                EditorState.updateModuleSetting(id, 'chromaKey', chromaKeyEl.checked);
-                if (chromaOptionsEl) chromaOptionsEl.style.display = chromaKeyEl.checked ? '' : 'none';
-            });
-        }
-        if (simEl) {
-            simEl.addEventListener('input', () => {
-                document.getElementById('prop-chromakey-sim-val').textContent = simEl.value;
-                EditorState.updateModuleSetting(id, 'chromaKeySimilarity', parseFloat(simEl.value));
-            });
-        }
-        if (smoothEl) {
-            smoothEl.addEventListener('input', () => {
-                document.getElementById('prop-chromakey-smooth-val').textContent = smoothEl.value;
-                EditorState.updateModuleSetting(id, 'chromaKeySmoothness', parseFloat(smoothEl.value));
-            });
-        }
-        if (spillEl) {
-            spillEl.addEventListener('input', () => {
-                document.getElementById('prop-chromakey-spill-val').textContent = spillEl.value;
-                EditorState.updateModuleSetting(id, 'chromaKeySpill', parseFloat(spillEl.value));
-            });
-        }
-
-        // Color picker for chroma key color
-        const cpEl = document.getElementById('prop-webcam-chromaKeyColor-cp');
-        if (cpEl) {
-            const currentColor = cpEl.dataset.cpValue || '#00ff00';
-            const swatch = ColorPicker.create(currentColor, (hex) => {
-                EditorState.updateModuleSetting(id, 'chromaKeyColor', hex);
-            });
-            cpEl.innerHTML = '';
-            cpEl.appendChild(swatch);
-        }
-    }
-
-    async #populateWebcamDevices(settings) {
-        const select = document.getElementById('prop-webcam-device');
-        if (!select) return;
-
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const cameras = devices.filter(d => d.kind === 'videoinput');
-
-            if (cameras.length === 0) {
-                select.innerHTML = '<option value="">(No cameras found)</option>';
-                return;
+        for (const [key, prop] of Object.entries(properties)) {
+            // showWhen conditional
+            if (prop.showWhen) {
+                const depVal = settings[prop.showWhen.field];
+                const matches = depVal === prop.showWhen.value || depVal === String(prop.showWhen.value);
+                if (!matches) continue;
             }
 
-            select.innerHTML = '';
+            const value = settings[key] ?? prop.default ?? '';
 
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '(Default camera)';
-            select.appendChild(defaultOpt);
-
-            cameras.forEach(cam => {
-                const opt = document.createElement('option');
-                opt.value = cam.label || cam.deviceId;
-                opt.textContent = cam.label || `Camera ${cam.deviceId.slice(0, 8)}`;
-                if ((cam.label || cam.deviceId) === (settings.device || '')) opt.selected = true;
-                select.appendChild(opt);
-            });
-
-            select.addEventListener('change', () => {
-                EditorState.updateModuleSetting(EditorState.selectedModule, 'device', select.value);
-            });
-        } catch (e) {
-            select.innerHTML = '<option value="">(Camera access denied)</option>';
+            switch (prop.type) {
+                case 'string':
+                    html += `<div class="prop-row"><label>${prop.label}</label><input type="text" data-dprop="${key}" value="${value}" ${prop.placeholder ? `placeholder="${prop.placeholder}"` : ''}></div>`;
+                    break;
+                case 'number':
+                    html += `<div class="prop-row"><label>${prop.label}</label><input type="number" data-dprop="${key}" value="${value}" ${prop.min !== undefined ? `min="${prop.min}"` : ''} ${prop.max !== undefined ? `max="${prop.max}"` : ''} ${prop.step ? `step="${prop.step}"` : ''}></div>`;
+                    break;
+                case 'bool':
+                    html += `<div class="prop-row"><label>${prop.label}</label><input type="checkbox" data-dprop="${key}" data-dprop-type="bool" ${value ? 'checked' : ''}></div>`;
+                    break;
+                case 'color':
+                    html += `<div class="prop-row"><label>${prop.label}</label><div class="dp-color-placeholder" data-dprop="${key}" data-dprop-value="${value || prop.default || '#ffffff'}"></div></div>`;
+                    break;
+                case 'select':
+                    html += `<div class="prop-row"><label>${prop.label}</label><select data-dprop="${key}">`;
+                    for (const opt of (prop.options || [])) {
+                        html += `<option value="${opt}" ${value === opt ? 'selected' : ''}>${opt}</option>`;
+                    }
+                    html += `</select></div>`;
+                    break;
+                case 'range':
+                    html += `<div class="prop-row"><label>${prop.label}</label><input type="range" data-dprop="${key}" min="${prop.min ?? 0}" max="${prop.max ?? 1}" step="${prop.step ?? 0.01}" value="${value}"><span class="dp-range-val" data-dprop-range="${key}">${value}</span></div>`;
+                    break;
+                case 'media':
+                    html += `<div class="prop-row"><label>${prop.label}</label><button class="dp-media-btn" data-dprop="${key}" data-media-type="${prop.mediaType || 'image'}">Browse...</button></div>`;
+                    if (value) {
+                        html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${String(value).split(/[/\\]/).pop()}</span></div>`;
+                    }
+                    break;
+                case 'audioDevice':
+                    html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-audio-device" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
+                    break;
+                case 'cameraDevice':
+                    html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-camera-device" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
+                    break;
+            }
         }
-    }
 
-    #audioVisualiserProps(mod) {
-        const settings = mod.settings || {};
-        let html = `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Audio Visualiser Settings</div>`;
-        html += `<div class="prop-row"><label>Device</label><select id="prop-av-device"><option value="">Loading...</option></select></div>`;
-        html += `<div class="prop-row"><label>Direction</label><select id="prop-av-direction">`;
-        ['right-left', 'left-right', 'top-down', 'bottom-up'].forEach(v => {
-            html += `<option value="${v}" ${settings.direction === v ? 'selected' : ''}>${v}</option>`;
-        });
-        html += `</select></div>`;
-        html += `<div class="prop-row"><label>Mirrored</label><input type="checkbox" id="prop-av-mirrored" ${settings.mirrored ? 'checked' : ''}></div>`;
-        html += `<div class="prop-row"><label>Bar Width</label><input type="number" id="prop-av-barWidth" value="${settings.barWidth || 5}" min="1" max="50"></div>`;
-        html += `<div class="prop-row"><label>Bar Spacing</label><input type="number" id="prop-av-barSpacing" value="${settings.barSpacing || 2}" min="0" max="20"></div>`;
         html += `</div>`;
 
-        setTimeout(() => this.#bindAudioVisualiserEvents(), 0);
-        setTimeout(() => this.#populateAudioDevicesForAV(settings), 0);
+        setTimeout(() => this.#bindDynamicProps(properties, settings), 0);
 
         return html;
     }
 
-    #bindAudioVisualiserEvents() {
+    #bindDynamicProps(properties, settings) {
         const id = EditorState.selectedModule;
+        if (!id) return;
 
-        const dirEl = document.getElementById('prop-av-direction');
-        const mirrorEl = document.getElementById('prop-av-mirrored');
-        const barWEl = document.getElementById('prop-av-barWidth');
-        const barSEl = document.getElementById('prop-av-barSpacing');
+        // Standard inputs (string, number, select)
+        this.#container.querySelectorAll('[data-dprop]').forEach(el => {
+            if (el.classList.contains('dp-color-placeholder') || el.classList.contains('dp-media-btn') || el.classList.contains('dp-audio-device') || el.classList.contains('dp-camera-device')) return;
 
-        if (dirEl) dirEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'direction', dirEl.value));
-        if (mirrorEl) mirrorEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'mirrored', mirrorEl.checked));
-        if (barWEl) barWEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'barWidth', parseInt(barWEl.value) || 5));
-        if (barSEl) barSEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'barSpacing', parseInt(barSEl.value) || 2));
-    }
+            const key = el.dataset.dprop;
+            const prop = properties[key];
+            if (!prop) return;
 
-    async #populateAudioDevicesForAV(settings) {
-        const select = document.getElementById('prop-av-device');
-        if (!select) return;
+            const eventType = (el.type === 'range') ? 'input' : 'change';
+            el.addEventListener(eventType, () => {
+                let value;
+                if (el.dataset.dpropType === 'bool') {
+                    value = el.checked;
+                } else if (prop.type === 'number' || prop.type === 'range') {
+                    value = parseFloat(el.value);
+                } else {
+                    value = el.value;
+                }
+                EditorState.updateModuleSetting(id, key, value);
 
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                // Update range display
+                if (prop.type === 'range') {
+                    const valSpan = this.#container.querySelector(`[data-dprop-range="${key}"]`);
+                    if (valSpan) valSpan.textContent = el.value;
+                }
 
-            select.innerHTML = '';
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '(Default / Global)';
-            select.appendChild(defaultOpt);
-
-            audioInputs.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.label || d.deviceId;
-                opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
-                if ((d.label || d.deviceId) === (settings.device || '')) opt.selected = true;
-                select.appendChild(opt);
-            });
-
-            select.addEventListener('change', () => {
-                EditorState.updateModuleSetting(EditorState.selectedModule, 'device', select.value);
-            });
-        } catch (e) {
-            select.innerHTML = '<option value="">(No devices found)</option>';
-        }
-    }
-
-    #pngtuberProps(mod) {
-        const settings = mod.settings || {};
-        let html = `<div class="prop-group">`;
-        html += `<div class="prop-group-title">PNGTuber Settings</div>`;
-        html += `<div class="prop-row"><label>Audio Device</label><select id="prop-pt-device"><option value="">Loading...</option></select></div>`;
-        html += `<div class="prop-row"><label>Threshold</label><input type="number" id="prop-pt-threshold" value="${settings.threshold ?? 30}" min="0" max="255"></div>`;
-        html += `<div class="prop-row"><label>Hold Time (ms)</label><input type="number" id="prop-pt-holdTime" value="${settings.holdTime ?? 200}" min="0" max="2000"></div>`;
-        html += `<div class="prop-row"><label>Freq Min (Hz)</label><input type="number" id="prop-pt-freqMin" value="${settings.frequencyMin ?? 85}" min="20" max="2000"></div>`;
-        html += `<div class="prop-row"><label>Freq Max (Hz)</label><input type="number" id="prop-pt-freqMax" value="${settings.frequencyMax ?? 300}" min="20" max="2000"></div>`;
-        html += `</div>`;
-
-        html += `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Images</div>`;
-        html += `<div class="prop-row"><label>Idle</label><button id="btn-pick-pt-idle">Browse...</button></div>`;
-        if (settings.idleImage) {
-            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.idleImage.split(/[/\\]/).pop()}</span></div>`;
-        }
-        html += `<div class="prop-row"><label>Talking</label><button id="btn-pick-pt-talking">Browse...</button></div>`;
-        if (settings.talkingImage) {
-            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.talkingImage.split(/[/\\]/).pop()}</span></div>`;
-        }
-        html += `<div class="prop-row"><label>Blink</label><button id="btn-pick-pt-blink">Browse...</button></div>`;
-        if (settings.blinkImage) {
-            html += `<div class="prop-row"><label></label><span style="font-size:11px;color:var(--text-secondary);word-break:break-all;">${settings.blinkImage.split(/[/\\]/).pop()}</span></div>`;
-        }
-        html += `</div>`;
-
-        html += `<div class="prop-group">`;
-        html += `<div class="prop-group-title">Animation</div>`;
-        html += `<div class="prop-row"><label>Blink Interval (s)</label><input type="number" id="prop-pt-blinkInterval" value="${settings.blinkInterval ?? 4}" min="0" max="30" step="0.5"></div>`;
-        html += `<div class="prop-row"><label>Blink Duration (ms)</label><input type="number" id="prop-pt-blinkDuration" value="${settings.blinkDuration ?? 150}" min="50" max="1000"></div>`;
-        html += `<div class="prop-row"><label>Bounce on Talk</label><input type="checkbox" id="prop-pt-bounce" ${settings.bounce ? 'checked' : ''}></div>`;
-        html += `<div class="prop-row"><label>Bounce Pixels</label><input type="number" id="prop-pt-bounceAmount" value="${settings.bounceAmount ?? 5}" min="1" max="50"></div>`;
-        html += `</div>`;
-
-        setTimeout(() => this.#bindPNGTuberEvents(), 0);
-        setTimeout(() => this.#populateAudioDevicesForPT(settings), 0);
-
-        return html;
-    }
-
-    #bindPNGTuberEvents() {
-        const id = EditorState.selectedModule;
-
-        const threshEl = document.getElementById('prop-pt-threshold');
-        const holdEl = document.getElementById('prop-pt-holdTime');
-        const freqMinEl = document.getElementById('prop-pt-freqMin');
-        const freqMaxEl = document.getElementById('prop-pt-freqMax');
-        const blinkIntEl = document.getElementById('prop-pt-blinkInterval');
-        const blinkDurEl = document.getElementById('prop-pt-blinkDuration');
-        const bounceEl = document.getElementById('prop-pt-bounce');
-        const bounceAmtEl = document.getElementById('prop-pt-bounceAmount');
-
-        if (threshEl) threshEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'threshold', parseInt(threshEl.value) || 30));
-        if (holdEl) holdEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'holdTime', parseInt(holdEl.value) || 200));
-        if (freqMinEl) freqMinEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'frequencyMin', parseInt(freqMinEl.value) || 85));
-        if (freqMaxEl) freqMaxEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'frequencyMax', parseInt(freqMaxEl.value) || 300));
-        if (blinkIntEl) blinkIntEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'blinkInterval', parseFloat(blinkIntEl.value) || 4));
-        if (blinkDurEl) blinkDurEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'blinkDuration', parseInt(blinkDurEl.value) || 150));
-        if (bounceEl) bounceEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'bounce', bounceEl.checked));
-        if (bounceAmtEl) bounceAmtEl.addEventListener('change', () => EditorState.updateModuleSetting(id, 'bounceAmount', parseInt(bounceAmtEl.value) || 5));
-
-        // Image browse buttons
-        const pickIdle = document.getElementById('btn-pick-pt-idle');
-        const pickTalking = document.getElementById('btn-pick-pt-talking');
-        const pickBlink = document.getElementById('btn-pick-pt-blink');
-
-        if (pickIdle) pickIdle.addEventListener('click', () => {
-            window.mediaPanel.startSelection('image', (path) => {
-                EditorState.updateModuleSetting(id, 'idleImage', path);
-                this.render();
+                // Re-render if showWhen dependencies changed
+                const hasDependents = Object.values(properties).some(p => p.showWhen?.field === key);
+                if (hasDependents) this.render();
             });
         });
-        if (pickTalking) pickTalking.addEventListener('click', () => {
-            window.mediaPanel.startSelection('image', (path) => {
-                EditorState.updateModuleSetting(id, 'talkingImage', path);
-                this.render();
+
+        // Color pickers
+        this.#container.querySelectorAll('.dp-color-placeholder').forEach(el => {
+            const key = el.dataset.dprop;
+            const value = el.dataset.dpropValue || '#ffffff';
+            const swatch = ColorPicker.create(value, (hex) => {
+                EditorState.updateModuleSetting(id, key, hex);
+            });
+            el.innerHTML = '';
+            el.appendChild(swatch);
+        });
+
+        // Media pickers
+        this.#container.querySelectorAll('.dp-media-btn').forEach(btn => {
+            const key = btn.dataset.dprop;
+            const mediaType = btn.dataset.mediaType || 'image';
+            btn.addEventListener('click', () => {
+                if (window.mediaPanel) {
+                    window.mediaPanel.startSelection(mediaType, (path) => {
+                        EditorState.updateModuleSetting(id, key, path);
+                        this.render();
+                    });
+                }
             });
         });
-        if (pickBlink) pickBlink.addEventListener('click', () => {
-            window.mediaPanel.startSelection('image', (path) => {
-                EditorState.updateModuleSetting(id, 'blinkImage', path);
-                this.render();
-            });
+
+        // Audio device dropdowns
+        this.#container.querySelectorAll('.dp-audio-device').forEach(async (select) => {
+            const key = select.dataset.dprop;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(d => d.kind === 'audioinput');
+                select.innerHTML = '<option value="">(Select device)</option>';
+                audioInputs.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.label || d.deviceId;
+                    opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
+                    if ((d.label || d.deviceId) === (settings[key] || '')) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                select.addEventListener('change', () => {
+                    EditorState.updateModuleSetting(id, key, select.value);
+                });
+            } catch (e) {
+                select.innerHTML = '<option value="">(No devices found)</option>';
+            }
         });
-    }
 
-    async #populateAudioDevicesForPT(settings) {
-        const select = document.getElementById('prop-pt-device');
-        if (!select) return;
-
-        try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(d => d.kind === 'audioinput');
-
-            select.innerHTML = '';
-            const defaultOpt = document.createElement('option');
-            defaultOpt.value = '';
-            defaultOpt.textContent = '(Select device)';
-            select.appendChild(defaultOpt);
-
-            audioInputs.forEach(d => {
-                const opt = document.createElement('option');
-                opt.value = d.label || d.deviceId;
-                opt.textContent = d.label || `Device ${d.deviceId.slice(0, 8)}`;
-                if ((d.label || d.deviceId) === (settings.device || '')) opt.selected = true;
-                select.appendChild(opt);
-            });
-
-            select.addEventListener('change', () => {
-                EditorState.updateModuleSetting(EditorState.selectedModule, 'device', select.value);
-            });
-        } catch (e) {
-            select.innerHTML = '<option value="">(No devices found)</option>';
-        }
+        // Camera device dropdowns
+        this.#container.querySelectorAll('.dp-camera-device').forEach(async (select) => {
+            const key = select.dataset.dprop;
+            try {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const cameras = devices.filter(d => d.kind === 'videoinput');
+                select.innerHTML = '<option value="">(Select camera)</option>';
+                cameras.forEach(d => {
+                    const opt = document.createElement('option');
+                    opt.value = d.label || d.deviceId;
+                    opt.textContent = d.label || `Camera ${d.deviceId.slice(0, 8)}`;
+                    if ((d.label || d.deviceId) === (settings[key] || '')) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                select.addEventListener('change', () => {
+                    EditorState.updateModuleSetting(id, key, select.value);
+                });
+            } catch (e) {
+                select.innerHTML = '<option value="">(No cameras found)</option>';
+            }
+        });
     }
 
     #bindEvents(id, mod) {

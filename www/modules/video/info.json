@@ -6,24 +6,15 @@
     "configKey": "video",
     "entrypoint": "video.js",
     "editorClass": "VideoDisplay",
-    "hasSettings": true,
+    "hasSettings": false,
     "allowMultiple": true,
     "description": "Video playback overlay",
     "gradient": { "from": "rgba(239, 68, 68, 0.08)", "to": "rgba(239, 68, 68, 0.25)" },
-    "schema": {
-        "_type": {
-            "src": "string",
-            "loop": "bool",
-            "muted": "bool",
-            "opacity": "number",
-            "objectFit": { "type": "select", "options": ["contain", "cover", "fill", "none"] }
-        },
-        "_labels": {
-            "src": { "label": "Source", "tooltip": "Path to the video file (e.g. /media/background.mp4)" },
-            "loop": { "label": "Loop", "tooltip": "Restart the video when it ends" },
-            "muted": { "label": "Muted", "tooltip": "Disable audio playback" },
-            "opacity": { "label": "Opacity", "tooltip": "Transparency level (0 = invisible, 1 = fully visible)" },
-            "objectFit": { "label": "Fit Mode", "tooltip": "How the video fits within its area" }
-        }
+    "properties": {
+        "src": { "type": "media", "label": "Source", "mediaType": "video" },
+        "loop": { "type": "bool", "label": "Loop", "default": true },
+        "muted": { "type": "bool", "label": "Muted", "default": true },
+        "opacity": { "type": "range", "label": "Opacity", "min": 0, "max": 1, "step": 0.1, "default": 1 },
+        "objectFit": { "type": "select", "label": "Fit Mode", "options": ["contain", "cover", "fill", "none"], "default": "contain" }
     }
 }
