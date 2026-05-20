@@ -9,20 +9,57 @@
     "hasSettings": true,
     "allowMultiple": true,
     "description": "Audio frequency visualisation bars",
-    "gradient": { "from": "rgba(168, 85, 247, 0.08)", "to": "rgba(168, 85, 247, 0.25)" },
+    "gradient": {
+        "from": "rgba(168, 85, 247, 0.08)",
+        "to": "rgba(168, 85, 247, 0.25)"
+    },
     "properties": {
-        "device": { "type": "audioDevice", "label": "Audio Device" },
-        "direction": { "type": "select", "label": "Direction", "options": ["left-right", "right-left", "top-down", "bottom-up"], "default": "right-left" },
-        "mirrored": { "type": "bool", "label": "Mirrored", "default": true },
-        "barWidth": { "type": "number", "label": "Bar Width", "min": 1, "max": 50, "default": 5 },
-        "barSpacing": { "type": "number", "label": "Bar Spacing", "min": 0, "max": 20, "default": 2 }
+        "device": {
+            "type": "audioDevice",
+            "label": "Audio Device"
+        },
+        "direction": {
+            "type": "select",
+            "label": "Direction",
+            "options": [
+                "left-right",
+                "right-left",
+                "top-down",
+                "bottom-up"
+            ],
+            "default": "right-left"
+        },
+        "mirrored": {
+            "type": "bool",
+            "label": "Mirrored",
+            "default": true
+        },
+        "barWidth": {
+            "type": "number",
+            "label": "Bar Width",
+            "min": 1,
+            "max": 50,
+            "default": 5
+        },
+        "barSpacing": {
+            "type": "number",
+            "label": "Bar Spacing",
+            "min": 0,
+            "max": 20,
+            "default": 2
+        }
     },
     "schema": {
         "_type": {
             "device": "audioDevice",
             "direction": {
                 "type": "select",
-                "options": ["left-right", "right-left", "top-down", "bottom-up"]
+                "options": [
+                    "left-right",
+                    "right-left",
+                    "top-down",
+                    "bottom-up"
+                ]
             },
             "mirrored": "bool",
             "barWidth": "number",
@@ -31,13 +68,34 @@
             "backgroundColor": "string"
         },
         "_labels": {
-            "device": { "label": "Audio Device", "tooltip": "Select the audio input device to visualise" },
-            "direction": { "label": "Direction", "tooltip": "Which direction the bars grow from" },
-            "mirrored": { "label": "Mirrored", "tooltip": "Bars grow from center outward in both directions" },
-            "barWidth": { "label": "Bar Width", "tooltip": "Width of each bar in pixels" },
-            "barHeight": { "label": "Bar Height", "tooltip": "Height of each bar in pixels (vertical modes)" },
-            "barSpacing": { "label": "Bar Spacing", "tooltip": "Gap between bars in pixels" },
-            "backgroundColor": { "label": "Background Color", "tooltip": "Background behind the visualiser (use 'transparent' for none)" }
+            "device": {
+                "label": "Audio Device",
+                "tooltip": "Select the audio input device to visualise"
+            },
+            "direction": {
+                "label": "Direction",
+                "tooltip": "Which direction the bars grow from"
+            },
+            "mirrored": {
+                "label": "Mirrored",
+                "tooltip": "Bars grow from center outward in both directions"
+            },
+            "barWidth": {
+                "label": "Bar Width",
+                "tooltip": "Width of each bar in pixels"
+            },
+            "barHeight": {
+                "label": "Bar Height",
+                "tooltip": "Height of each bar in pixels (vertical modes)"
+            },
+            "barSpacing": {
+                "label": "Bar Spacing",
+                "tooltip": "Gap between bars in pixels"
+            },
+            "backgroundColor": {
+                "label": "Background Color",
+                "tooltip": "Background behind the visualiser (use 'transparent' for none)"
+            }
         },
         "_item_type": {
             "area": "css",
@@ -47,22 +105,75 @@
             "_type": {
                 "mode": {
                     "type": "select",
-                    "options": ["levels", "gradient"]
+                    "options": [
+                        "levels",
+                        "gradient"
+                    ]
                 },
-                "level1": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
-                "level2": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
-                "level3": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
-                "level4": { "type": "color", "showWhen": { "field": "mode", "value": "levels" } },
-                "gradient": { "type": "gradient", "showWhen": { "field": "mode", "value": "gradient" } }
+                "level1": {
+                    "type": "color",
+                    "showWhen": {
+                        "field": "mode",
+                        "value": "levels"
+                    }
+                },
+                "level2": {
+                    "type": "color",
+                    "showWhen": {
+                        "field": "mode",
+                        "value": "levels"
+                    }
+                },
+                "level3": {
+                    "type": "color",
+                    "showWhen": {
+                        "field": "mode",
+                        "value": "levels"
+                    }
+                },
+                "level4": {
+                    "type": "color",
+                    "showWhen": {
+                        "field": "mode",
+                        "value": "levels"
+                    }
+                },
+                "gradient": {
+                    "type": "gradient",
+                    "showWhen": {
+                        "field": "mode",
+                        "value": "gradient"
+                    }
+                }
             },
             "_labels": {
-                "mode": { "label": "Color Mode", "tooltip": "Levels uses fixed colors per intensity, Gradient uses a smooth color ramp" },
-                "level1": { "label": "Low", "tooltip": "Color for lowest intensity bars" },
-                "level2": { "label": "Medium-Low", "tooltip": "Color for medium-low intensity bars" },
-                "level3": { "label": "Medium-High", "tooltip": "Color for medium-high intensity bars" },
-                "level4": { "label": "High", "tooltip": "Color for highest intensity bars" },
-                "gradient": { "label": "Gradient", "tooltip": "Edit the gradient color stops" }
+                "mode": {
+                    "label": "Color Mode",
+                    "tooltip": "Levels uses fixed colors per intensity, Gradient uses a smooth color ramp"
+                },
+                "level1": {
+                    "label": "Low",
+                    "tooltip": "Color for lowest intensity bars"
+                },
+                "level2": {
+                    "label": "Medium-Low",
+                    "tooltip": "Color for medium-low intensity bars"
+                },
+                "level3": {
+                    "label": "Medium-High",
+                    "tooltip": "Color for medium-high intensity bars"
+                },
+                "level4": {
+                    "label": "High",
+                    "tooltip": "Color for highest intensity bars"
+                },
+                "gradient": {
+                    "label": "Gradient",
+                    "tooltip": "Edit the gradient color stops"
+                }
             }
         }
-    }
+    },
+    "version": "1.4.0",
+    "builtForVersion": "1.4.0"
 }

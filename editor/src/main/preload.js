@@ -15,9 +15,13 @@ contextBridge.exposeInMainWorld('api', {
     // Module management
     moduleListInstalled: () => ipcRenderer.invoke('module-list-installed'),
     moduleInstall: () => ipcRenderer.invoke('module-install'),
-    moduleExport: (name) => ipcRenderer.invoke('module-export', name),
+    moduleExport: (name, signingOpts) => ipcRenderer.invoke('module-export', name, signingOpts),
     moduleUninstall: (name) => ipcRenderer.invoke('module-uninstall', name),
+    moduleBrowseKey: () => ipcRenderer.invoke('module-browse-key'),
+    moduleBrowseCert: () => ipcRenderer.invoke('module-browse-cert'),
+    moduleGenerateKeypair: (opts) => ipcRenderer.invoke('module-generate-keypair', opts),
     openModulesDir: () => ipcRenderer.invoke('open-modules-dir'),
+    openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
 
     // File path helper (for drag-drop from OS in sandboxed mode)
     getPathForFile: getPathForFile,

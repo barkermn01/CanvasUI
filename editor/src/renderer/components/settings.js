@@ -513,22 +513,27 @@ class SettingsPanel {
     async #renderModuleManager(container) {
         container.innerHTML = '<p class="s-hint">Loading modules...</p>';
 
-        const modules = await window.api.moduleListInstalled();
+        const result = await window.api.moduleListInstalled();
+        const modules = result.modules || result;
+        const appVersion = result.appVersion || '0.0.0';
 
         let html = `
             <div class="settings-section">
                 <h3>Installed Modules</h3>
                 <p class="s-hint">Manage installed modules. Built-in modules cannot be removed.</p>
                 <div class="module-manager-actions">
-                    <button id="mm-install-btn" class="mm-btn">📦 Install from .zip</button>
+                    <button id="mm-install-btn" class="mm-btn">📦 Install Module</button>
                     <button id="mm-refresh-btn" class="mm-btn">🔄 Refresh Modules</button>
                     <button id="mm-open-dir-btn" class="mm-btn">📂 Open Modules Folder</button>
+                    <button id="mm-keygen-btn" class="mm-btn">🔑 Generate Key & Signing Request</button>
                 </div>
                 <div id="mm-module-list" class="mm-list">
         `;
 
         for (const mod of modules) {
             const isHidden = EditorPrefs.get('hiddenModules', []).includes(mod.dir);
+            const verBadge = this.#getVerificationBadge(mod);
+            const versionBadge = this.#getVersionBadge(mod, appVersion);
             html += `
                 <div class="mm-item ${mod.builtIn ? 'mm-builtin' : 'mm-thirdparty'}">
                     <div class="mm-item-info">
@@ -536,10 +541,12 @@ class SettingsPanel {
                         <span class="mm-item-icon">${mod.icon}</span>
                         <span class="mm-item-name">${mod.displayName}</span>
                         ${mod.builtIn ? '<span class="mm-badge">Built-in</span>' : '<span class="mm-badge mm-badge-custom">Custom</span>'}
+                        ${verBadge}
+                        ${versionBadge}
                     </div>
                     <div class="mm-item-desc">${mod.description}</div>
                     <div class="mm-item-actions">
-                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-export-btn" data-module="${mod.dir}" title="Export as .zip">📤 Export</button>` : ''}
+                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-export-btn" data-module="${mod.dir}" title="Export as .cumod">📤 Export</button>` : ''}
                         ${!mod.builtIn ? `<button class="mm-btn-sm mm-btn-danger mm-uninstall-btn" data-module="${mod.dir}" title="Uninstall">🗑 Uninstall</button>` : ''}
                     </div>
                 </div>
@@ -581,6 +588,10 @@ class SettingsPanel {
             await window.api.openModulesDir();
         });
 
+        container.querySelector('#mm-keygen-btn').addEventListener('click', () => {
+            this.#openKeygenDialog();
+        });
+
         // Visibility checkboxes
         container.querySelectorAll('.mm-visible-check').forEach(cb => {
             cb.addEventListener('change', () => {
@@ -600,17 +611,7 @@ class SettingsPanel {
         container.querySelectorAll('.mm-export-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
                 const name = btn.dataset.module;
-                btn.textContent = '⏳...';
-                const result = await window.api.moduleExport(name);
-                if (result.success) {
-                    btn.textContent = '✓ Exported';
-                    setTimeout(() => { btn.textContent = '📤 Export'; }, 2000);
-                } else if (result.error !== 'Cancelled') {
-                    btn.textContent = '❌ Failed';
-                    setTimeout(() => { btn.textContent = '📤 Export'; }, 2000);
-                } else {
-                    btn.textContent = '📤 Export';
-                }
+                this.#openExportDialog(name, container);
             });
         });
 
@@ -662,6 +663,393 @@ class SettingsPanel {
                     alert('Uninstall failed: ' + result.error);
                 }
             });
+        });
+
+        // Bind certificate detail popups
+        this.#bindCertPopups(container);
+    }
+
+    #bindCertPopups(container) {
+        let activePopup = null;
+        let hideTimeout = null;
+
+        const removePopup = () => {
+            if (activePopup) {
+                activePopup.remove();
+                activePopup = null;
+            }
+        };
+
+        const scheduleHide = () => {
+            hideTimeout = setTimeout(removePopup, 300);
+        };
+
+        const cancelHide = () => {
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+                hideTimeout = null;
+            }
+        };
+
+        container.querySelectorAll('.mm-cert-badge').forEach(badge => {
+            badge.addEventListener('mouseenter', () => {
+                cancelHide();
+                removePopup();
+
+                const dev = badge.dataset.dev || '';
+                const org = badge.dataset.org || '';
+                const website = badge.dataset.website || '';
+                const email = badge.dataset.email || '';
+                const issued = badge.dataset.issued || '';
+                const expires = badge.dataset.expires || '';
+
+                const popup = document.createElement('div');
+                popup.className = 'mm-cert-popup';
+
+                let html = `<div class="mm-cert-popup-title">Certificate Details</div>`;
+                html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Developer</span><span>${dev}</span></div>`;
+                if (org) html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Organisation</span><span>${org}</span></div>`;
+                if (website) html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Website</span><a class="mm-cert-link" href="#" data-url="${website}">${website}</a></div>`;
+                if (email) html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Email</span><a class="mm-cert-link" href="#" data-url="mailto:${email}">${email}</a></div>`;
+                if (issued) html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Issued</span><span>${issued}</span></div>`;
+                if (expires) html += `<div class="mm-cert-popup-row"><span class="mm-cert-label">Expires</span><span>${expires}</span></div>`;
+
+                popup.innerHTML = html;
+                document.body.appendChild(popup);
+                activePopup = popup;
+
+                // Position below the badge
+                const rect = badge.getBoundingClientRect();
+                popup.style.left = rect.left + 'px';
+                popup.style.top = (rect.bottom + 4) + 'px';
+
+                // Keep popup open while hovering over it
+                popup.addEventListener('mouseenter', cancelHide);
+                popup.addEventListener('mouseleave', scheduleHide);
+
+                // Handle link clicks — open in OS browser
+                popup.querySelectorAll('.mm-cert-link').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const url = link.dataset.url;
+                        if (url) window.api.openExternalUrl(url);
+                    });
+                });
+            });
+
+            badge.addEventListener('mouseleave', scheduleHide);
+        });
+    }
+
+    #getVerificationBadge(mod) {
+        if (!mod.verification) return '<span class="mm-badge mm-badge-unverified" title="No verification data">Unverified</span>';
+
+        switch (mod.verification.status) {
+            case 'verified': {
+                const cert = mod.verification.certificate || {};
+                const devName = mod.verification.developer || 'Unknown';
+                // Build data attributes for the popup
+                const dataAttrs = [
+                    `data-dev="${devName}"`,
+                    cert.organisation ? `data-org="${cert.organisation}"` : '',
+                    cert.website ? `data-website="${cert.website}"` : '',
+                    cert.email ? `data-email="${cert.email}"` : '',
+                    cert.issuedAt ? `data-issued="${cert.issuedAt.split('T')[0]}"` : '',
+                    cert.expiresAt ? `data-expires="${cert.expiresAt.split('T')[0]}"` : ''
+                ].filter(Boolean).join(' ');
+                return `<span class="mm-badge mm-badge-verified mm-cert-badge" ${dataAttrs}>✓ ${devName}</span>`;
+            }
+            case 'tampered':
+                return `<span class="mm-badge mm-badge-tampered" title="${mod.verification.reason || 'Verification failed'}">⚠️ Tampered</span>`;
+            case 'unverified':
+            default:
+                return '<span class="mm-badge mm-badge-unverified" title="This module is not signed">Unverified</span>';
+        }
+    }
+
+    #getVersionBadge(mod, appVersion) {
+        if (!mod.builtForVersion) return '';
+        const cmp = SettingsPanel.#compareVersions(mod.builtForVersion, appVersion);
+        if (cmp < 0) {
+            return `<span class="mm-badge mm-badge-outdated" title="Built for v${mod.builtForVersion}, current app is v${appVersion}">⏳ v${mod.builtForVersion}</span>`;
+        }
+        return '';
+    }
+
+    /**
+     * Compare two semver strings. Returns -1 if a < b, 0 if equal, 1 if a > b.
+     */
+    static #compareVersions(a, b) {
+        const partsA = (a || '0.0.0').split('.').map(n => parseInt(n, 10) || 0);
+        const partsB = (b || '0.0.0').split('.').map(n => parseInt(n, 10) || 0);
+        const len = Math.max(partsA.length, partsB.length);
+        for (let i = 0; i < len; i++) {
+            const numA = partsA[i] || 0;
+            const numB = partsB[i] || 0;
+            if (numA > numB) return 1;
+            if (numA < numB) return -1;
+        }
+        return 0;
+    }
+
+    #openExportDialog(moduleName, parentContainer) {
+        // Create export signing dialog overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'export-dialog-overlay';
+        overlay.innerHTML = `
+            <div id="export-dialog-panel">
+                <div id="export-dialog-header">
+                    <h2>Export: ${moduleName}</h2>
+                    <button id="export-dialog-close">✕</button>
+                </div>
+                <div id="export-dialog-body">
+                    <div class="settings-section">
+                        <h3>Signing Mode</h3>
+                        <p class="s-hint">Choose how to sign the exported module package.</p>
+                        <div class="export-mode-options">
+                            <label class="export-mode-option">
+                                <input type="radio" name="export-sign-mode" value="none" checked>
+                                <span class="export-mode-label">
+                                    <strong>None (Unverified)</strong>
+                                    <small>Module will show as "Unverified" when installed</small>
+                                </span>
+                            </label>
+                            <label class="export-mode-option">
+                                <input type="radio" name="export-sign-mode" value="key">
+                                <span class="export-mode-label">
+                                    <strong>Sign with Key File</strong>
+                                    <small>Use a .pem private key and certificate to sign</small>
+                                </span>
+                            </label>
+                            <label class="export-mode-option">
+                                <input type="radio" name="export-sign-mode" value="external">
+                                <span class="export-mode-label">
+                                    <strong>External Signature</strong>
+                                    <small>Paste a pre-computed signature (YubiKey / FIPS 140)</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-section export-key-section" style="display:none">
+                        <h3>Key File Signing</h3>
+                        <div class="s-row">
+                            <label>Private Key</label>
+                            <button id="export-browse-key" class="mm-btn-sm">Browse .pem</button>
+                            <span id="export-key-status" class="export-file-status">No key selected</span>
+                        </div>
+                        <div class="s-row">
+                            <label>Certificate</label>
+                            <button id="export-browse-cert" class="mm-btn-sm">Browse .pem</button>
+                            <span id="export-cert-status" class="export-file-status">No certificate selected</span>
+                        </div>
+                    </div>
+                    <div class="settings-section export-external-section" style="display:none">
+                        <h3>External Signature</h3>
+                        <p class="s-hint">Paste the base64 signature computed externally (e.g. via YubiKey).</p>
+                        <div class="s-row">
+                            <label>Signature (base64)</label>
+                            <textarea id="export-ext-signature" rows="3" placeholder="Base64-encoded signature..."></textarea>
+                        </div>
+                        <div class="s-row">
+                            <label>Certificate</label>
+                            <button id="export-ext-browse-cert" class="mm-btn-sm">Browse .pem</button>
+                            <span id="export-ext-cert-status" class="export-file-status">No certificate selected</span>
+                        </div>
+                    </div>
+                </div>
+                <div id="export-dialog-footer">
+                    <button id="export-dialog-cancel">Cancel</button>
+                    <button id="export-dialog-go">📤 Export</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // State
+        let privateKeyPem = null;
+        let certificatePem = null;
+        let extCertificatePem = null;
+
+        // Mode toggle
+        const keySection = overlay.querySelector('.export-key-section');
+        const extSection = overlay.querySelector('.export-external-section');
+
+        overlay.querySelectorAll('input[name="export-sign-mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                keySection.style.display = radio.value === 'key' ? '' : 'none';
+                extSection.style.display = radio.value === 'external' ? '' : 'none';
+            });
+        });
+
+        // Browse key
+        overlay.querySelector('#export-browse-key').addEventListener('click', async () => {
+            const seedHex = await window.api.moduleBrowseKey();
+            if (seedHex) {
+                privateKeyPem = seedHex;
+                overlay.querySelector('#export-key-status').textContent = '✓ Key loaded';
+                overlay.querySelector('#export-key-status').classList.add('export-file-ok');
+            }
+        });
+
+        // Browse cert (key mode)
+        overlay.querySelector('#export-browse-cert').addEventListener('click', async () => {
+            const cert = await window.api.moduleBrowseCert();
+            if (cert && cert.error) {
+                alert(cert.error);
+            } else if (cert) {
+                certificatePem = cert;
+                overlay.querySelector('#export-cert-status').textContent = `✓ ${cert.developer || 'Certificate loaded'}`;
+                overlay.querySelector('#export-cert-status').classList.add('export-file-ok');
+            }
+        });
+
+        // Browse cert (external mode)
+        overlay.querySelector('#export-ext-browse-cert').addEventListener('click', async () => {
+            const cert = await window.api.moduleBrowseCert();
+            if (cert && cert.error) {
+                alert(cert.error);
+            } else if (cert) {
+                extCertificatePem = cert;
+                overlay.querySelector('#export-ext-cert-status').textContent = `✓ ${cert.developer || 'Certificate loaded'}`;
+                overlay.querySelector('#export-ext-cert-status').classList.add('export-file-ok');
+            }
+        });
+
+        // Close / Cancel
+        const closeDialog = () => overlay.remove();
+        overlay.querySelector('#export-dialog-close').addEventListener('click', closeDialog);
+        overlay.querySelector('#export-dialog-cancel').addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDialog(); });
+
+        // Export
+        overlay.querySelector('#export-dialog-go').addEventListener('click', async () => {
+            const mode = overlay.querySelector('input[name="export-sign-mode"]:checked').value;
+            let signingOpts = null;
+
+            if (mode === 'key') {
+                if (!privateKeyPem || !certificatePem) {
+                    alert('Please select both a private key and certificate.');
+                    return;
+                }
+                signingOpts = { mode: 'key', privateKey: privateKeyPem, certificate: certificatePem };
+            } else if (mode === 'external') {
+                const sig = overlay.querySelector('#export-ext-signature').value.trim();
+                if (!sig || !extCertificatePem) {
+                    alert('Please provide both a signature and certificate.');
+                    return;
+                }
+                signingOpts = { mode: 'external', signature: sig, certificate: extCertificatePem };
+            }
+
+            const goBtn = overlay.querySelector('#export-dialog-go');
+            goBtn.textContent = '⏳ Exporting...';
+            goBtn.disabled = true;
+
+            const result = await window.api.moduleExport(moduleName, signingOpts);
+            if (result.success) {
+                closeDialog();
+            } else if (result.error !== 'Cancelled') {
+                alert('Export failed: ' + result.error);
+                goBtn.textContent = '📤 Export';
+                goBtn.disabled = false;
+            } else {
+                goBtn.textContent = '📤 Export';
+                goBtn.disabled = false;
+            }
+        });
+    }
+
+    #openKeygenDialog() {
+        const overlay = document.createElement('div');
+        overlay.id = 'export-dialog-overlay';
+        overlay.innerHTML = `
+            <div id="export-dialog-panel">
+                <div id="export-dialog-header">
+                    <h2>Generate Key & Signing Request</h2>
+                    <button id="export-dialog-close">✕</button>
+                </div>
+                <div id="export-dialog-body">
+                    <div class="settings-section">
+                        <p class="s-hint">Generate an Ed25519 keypair and a Certificate Signing Request (CSR). Send the CSR to the CA administrator to receive a signed certificate for module signing.</p>
+                        <div class="s-row">
+                            <label>Developer Name *</label>
+                            <input type="text" id="keygen-name" placeholder="Your name or handle">
+                        </div>
+                        <div class="s-row">
+                            <label>Organisation</label>
+                            <input type="text" id="keygen-org" placeholder="(optional)">
+                        </div>
+                        <div class="s-row">
+                            <label>Website</label>
+                            <input type="text" id="keygen-website" placeholder="(optional) https://...">
+                        </div>
+                        <div class="s-row">
+                            <label>Support Email</label>
+                            <input type="text" id="keygen-email" placeholder="(optional)">
+                        </div>
+                    </div>
+                </div>
+                <div id="export-dialog-footer">
+                    <button id="keygen-cancel">Cancel</button>
+                    <button id="keygen-go">🔑 Generate</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const closeDialog = () => overlay.remove();
+        overlay.querySelector('#export-dialog-close').addEventListener('click', closeDialog);
+        overlay.querySelector('#keygen-cancel').addEventListener('click', closeDialog);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) closeDialog(); });
+
+        overlay.querySelector('#keygen-go').addEventListener('click', async () => {
+            const name = overlay.querySelector('#keygen-name').value.trim();
+            if (!name) {
+                alert('Developer name is required.');
+                return;
+            }
+            const org = overlay.querySelector('#keygen-org').value.trim();
+            const website = overlay.querySelector('#keygen-website').value.trim();
+            const email = overlay.querySelector('#keygen-email').value.trim();
+
+            const goBtn = overlay.querySelector('#keygen-go');
+            goBtn.textContent = '⏳ Generating...';
+            goBtn.disabled = true;
+
+            const result = await window.api.moduleGenerateKeypair({
+                developer: name,
+                organisation: org || undefined,
+                website: website || undefined,
+                email: email || undefined
+            });
+
+            if (result.success) {
+                overlay.querySelector('#export-dialog-body').innerHTML = `
+                    <div class="settings-section">
+                        <h3>✅ Keypair & CSR Generated</h3>
+                        <div class="s-row"><label>Private Key</label><code class="keygen-path">${result.keyPath}</code></div>
+                        <div class="s-row"><label>Signing Request</label><code class="keygen-path">${result.csrPath}</code></div>
+                        <p class="s-hint" style="margin-top:12px">
+                            <strong>Next steps:</strong><br>
+                            1. Send <code>developer.csr.json</code> to the CA administrator<br>
+                            2. They will sign it and return a <code>developer.cert.json</code><br>
+                            3. Use your <code>.key</code> + <code>.cert.json</code> to sign modules on export
+                        </p>
+                        <p class="s-hint" style="color:#e74c3c">⚠️ Keep developer.key SECRET. Never share it.</p>
+                    </div>
+                `;
+                overlay.querySelector('#export-dialog-footer').innerHTML = `
+                    <button id="keygen-done">Done</button>
+                `;
+                overlay.querySelector('#keygen-done').addEventListener('click', closeDialog);
+            } else if (result.error !== 'Cancelled') {
+                alert('Key generation failed: ' + result.error);
+                goBtn.textContent = '🔑 Generate';
+                goBtn.disabled = false;
+            } else {
+                goBtn.textContent = '🔑 Generate';
+                goBtn.disabled = false;
+            }
         });
     }
 

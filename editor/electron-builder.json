@@ -14,6 +14,10 @@
             "from": "build-www",
             "to": "www",
             "filter": ["**/*"]
+        },
+        {
+            "from": "../tools/ca.json",
+            "to": "ca.json"
         }
     ],
     "win": {

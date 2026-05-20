@@ -9,12 +9,46 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Video playback overlay",
-    "gradient": { "from": "rgba(239, 68, 68, 0.08)", "to": "rgba(239, 68, 68, 0.25)" },
+    "gradient": {
+        "from": "rgba(239, 68, 68, 0.08)",
+        "to": "rgba(239, 68, 68, 0.25)"
+    },
     "properties": {
-        "src": { "type": "media", "label": "Source", "mediaType": "video" },
-        "loop": { "type": "bool", "label": "Loop", "default": true },
-        "muted": { "type": "bool", "label": "Muted", "default": true },
-        "opacity": { "type": "range", "label": "Opacity", "min": 0, "max": 1, "step": 0.1, "default": 1 },
-        "objectFit": { "type": "select", "label": "Fit Mode", "options": ["contain", "cover", "fill", "none"], "default": "contain" }
-    }
+        "src": {
+            "type": "media",
+            "label": "Source",
+            "mediaType": "video"
+        },
+        "loop": {
+            "type": "bool",
+            "label": "Loop",
+            "default": true
+        },
+        "muted": {
+            "type": "bool",
+            "label": "Muted",
+            "default": true
+        },
+        "opacity": {
+            "type": "range",
+            "label": "Opacity",
+            "min": 0,
+            "max": 1,
+            "step": 0.1,
+            "default": 1
+        },
+        "objectFit": {
+            "type": "select",
+            "label": "Fit Mode",
+            "options": [
+                "contain",
+                "cover",
+                "fill",
+                "none"
+            ],
+            "default": "contain"
+        }
+    },
+    "version": "1.4.0",
+    "builtForVersion": "1.4.0"
 }

@@ -9,17 +9,94 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Live webcam feed with optional chroma key",
-    "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
-    "scripts": ["chromakey.js"],
+    "gradient": {
+        "from": "rgba(236, 72, 153, 0.08)",
+        "to": "rgba(236, 72, 153, 0.25)"
+    },
+    "scripts": [
+        "chromakey.js"
+    ],
     "properties": {
-        "device": { "type": "cameraDevice", "label": "Camera Device" },
-        "mirror": { "type": "bool", "label": "Mirror", "default": false },
-        "mask": { "type": "select", "label": "Mask Shape", "options": ["none", "circle", "rounded"], "default": "none" },
-        "borderRadius": { "type": "string", "label": "Border Radius", "placeholder": "e.g. 16px", "default": "0", "showWhen": { "field": "mask", "value": "rounded" } },
-        "chromaKey": { "type": "bool", "label": "Chroma Key", "default": false },
-        "chromaKeyColor": { "type": "color", "label": "Key Color", "default": "#00ff00", "showWhen": { "field": "chromaKey", "value": true } },
-        "chromaKeySimilarity": { "type": "range", "label": "Similarity", "min": 0, "max": 1, "step": 0.01, "default": 0.4, "showWhen": { "field": "chromaKey", "value": true } },
-        "chromaKeySmoothness": { "type": "range", "label": "Smoothness", "min": 0, "max": 1, "step": 0.01, "default": 0.08, "showWhen": { "field": "chromaKey", "value": true } },
-        "chromaKeySpill": { "type": "range", "label": "Spill Reduction", "min": 0, "max": 1, "step": 0.01, "default": 0.1, "showWhen": { "field": "chromaKey", "value": true } }
-    }
+        "device": {
+            "type": "cameraDevice",
+            "label": "Camera Device"
+        },
+        "mirror": {
+            "type": "bool",
+            "label": "Mirror",
+            "default": false
+        },
+        "mask": {
+            "type": "select",
+            "label": "Mask Shape",
+            "options": [
+                "none",
+                "circle",
+                "rounded"
+            ],
+            "default": "none"
+        },
+        "borderRadius": {
+            "type": "string",
+            "label": "Border Radius",
+            "placeholder": "e.g. 16px",
+            "default": "0",
+            "showWhen": {
+                "field": "mask",
+                "value": "rounded"
+            }
+        },
+        "chromaKey": {
+            "type": "bool",
+            "label": "Chroma Key",
+            "default": false
+        },
+        "chromaKeyColor": {
+            "type": "color",
+            "label": "Key Color",
+            "default": "#00ff00",
+            "showWhen": {
+                "field": "chromaKey",
+                "value": true
+            }
+        },
+        "chromaKeySimilarity": {
+            "type": "range",
+            "label": "Similarity",
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "default": 0.4,
+            "showWhen": {
+                "field": "chromaKey",
+                "value": true
+            }
+        },
+        "chromaKeySmoothness": {
+            "type": "range",
+            "label": "Smoothness",
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "default": 0.08,
+            "showWhen": {
+                "field": "chromaKey",
+                "value": true
+            }
+        },
+        "chromaKeySpill": {
+            "type": "range",
+            "label": "Spill Reduction",
+            "min": 0,
+            "max": 1,
+            "step": 0.01,
+            "default": 0.1,
+            "showWhen": {
+                "field": "chromaKey",
+                "value": true
+            }
+        }
+    },
+    "version": "1.4.0",
+    "builtForVersion": "1.4.0"
 }

@@ -1980,6 +1980,10 @@ kbd {
     border: 1px solid var(--border);
 }
 .mm-badge-custom { background: rgba(139, 92, 246, 0.2); color: var(--accent); border-color: var(--accent); }
+.mm-badge-verified { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border-color: #2ecc71; }
+.mm-badge-unverified { background: rgba(149, 165, 166, 0.15); color: #95a5a6; border-color: #95a5a6; }
+.mm-badge-tampered { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border-color: #e74c3c; }
+.mm-badge-outdated { background: rgba(243, 156, 18, 0.15); color: #f39c12; border-color: #f39c12; }
 
 .mm-btn-sm {
     background: var(--bg-tertiary);
@@ -1993,6 +1997,148 @@ kbd {
 .mm-btn-sm:hover { background: var(--bg-surface); color: var(--text-primary); }
 .mm-btn-danger { color: #e74c3c; }
 .mm-btn-danger:hover { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border-color: #e74c3c; }
+
+/* Export dialog */
+#export-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+#export-dialog-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+#export-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+#export-dialog-header h2 { margin: 0; font-size: 14px; }
+#export-dialog-header button {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+}
+#export-dialog-body { padding: 16px; }
+#export-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+}
+#export-dialog-footer button {
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 12px;
+}
+#export-dialog-footer button:last-child {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+#export-dialog-footer button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.export-mode-options { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.export-mode-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.export-mode-option:hover { background: var(--bg-tertiary); }
+.export-mode-option input[type="radio"] { margin-top: 3px; }
+.export-mode-label { display: flex; flex-direction: column; gap: 2px; }
+.export-mode-label strong { font-size: 12px; color: var(--text-primary); }
+.export-mode-label small { font-size: 11px; color: var(--text-secondary); }
+
+.export-file-status { font-size: 11px; color: var(--text-secondary); margin-left: 8px; }
+.export-file-ok { color: #2ecc71; }
+
+#export-ext-signature {
+    width: 100%;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px;
+    font-family: monospace;
+    font-size: 11px;
+    resize: vertical;
+}
+
+.keygen-path {
+    font-size: 11px;
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 3px;
+    word-break: break-all;
+}
+
+/* Certificate detail popup */
+.mm-cert-popup {
+    position: fixed;
+    z-index: 10001;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    min-width: 200px;
+    max-width: 320px;
+    font-size: 12px;
+}
+.mm-cert-popup-title {
+    font-weight: bold;
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+.mm-cert-popup-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 2px 0;
+}
+.mm-cert-label {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+.mm-cert-link {
+    color: #ffffff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.mm-cert-link:hover {
+    color: var(--accent);
+}
+.mm-cert-badge {
+    cursor: pointer;
+}
 
 /* Settings tab divider */
 .settings-tab-divider {
