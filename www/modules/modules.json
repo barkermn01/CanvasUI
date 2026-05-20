@@ -7,6 +7,8 @@
     "video": "video/info.json",
     "pngtuber": "pngtuber/info.json",
     "steeringwheel": "steeringwheel/info.json",
+    "gamepadbuttons": "gamepadbuttons/info.json",
+    "gamepaddpad": "gamepaddpad/info.json",
     "testmod": "testmod/info.json",
     "scene": "scene.js"
 }

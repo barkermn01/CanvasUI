@@ -1,0 +1,97 @@
+{
+    "name": "gamepaddpad",
+    "displayName": "Gamepad D-Pad",
+    "icon": "✚",
+    "type": "canvas",
+    "configKey": "gamepaddpad",
+    "entrypoint": "gamepaddpad.js",
+    "editorClass": "GamepadDpad",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Displays D-pad directional input from a controller",
+    "gradient": { "from": "rgba(34, 211, 238, 0.08)", "to": "rgba(34, 211, 238, 0.25)" },
+    "properties": {
+        "gamepadIndex": {
+            "type": "gamepadDevice",
+            "label": "Controller"
+        },
+        "inputMode": {
+            "type": "select",
+            "label": "D-Pad Input Mode",
+            "options": ["buttons", "axes"],
+            "default": "buttons"
+        },
+        "upButton": {
+            "type": "number",
+            "label": "Up Button Index",
+            "min": 0,
+            "max": 31,
+            "default": 12,
+            "showWhen": { "field": "inputMode", "value": "buttons" }
+        },
+        "downButton": {
+            "type": "number",
+            "label": "Down Button Index",
+            "min": 0,
+            "max": 31,
+            "default": 13,
+            "showWhen": { "field": "inputMode", "value": "buttons" }
+        },
+        "leftButton": {
+            "type": "number",
+            "label": "Left Button Index",
+            "min": 0,
+            "max": 31,
+            "default": 14,
+            "showWhen": { "field": "inputMode", "value": "buttons" }
+        },
+        "rightButton": {
+            "type": "number",
+            "label": "Right Button Index",
+            "min": 0,
+            "max": 31,
+            "default": 15,
+            "showWhen": { "field": "inputMode", "value": "buttons" }
+        },
+        "horizontalAxis": {
+            "type": "number",
+            "label": "Horizontal Axis Index",
+            "min": 0,
+            "max": 15,
+            "default": 6,
+            "showWhen": { "field": "inputMode", "value": "axes" }
+        },
+        "verticalAxis": {
+            "type": "number",
+            "label": "Vertical Axis Index",
+            "min": 0,
+            "max": 15,
+            "default": 7,
+            "showWhen": { "field": "inputMode", "value": "axes" }
+        },
+        "axisThreshold": {
+            "type": "range",
+            "label": "Axis Threshold",
+            "min": 0.1,
+            "max": 1,
+            "step": 0.05,
+            "default": 0.5,
+            "showWhen": { "field": "inputMode", "value": "axes" }
+        },
+        "inactiveColor": {
+            "type": "color",
+            "label": "Inactive Color",
+            "default": "#444444"
+        },
+        "activeColor": {
+            "type": "color",
+            "label": "Active Color",
+            "default": "#22d3ee"
+        },
+        "borderColor": {
+            "type": "color",
+            "label": "Border Color",
+            "default": "#666666"
+        }
+    }
+}

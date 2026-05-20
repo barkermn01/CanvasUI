@@ -1,0 +1,66 @@
+{
+    "name": "gamepadbuttons",
+    "displayName": "Gamepad Buttons",
+    "icon": "🔘",
+    "type": "canvas",
+    "configKey": "gamepadbuttons",
+    "entrypoint": "gamepadbuttons.js",
+    "editorClass": "GamepadButtons",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Displays controller button states with press highlighting",
+    "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
+    "properties": {
+        "gamepadIndex": {
+            "type": "gamepadDevice",
+            "label": "Controller"
+        },
+        "layout": {
+            "type": "select",
+            "label": "Layout",
+            "options": ["grid", "row", "column"],
+            "default": "grid"
+        },
+        "buttonSize": {
+            "type": "range",
+            "label": "Button Size",
+            "min": 16,
+            "max": 80,
+            "step": 2,
+            "default": 32
+        },
+        "spacing": {
+            "type": "range",
+            "label": "Spacing",
+            "min": 0,
+            "max": 20,
+            "step": 1,
+            "default": 4
+        },
+        "inactiveColor": {
+            "type": "color",
+            "label": "Inactive Color",
+            "default": "#333333"
+        },
+        "activeColor": {
+            "type": "color",
+            "label": "Active Color",
+            "default": "#ff4488"
+        },
+        "borderColor": {
+            "type": "color",
+            "label": "Border Color",
+            "default": "#888888"
+        },
+        "showLabels": {
+            "type": "bool",
+            "label": "Show Button Numbers",
+            "default": true
+        },
+        "showOnlyPressed": {
+            "type": "bool",
+            "label": "Show Only When Pressed",
+            "default": false
+        }
+    }
+}
