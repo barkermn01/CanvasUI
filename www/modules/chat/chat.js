@@ -415,7 +415,7 @@ class CanvasChatMain {
         const fitContent = style.width === 'fit-content';
         const alignRight = style['align-self'] === 'flex-end' || style['justify-content'] === 'right';
         const badgeSize = boxes.BadgeSettings?.width || 18;
-        const emoteSize = fontSize + 4;
+        const emoteHeight = boxes.EmoteHeight || (fontSize + 4);
         const showBadges = boxes.ShowBadges !== false;
         const showColon = boxes.UserColon !== false;
         const nameOnNewLine = boxes.NameOnNewLine || false;
@@ -448,8 +448,8 @@ class CanvasChatMain {
             if (msg.hidden) continue;
             ctx.font = `bold ${fontSize}px ${fontFamily}`;
 
-            const contentWidth = this.#measureMessageWidth(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, nameOnNewLine);
-            const contentHeight = this.#measureMessageHeight(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight, nameOnNewLine);
+            const contentWidth = this.#measureMessageWidth(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteHeight, showBadges, showColon, nameOnNewLine);
+            const contentHeight = this.#measureMessageHeight(ctx, msg, maxTextWidth, fontSize, fontFamily, badgeSize, emoteHeight, showBadges, showColon, lineHeight, nameOnNewLine);
 
             const boxW = fitContent ? Math.min(contentWidth + padding * 2 + borderWidth * 2, area.width) : area.width;
             const boxH = contentHeight + padding * 2 + borderWidth * 2;
@@ -631,7 +631,7 @@ class CanvasChatMain {
                 ctx.fillStyle = textColor;
                 ctx.font = `${fontSize}px ${fontFamily}`;
                 const msgDrawY = nameOnNewLine ? drawY - lineItemHeight + (lineItemHeight + fontSize) / 2 - 2 : textY;
-                this.#drawSegments(ctx, msg.segments, drawX, msgDrawY, maxTextWidth, boxX + padding + borderWidth, lineHeight, fontSize, fontFamily, textColor, emoteSize);
+                this.#drawSegments(ctx, msg.segments, drawX, msgDrawY, maxTextWidth, boxX + padding + borderWidth, lineHeight, fontSize, fontFamily, textColor, emoteHeight);
             }
 
             ctx.restore();
@@ -640,7 +640,7 @@ class CanvasChatMain {
         ctx.restore();
     }
 
-    #measureMessageWidth(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, nameOnNewLine) {
+    #measureMessageWidth(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteHeight, showBadges, showColon, nameOnNewLine) {
         let x = 0;
         ctx.font = `bold ${fontSize}px ${fontFamily}`;
         if (showBadges && msg.badges.length > 0) {
@@ -653,21 +653,21 @@ class CanvasChatMain {
         // If name on new line, width is max of name line and message line
         if (nameOnNewLine) {
             const nameWidth = x;
-            let msgWidth = this.#measureSegmentsWidth(ctx, msg.segments, emoteSize, fontSize, fontFamily);
+            let msgWidth = this.#measureSegmentsWidth(ctx, msg.segments, emoteHeight, fontSize, fontFamily);
             return Math.min(Math.max(nameWidth, msgWidth), maxWidth);
         }
 
-        x += this.#measureSegmentsWidth(ctx, msg.segments, emoteSize, fontSize, fontFamily);
+        x += this.#measureSegmentsWidth(ctx, msg.segments, emoteHeight, fontSize, fontFamily);
         return Math.min(x, maxWidth);
     }
 
-    #measureSegmentsWidth(ctx, segments, emoteSize, fontSize, fontFamily) {
+    #measureSegmentsWidth(ctx, segments, emoteHeight, fontSize, fontFamily) {
         let width = 0;
         ctx.font = `${fontSize}px ${fontFamily}`;
         for (let i = 0; i < segments.length; i++) {
             const seg = segments[i];
             if (seg.type === 'emote') {
-                width += emoteSize;
+                width += this.#getEmoteWidth(seg.url, emoteHeight);
                 // Small gap between consecutive emotes
                 const next = segments[i + 1];
                 if (next && next.type === 'emote') {
@@ -688,7 +688,7 @@ class CanvasChatMain {
         return width;
     }
 
-    #measureMessageHeight(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteSize, showBadges, showColon, lineHeight, nameOnNewLine) {
+    #measureMessageHeight(ctx, msg, maxWidth, fontSize, fontFamily, badgeSize, emoteHeight, showBadges, showColon, lineHeight, nameOnNewLine) {
         ctx.font = `bold ${fontSize}px ${fontFamily}`;
         let x = 0;
         let lines = 1;
@@ -701,8 +701,8 @@ class CanvasChatMain {
             for (let i = 0; i < msg.segments.length; i++) {
                 const seg = msg.segments[i];
                 if (seg.type === 'emote') {
-                    const emoteW = emoteSize + (msg.segments[i + 1]?.type === 'emote' ? 2 : 0);
-                    if (x + emoteSize > maxWidth && x > 0) { lines++; x = 0; }
+                    const emoteW = this.#getEmoteWidth(seg.url, emoteHeight) + (msg.segments[i + 1]?.type === 'emote' ? 2 : 0);
+                    if (x + this.#getEmoteWidth(seg.url, emoteHeight) > maxWidth && x > 0) { lines++; x = 0; }
                     x += emoteW;
                 } else {
                     const words = seg.value.split(' ').filter(w => w !== '');
@@ -730,8 +730,9 @@ class CanvasChatMain {
         for (let i = 0; i < msg.segments.length; i++) {
             const seg = msg.segments[i];
             if (seg.type === 'emote') {
-                if (x + emoteSize > maxWidth && x > 0) { lines++; x = 0; }
-                x += emoteSize;
+                const ew = this.#getEmoteWidth(seg.url, emoteHeight);
+                if (x + ew > maxWidth && x > 0) { lines++; x = 0; }
+                x += ew;
                 if (msg.segments[i + 1]?.type === 'emote') {
                     x += 2;
                 }
@@ -751,18 +752,27 @@ class CanvasChatMain {
         return lines * lineHeight;
     }
 
-    #drawSegments(ctx, segments, startX, startY, maxWidth, leftEdge, lineHeight, fontSize, fontFamily, textColor, emoteSize) {
+    #getEmoteWidth(url, emoteHeight) {
+        const entry = this.#getImage(url);
+        if (entry.ready && entry.img.naturalWidth && entry.img.naturalHeight) {
+            return Math.round(emoteHeight * (entry.img.naturalWidth / entry.img.naturalHeight));
+        }
+        return emoteHeight; // fallback to square before image loads
+    }
+
+    #drawSegments(ctx, segments, startX, startY, maxWidth, leftEdge, lineHeight, fontSize, fontFamily, textColor, emoteHeight) {
         let x = startX;
         let y = startY;
         for (let si = 0; si < segments.length; si++) {
             const seg = segments[si];
             if (seg.type === 'emote') {
-                if (x + emoteSize > leftEdge + maxWidth) { x = leftEdge; y += lineHeight; }
+                const emoteW = this.#getEmoteWidth(seg.url, emoteHeight);
+                if (x + emoteW > leftEdge + maxWidth) { x = leftEdge; y += lineHeight; }
                 const entry = this.#getImage(seg.url);
                 if (entry.ready) {
-                    ctx.drawImage(entry.img, x, y - emoteSize + 4, emoteSize, emoteSize);
+                    ctx.drawImage(entry.img, x, y - emoteHeight + 4, emoteW, emoteHeight);
                 }
-                x += emoteSize;
+                x += emoteW;
                 // Add a small gap only if the next segment is also an emote (no text space between them)
                 const next = segments[si + 1];
                 if (next && next.type === 'emote') {

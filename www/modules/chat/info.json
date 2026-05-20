@@ -87,6 +87,7 @@
             "_type": {
                 "ShowBadges": "bool",
                 "ShowEmotes": "bool",
+                "EmoteHeight": "number",
                 "UserColon": "bool",
                 "NameOnNewLine": "bool",
                 "hideBots": "bool",
@@ -114,6 +115,10 @@
                 "ShowEmotes": {
                     "label": "Show Emotes",
                     "tooltip": "Render emote images inline"
+                },
+                "EmoteHeight": {
+                    "label": "Emote Height",
+                    "tooltip": "Height in pixels for emotes (width scales to maintain aspect ratio)"
                 },
                 "UserColon": {
                     "label": "Show Colon",
