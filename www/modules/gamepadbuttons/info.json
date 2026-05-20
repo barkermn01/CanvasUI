@@ -1,6 +1,6 @@
 {
     "name": "gamepadbuttons",
-    "displayName": "Gamepad Buttons",
+    "displayName": "Gamepad Button",
     "icon": "🔘",
     "type": "canvas",
     "configKey": "gamepadbuttons",
@@ -8,34 +8,29 @@
     "editorClass": "GamepadButtons",
     "hasSettings": false,
     "allowMultiple": true,
-    "description": "Displays controller button states with press highlighting",
-    "gradient": { "from": "rgba(236, 72, 153, 0.08)", "to": "rgba(236, 72, 153, 0.25)" },
+    "description": "Displays a single controller button with idle/active images",
+    "gradient": {
+        "from": "rgba(236, 72, 153, 0.08)",
+        "to": "rgba(236, 72, 153, 0.25)"
+    },
     "properties": {
         "gamepadIndex": {
             "type": "gamepadDevice",
             "label": "Controller"
         },
-        "layout": {
-            "type": "select",
-            "label": "Layout",
-            "options": ["grid", "row", "column"],
-            "default": "grid"
+        "buttonIndex": {
+            "type": "gamepadButton",
+            "label": "Button"
         },
-        "buttonSize": {
-            "type": "range",
-            "label": "Button Size",
-            "min": 16,
-            "max": 80,
-            "step": 2,
-            "default": 32
+        "idleImage": {
+            "type": "media",
+            "label": "Idle Image",
+            "mediaType": "image"
         },
-        "spacing": {
-            "type": "range",
-            "label": "Spacing",
-            "min": 0,
-            "max": 20,
-            "step": 1,
-            "default": 4
+        "activeImage": {
+            "type": "media",
+            "label": "Active Image",
+            "mediaType": "image"
         },
         "inactiveColor": {
             "type": "color",
@@ -52,15 +47,12 @@
             "label": "Border Color",
             "default": "#888888"
         },
-        "showLabels": {
+        "showLabel": {
             "type": "bool",
-            "label": "Show Button Numbers",
+            "label": "Show Button Number",
             "default": true
-        },
-        "showOnlyPressed": {
-            "type": "bool",
-            "label": "Show Only When Pressed",
-            "default": false
         }
-    }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
 }

@@ -16,7 +16,30 @@ class GamepadDpadMain {
     #left = false;
     #right = false;
 
+    #imageCache = new Map();
+
     constructor() {}
+
+    #getImage(src) {
+        if (!src) return null;
+
+        let resolvedSrc = src;
+        if (typeof EditorPrefs !== 'undefined' && src.startsWith('/')) {
+            const host = EditorPrefs.get('serverHost', '127.0.0.1');
+            const port = EditorPrefs.get('serverPort', 31589);
+            resolvedSrc = `http://${host}:${port}${src}`;
+        }
+
+        if (this.#imageCache.has(resolvedSrc)) return this.#imageCache.get(resolvedSrc);
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = resolvedSrc;
+        const entry = { img, ready: false };
+        img.onload = () => { entry.ready = true; };
+        this.#imageCache.set(resolvedSrc, entry);
+        return entry;
+    }
 
     #getGamepad(index) {
         const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -67,7 +90,64 @@ class GamepadDpadMain {
         const activeColor = settings?.activeColor || '#22d3ee';
         const borderColor = settings?.borderColor || '#666666';
 
+        const upImg = settings?.upImage || settings?.upActiveImage;
+        const downImg = settings?.downImage || settings?.downActiveImage;
+        const leftImg = settings?.leftImage || settings?.leftActiveImage;
+        const rightImg = settings?.rightImage || settings?.rightActiveImage;
+        const centerImg = settings?.centerImage;
+
+        // If any images are provided, use image-based rendering
+        const hasImages = upImg || downImg || leftImg || rightImg || centerImg;
+
         ctx.save();
+
+        if (hasImages) {
+            this.#drawWithImages(ctx, area, settings);
+        } else {
+            this.#drawDefault(ctx, area, inactiveColor, activeColor, borderColor);
+        }
+
+        ctx.restore();
+    }
+
+    #drawWithImages(ctx, area, settings) {
+        // Layout: 3x3 grid, directions in cross pattern
+        const cellW = area.width / 3;
+        const cellH = area.height / 3;
+
+        const positions = [
+            { idle: 'upImage', active: 'upActiveImage', pressed: this.#up, x: area.x + cellW, y: area.y },
+            { idle: 'downImage', active: 'downActiveImage', pressed: this.#down, x: area.x + cellW, y: area.y + cellH * 2 },
+            { idle: 'leftImage', active: 'leftActiveImage', pressed: this.#left, x: area.x, y: area.y + cellH },
+            { idle: 'rightImage', active: 'rightActiveImage', pressed: this.#right, x: area.x + cellW * 2, y: area.y + cellH },
+            { idle: 'centerImage', active: null, pressed: false, x: area.x + cellW, y: area.y + cellH }
+        ];
+
+        for (const pos of positions) {
+            // Pick active image if pressed and available, otherwise idle
+            const src = (pos.pressed && pos.active && settings?.[pos.active])
+                ? settings[pos.active]
+                : settings?.[pos.idle];
+            if (!src) continue;
+
+            const entry = this.#getImage(src);
+            if (!entry || !entry.ready) continue;
+
+            const iw = entry.img.naturalWidth;
+            const ih = entry.img.naturalHeight;
+            const scale = Math.min(cellW / iw, cellH / ih);
+            const dw = iw * scale;
+            const dh = ih * scale;
+            const dx = pos.x + (cellW - dw) / 2;
+            const dy = pos.y + (cellH - dh) / 2;
+
+            ctx.globalAlpha = 1;
+            ctx.drawImage(entry.img, dx, dy, dw, dh);
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    #drawDefault(ctx, area, inactiveColor, activeColor, borderColor) {
 
         // Calculate D-pad dimensions to fit the area
         const size = Math.min(area.width, area.height);
@@ -100,8 +180,6 @@ class GamepadDpadMain {
         ctx.strokeStyle = borderColor;
         ctx.lineWidth = 1;
         ctx.strokeRect(centerX - armWidth / 2, centerY - armWidth / 2, armWidth, armWidth);
-
-        ctx.restore();
     }
 
     #drawArm(ctx, x, y, w, h, fillColor, strokeColor) {

@@ -34,7 +34,9 @@ const CA_KEY_PATH = path.join(TOOLS_DIR, 'ca.key');
 const CA_JSON_PATH = path.join(TOOLS_DIR, 'ca.json');
 const PKG_PATH = path.join(ROOT, 'editor', 'package.json');
 
-const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+const BUILT_IN_MODULES = fs.readdirSync(MODULES_DIR, { withFileTypes: true })
+    .filter(e => e.isDirectory() && fs.existsSync(path.join(MODULES_DIR, e.name, 'info.json')))
+    .map(e => e.name);
 
 // Read app version from editor/package.json
 const APP_VERSION = JSON.parse(fs.readFileSync(PKG_PATH, 'utf8')).version;

@@ -9,7 +9,10 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Displays a rotating steering wheel driven by a gamepad axis",
-    "gradient": { "from": "rgba(99, 102, 241, 0.08)", "to": "rgba(99, 102, 241, 0.25)" },
+    "gradient": {
+        "from": "rgba(99, 102, 241, 0.08)",
+        "to": "rgba(99, 102, 241, 0.25)"
+    },
     "properties": {
         "gamepadIndex": {
             "type": "gamepadDevice",
@@ -74,5 +77,7 @@
             "label": "Show Axis Values",
             "default": false
         }
-    }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
 }

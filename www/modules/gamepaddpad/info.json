@@ -9,7 +9,10 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Displays D-pad directional input from a controller",
-    "gradient": { "from": "rgba(34, 211, 238, 0.08)", "to": "rgba(34, 211, 238, 0.25)" },
+    "gradient": {
+        "from": "rgba(34, 211, 238, 0.08)",
+        "to": "rgba(34, 211, 238, 0.25)"
+    },
     "properties": {
         "gamepadIndex": {
             "type": "gamepadDevice",
@@ -18,7 +21,10 @@
         "inputMode": {
             "type": "select",
             "label": "D-Pad Input Mode",
-            "options": ["buttons", "axes"],
+            "options": [
+                "buttons",
+                "axes"
+            ],
             "default": "buttons"
         },
         "upButton": {
@@ -27,7 +33,10 @@
             "min": 0,
             "max": 31,
             "default": 12,
-            "showWhen": { "field": "inputMode", "value": "buttons" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "buttons"
+            }
         },
         "downButton": {
             "type": "number",
@@ -35,7 +44,10 @@
             "min": 0,
             "max": 31,
             "default": 13,
-            "showWhen": { "field": "inputMode", "value": "buttons" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "buttons"
+            }
         },
         "leftButton": {
             "type": "number",
@@ -43,7 +55,10 @@
             "min": 0,
             "max": 31,
             "default": 14,
-            "showWhen": { "field": "inputMode", "value": "buttons" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "buttons"
+            }
         },
         "rightButton": {
             "type": "number",
@@ -51,7 +66,10 @@
             "min": 0,
             "max": 31,
             "default": 15,
-            "showWhen": { "field": "inputMode", "value": "buttons" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "buttons"
+            }
         },
         "horizontalAxis": {
             "type": "number",
@@ -59,7 +77,10 @@
             "min": 0,
             "max": 15,
             "default": 6,
-            "showWhen": { "field": "inputMode", "value": "axes" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "axes"
+            }
         },
         "verticalAxis": {
             "type": "number",
@@ -67,7 +88,10 @@
             "min": 0,
             "max": 15,
             "default": 7,
-            "showWhen": { "field": "inputMode", "value": "axes" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "axes"
+            }
         },
         "axisThreshold": {
             "type": "range",
@@ -76,7 +100,55 @@
             "max": 1,
             "step": 0.05,
             "default": 0.5,
-            "showWhen": { "field": "inputMode", "value": "axes" }
+            "showWhen": {
+                "field": "inputMode",
+                "value": "axes"
+            }
+        },
+        "upImage": {
+            "type": "media",
+            "label": "Up Idle Image",
+            "mediaType": "image"
+        },
+        "upActiveImage": {
+            "type": "media",
+            "label": "Up Active Image",
+            "mediaType": "image"
+        },
+        "downImage": {
+            "type": "media",
+            "label": "Down Idle Image",
+            "mediaType": "image"
+        },
+        "downActiveImage": {
+            "type": "media",
+            "label": "Down Active Image",
+            "mediaType": "image"
+        },
+        "leftImage": {
+            "type": "media",
+            "label": "Left Idle Image",
+            "mediaType": "image"
+        },
+        "leftActiveImage": {
+            "type": "media",
+            "label": "Left Active Image",
+            "mediaType": "image"
+        },
+        "rightImage": {
+            "type": "media",
+            "label": "Right Idle Image",
+            "mediaType": "image"
+        },
+        "rightActiveImage": {
+            "type": "media",
+            "label": "Right Active Image",
+            "mediaType": "image"
+        },
+        "centerImage": {
+            "type": "media",
+            "label": "Center Image",
+            "mediaType": "image"
         },
         "inactiveColor": {
             "type": "color",
@@ -93,5 +165,7 @@
             "label": "Border Color",
             "default": "#666666"
         }
-    }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
 }
