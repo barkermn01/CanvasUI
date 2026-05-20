@@ -66,6 +66,17 @@ if (fs.existsSync(BUILD_WWW)) {
     fs.rmSync(BUILD_WWW, { recursive: true });
 }
 
+// Step 2.5: Update built-in module versions and generate signed .cumod packages
+console.log('🔏 Updating module versions and building signed .cumod packages...');
+try {
+    execSync('node tools/build-cumods.js', {
+        cwd: ROOT,
+        stdio: 'inherit'
+    });
+} catch (e) {
+    console.error('⚠️  .cumod generation failed (modules will show as Unverified):', e.message);
+}
+
 copyDirSync(path.join(ROOT, 'www'), BUILD_WWW, ['media']);
 
 // Write the cleaned config

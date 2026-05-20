@@ -1,0 +1,6 @@
+{
+    "version": 1,
+    "description": "Certificate Revocation List — banned developer public keys",
+    "updatedAt": "2026-05-20T00:00:00.000Z",
+    "revoked": []
+}

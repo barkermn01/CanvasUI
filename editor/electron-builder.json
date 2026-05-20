@@ -14,6 +14,14 @@
             "from": "build-www",
             "to": "www",
             "filter": ["**/*"]
+        },
+        {
+            "from": "../tools/ca.json",
+            "to": "ca.json"
+        },
+        {
+            "from": "../tools/crl.json",
+            "to": "crl.json"
         }
     ],
     "win": {

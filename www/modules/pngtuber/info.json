@@ -9,19 +9,87 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Audio-reactive PNG avatar that switches poses based on voice",
-    "gradient": { "from": "rgba(255, 159, 67, 0.08)", "to": "rgba(255, 159, 67, 0.25)" },
+    "gradient": {
+        "from": "rgba(255, 159, 67, 0.08)",
+        "to": "rgba(255, 159, 67, 0.25)"
+    },
     "properties": {
-        "device": { "type": "audioDevice", "label": "Audio Device" },
-        "threshold": { "type": "range", "label": "Volume Threshold", "min": 0, "max": 255, "step": 1, "default": 30 },
-        "holdTime": { "type": "number", "label": "Hold Time (ms)", "min": 0, "max": 2000, "default": 200 },
-        "frequencyMin": { "type": "number", "label": "Freq Min (Hz)", "min": 20, "max": 2000, "default": 85 },
-        "frequencyMax": { "type": "number", "label": "Freq Max (Hz)", "min": 20, "max": 2000, "default": 300 },
-        "idleImage": { "type": "media", "label": "Idle Image", "mediaType": "image" },
-        "talkingImage": { "type": "media", "label": "Talking Image", "mediaType": "image" },
-        "blinkImage": { "type": "media", "label": "Blink Image", "mediaType": "image" },
-        "blinkInterval": { "type": "number", "label": "Blink Interval (s)", "min": 0, "max": 30, "step": 0.5, "default": 4 },
-        "blinkDuration": { "type": "number", "label": "Blink Duration (ms)", "min": 50, "max": 1000, "default": 150 },
-        "bounce": { "type": "bool", "label": "Bounce on Talk", "default": true },
-        "bounceAmount": { "type": "number", "label": "Bounce Pixels", "min": 1, "max": 50, "default": 5 }
-    }
+        "device": {
+            "type": "audioDevice",
+            "label": "Audio Device"
+        },
+        "threshold": {
+            "type": "range",
+            "label": "Volume Threshold",
+            "min": 0,
+            "max": 255,
+            "step": 1,
+            "default": 30
+        },
+        "holdTime": {
+            "type": "number",
+            "label": "Hold Time (ms)",
+            "min": 0,
+            "max": 2000,
+            "default": 200
+        },
+        "frequencyMin": {
+            "type": "number",
+            "label": "Freq Min (Hz)",
+            "min": 20,
+            "max": 2000,
+            "default": 85
+        },
+        "frequencyMax": {
+            "type": "number",
+            "label": "Freq Max (Hz)",
+            "min": 20,
+            "max": 2000,
+            "default": 300
+        },
+        "idleImage": {
+            "type": "media",
+            "label": "Idle Image",
+            "mediaType": "image"
+        },
+        "talkingImage": {
+            "type": "media",
+            "label": "Talking Image",
+            "mediaType": "image"
+        },
+        "blinkImage": {
+            "type": "media",
+            "label": "Blink Image",
+            "mediaType": "image"
+        },
+        "blinkInterval": {
+            "type": "number",
+            "label": "Blink Interval (s)",
+            "min": 0,
+            "max": 30,
+            "step": 0.5,
+            "default": 4
+        },
+        "blinkDuration": {
+            "type": "number",
+            "label": "Blink Duration (ms)",
+            "min": 50,
+            "max": 1000,
+            "default": 150
+        },
+        "bounce": {
+            "type": "bool",
+            "label": "Bounce on Talk",
+            "default": true
+        },
+        "bounceAmount": {
+            "type": "number",
+            "label": "Bounce Pixels",
+            "min": 1,
+            "max": 50,
+            "default": 5
+        }
+    },
+    "version": "1.4.1",
+    "builtForVersion": "1.4.1"
 }

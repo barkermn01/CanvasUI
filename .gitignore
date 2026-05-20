@@ -34,3 +34,11 @@ Thumbs.db
 
 # Module packages (local testing)
 module-packages/
+
+# Generated .cumod packages (built by tools/build-cumods.js)
+www/modules/.packages/
+
+# CA and developer private keys (NEVER commit)
+tools/ca.key
+*.key
+!package-lock.json

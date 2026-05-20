@@ -209,8 +209,10 @@ ipcMain.handle('module-discover', () => {
 
 const crypto = require('crypto');
 const AdmZip = require('adm-zip');
+const cumod = require('./cumod');
 
 const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+const APP_VERSION = require('../../package.json').version;
 
 function hashFile(filePath) {
     const content = fs.readFileSync(filePath);
@@ -231,9 +233,19 @@ function getAllFiles(dir, base = '') {
     return results;
 }
 
-// List installed modules with built-in flag
+function getPackagesDir() {
+    const dir = path.join(getModulesDir(), '.packages');
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+}
+
+// List installed modules with built-in flag and verification status
 ipcMain.handle('module-list-installed', () => {
     const modulesDir = getModulesDir();
+    const packagesDir = getPackagesDir();
+    const caPublicKey = cumod.loadCaPublicKey();
 
     try {
         const entries = fs.readdirSync(modulesDir, { withFileTypes: true });
@@ -241,47 +253,140 @@ ipcMain.handle('module-list-installed', () => {
 
         for (const entry of entries) {
             if (!entry.isDirectory()) continue;
+            if (entry.name === '.packages') continue;
             const infoPath = path.join(modulesDir, entry.name, 'info.json');
             if (!fs.existsSync(infoPath)) continue;
 
             try {
                 const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
-                modules.push({
+                const modData = {
                     name: info.name || entry.name,
                     displayName: info.displayName || entry.name,
                     icon: info.icon || '📦',
                     description: info.description || '',
+                    version: info.version || null,
+                    builtForVersion: info.builtForVersion || null,
                     dir: entry.name,
-                    builtIn: BUILT_IN_MODULES.includes(entry.name)
-                });
+                    builtIn: BUILT_IN_MODULES.includes(entry.name),
+                    verification: { status: 'unverified' }
+                };
+
+                // Verify all modules that have a .cumod in .packages/
+                const cumodPath = path.join(packagesDir, `${entry.name}.cumod`);
+                if (fs.existsSync(cumodPath)) {
+                    modData.verification = verifyInstalledModule(entry.name, cumodPath, caPublicKey);
+                }
+
+                // Force-hide revoked modules
+                if (modData.verification.status === 'revoked') {
+                    modData.disabled = true;
+                }
+
+                modules.push(modData);
             } catch (e) {}
         }
 
-        return modules;
+        return { appVersion: APP_VERSION, modules };
     } catch (e) {
-        return [];
+        return { appVersion: APP_VERSION, modules: [] };
     }
 });
 
-// Install module from zip
+/**
+ * Verify an installed module against its stored .cumod package.
+ */
+function verifyInstalledModule(moduleName, cumodPath, caPublicKey) {
+    try {
+        const buf = fs.readFileSync(cumodPath);
+        const { header, zipBuffer } = cumod.parseCumod(buf);
+
+        // Verify header (cert chain + signature)
+        const headerResult = cumod.verifyCumod(header, zipBuffer, caPublicKey);
+        if (headerResult.status === 'tampered') {
+            return headerResult;
+        }
+
+        // Extract manifest from zip and verify files on disk
+        const zip = new AdmZip(zipBuffer);
+        const manifestEntry = zip.getEntry('manifest.json');
+        if (!manifestEntry) {
+            return { status: 'tampered', reason: 'No manifest.json in package' };
+        }
+
+        const manifest = JSON.parse(manifestEntry.getData().toString('utf8'));
+        const modulesDir = getModulesDir();
+        const moduleDir = path.join(modulesDir, moduleName);
+        const fileResult = cumod.verifyManifestFiles(moduleDir, manifest);
+
+        if (!fileResult.valid) {
+            return {
+                status: 'tampered',
+                reason: `Files modified: ${fileResult.mismatches.join(', ')}`,
+                developer: headerResult.developer
+            };
+        }
+
+        return headerResult;
+    } catch (e) {
+        return { status: 'tampered', reason: e.message };
+    }
+}
+
+// Install module from .cumod or .zip
 ipcMain.handle('module-install', async (event) => {
     const { canceled, filePaths } = await dialog.showOpenDialog({
         title: 'Install Module Package',
-        filters: [{ name: 'Module Package', extensions: ['zip'] }],
+        filters: [
+            { name: 'Module Package', extensions: ['cumod', 'zip'] }
+        ],
         properties: ['openFile']
     });
 
     if (canceled || !filePaths[0]) return { success: false, error: 'Cancelled' };
 
-    const zipPath = filePaths[0];
+    const filePath = filePaths[0];
+    const ext = path.extname(filePath).toLowerCase();
     const modulesDir = getModulesDir();
 
     try {
+        let zipBuffer;
+        let header = null;
+
+        if (ext === '.cumod') {
+            // Parse .cumod format
+            const buf = fs.readFileSync(filePath);
+            const parsed = cumod.parseCumod(buf);
+            header = parsed.header;
+            zipBuffer = parsed.zipBuffer;
+
+            // Verify certificate chain + signature
+            const caCert = cumod.loadCaPublicKey();
+            const verification = cumod.verifyCumod(header, zipBuffer, caCert);
+
+            // Store verification result to return to UI
+            // (we still allow install of unverified/tampered — just warn)
+            if (verification.status === 'tampered') {
+                // Ask user if they want to proceed
+                const { response } = await dialog.showMessageBox({
+                    type: 'warning',
+                    title: 'Module Verification Failed',
+                    message: `This module failed verification:\n\n${verification.reason}\n\nInstall anyway?`,
+                    buttons: ['Cancel', 'Install Anyway'],
+                    defaultId: 0,
+                    cancelId: 0
+                });
+                if (response === 0) return { success: false, error: 'Cancelled' };
+            }
+        } else {
+            // Legacy .zip format
+            zipBuffer = fs.readFileSync(filePath);
+        }
+
+        // Extract zip to temp directory
         const tempDir = path.join(require('os').tmpdir(), 'canvasui_module_install_' + Date.now());
         fs.mkdirSync(tempDir, { recursive: true });
 
-        // Extract zip using adm-zip (cross-platform)
-        const zip = new AdmZip(zipPath);
+        const zip = new AdmZip(zipBuffer);
         zip.extractAllTo(tempDir, true);
 
         // Check for manifest.json
@@ -297,14 +402,14 @@ ipcMain.handle('module-install', async (event) => {
             return { success: false, error: 'Invalid manifest: missing name or files' };
         }
 
-        // Verify file integrity
+        // Verify file integrity (manifest hashes)
         for (const file of manifest.files) {
-            const filePath = path.join(tempDir, file.path);
-            if (!fs.existsSync(filePath)) {
+            const fp = path.join(tempDir, file.path);
+            if (!fs.existsSync(fp)) {
                 fs.rmSync(tempDir, { recursive: true });
                 return { success: false, error: `Missing file: ${file.path}` };
             }
-            const hash = hashFile(filePath);
+            const hash = hashFile(fp);
             if (hash !== file.hash) {
                 fs.rmSync(tempDir, { recursive: true });
                 return { success: false, error: `Integrity check failed for: ${file.path}` };
@@ -333,6 +438,12 @@ ipcMain.handle('module-install', async (event) => {
             fs.copyFileSync(src, dest);
         }
 
+        // Store .cumod in .packages/ for future verification
+        if (ext === '.cumod') {
+            const packagesDir = getPackagesDir();
+            fs.copyFileSync(filePath, path.join(packagesDir, `${manifest.name}.cumod`));
+        }
+
         // Update modules.json
         const modulesJsonPath = getModulesManifestPath();
         let modulesJson = {};
@@ -351,8 +462,8 @@ ipcMain.handle('module-install', async (event) => {
     }
 });
 
-// Export module as zip
-ipcMain.handle('module-export', async (event, moduleName) => {
+// Export module as .cumod (with signing options)
+ipcMain.handle('module-export', async (event, moduleName, signingOpts) => {
     const modulesDir = getModulesDir();
     const moduleDir = path.join(modulesDir, moduleName);
 
@@ -363,8 +474,11 @@ ipcMain.handle('module-export', async (event, moduleName) => {
     // Pick save location
     const { canceled, filePath: savePath } = await dialog.showSaveDialog({
         title: 'Export Module Package',
-        defaultPath: `${moduleName}.zip`,
-        filters: [{ name: 'Module Package', extensions: ['zip'] }]
+        defaultPath: `${moduleName}.cumod`,
+        filters: [
+            { name: 'CanvasUI Module', extensions: ['cumod'] },
+            { name: 'Legacy Zip', extensions: ['zip'] }
+        ]
     });
 
     if (canceled || !savePath) return { success: false, error: 'Cancelled' };
@@ -389,40 +503,58 @@ ipcMain.handle('module-export', async (event, moduleName) => {
             }))
         };
 
-        // Create temp directory for packaging
-        const tempDir = path.join(require('os').tmpdir(), 'canvasui_module_export_' + Date.now());
-        fs.mkdirSync(tempDir, { recursive: true });
+        // Create zip buffer
+        const zip = new AdmZip();
 
-        // Copy module files to temp
+        // Add module files
         for (const file of files) {
-            const src = path.join(moduleDir, file);
-            const dest = path.join(tempDir, file);
-            fs.mkdirSync(path.dirname(dest), { recursive: true });
-            fs.copyFileSync(src, dest);
+            const fullPath = path.join(moduleDir, file);
+            const dirInZip = path.dirname(file) === '.' ? '' : path.dirname(file).replace(/\\/g, '/');
+            zip.addLocalFile(fullPath, dirInZip);
         }
 
-        // Write manifest
-        fs.writeFileSync(path.join(tempDir, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf8');
+        // Add manifest
+        zip.addFile('manifest.json', Buffer.from(JSON.stringify(manifest, null, 2), 'utf8'));
 
-        // Create zip using adm-zip (cross-platform)
-        const zip = new AdmZip();
-        const addDirRecursive = (dir, zipPath) => {
-            const entries = fs.readdirSync(dir, { withFileTypes: true });
-            for (const entry of entries) {
-                const fullPath = path.join(dir, entry.name);
-                const entryZipPath = zipPath ? `${zipPath}/${entry.name}` : entry.name;
-                if (entry.isDirectory()) {
-                    addDirRecursive(fullPath, entryZipPath);
-                } else {
-                    zip.addLocalFile(fullPath, zipPath || '');
-                }
+        const zipBuffer = zip.toBuffer();
+
+        // Determine output format
+        const saveExt = path.extname(savePath).toLowerCase();
+
+        if (saveExt === '.zip') {
+            // Legacy zip export
+            fs.writeFileSync(savePath, zipBuffer);
+        } else {
+            // .cumod format
+            const cumodOpts = {
+                zipBuffer,
+                name: moduleName,
+                displayName: info.displayName || moduleName,
+                version: info.version || '1.0.0',
+                author: info.author || ''
+            };
+
+            // Apply signing if provided
+            if (signingOpts && signingOpts.mode === 'key') {
+                // privateKey is a hex seed string, certificate is a JSON object
+                const seed = Buffer.from(signingOpts.privateKey, 'hex');
+                cumodOpts.privateKey = crypto.createPrivateKey({
+                    key: Buffer.concat([
+                        Buffer.from('302e020100300506032b657004220420', 'hex'),
+                        seed
+                    ]),
+                    format: 'der',
+                    type: 'pkcs8'
+                });
+                cumodOpts.certificate = signingOpts.certificate;
+            } else if (signingOpts && signingOpts.mode === 'external') {
+                cumodOpts.externalSignature = signingOpts.signature;
+                cumodOpts.externalCertificate = signingOpts.certificate;
             }
-        };
-        addDirRecursive(tempDir, '');
-        zip.writeZip(savePath);
 
-        // Cleanup
-        fs.rmSync(tempDir, { recursive: true });
+            const cumodBuffer = cumod.createCumod(cumodOpts);
+            fs.writeFileSync(savePath, cumodBuffer);
+        }
 
         return { success: true, path: savePath };
     } catch (e) {
@@ -447,6 +579,12 @@ ipcMain.handle('module-uninstall', (event, moduleName) => {
         // Remove directory
         fs.rmSync(moduleDir, { recursive: true });
 
+        // Remove stored .cumod package
+        const cumodPath = path.join(getPackagesDir(), `${moduleName}.cumod`);
+        if (fs.existsSync(cumodPath)) {
+            fs.unlinkSync(cumodPath);
+        }
+
         // Remove from modules.json
         const modulesJsonPath = getModulesManifestPath();
         if (fs.existsSync(modulesJsonPath)) {
@@ -461,12 +599,105 @@ ipcMain.handle('module-uninstall', (event, moduleName) => {
     }
 });
 
+// Browse for signing key file (Ed25519 seed hex)
+ipcMain.handle('module-browse-key', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Select Private Key',
+        filters: [{ name: 'Key File', extensions: ['key'] }],
+        properties: ['openFile']
+    });
+    if (canceled || !filePaths[0]) return null;
+    return fs.readFileSync(filePaths[0], 'utf8').trim();
+});
+
+// Browse for certificate file (JSON)
+ipcMain.handle('module-browse-cert', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Select Signed Certificate (.cert.json)',
+        filters: [{ name: 'Certificate JSON', extensions: ['json'] }],
+        properties: ['openFile']
+    });
+    if (canceled || !filePaths[0]) return null;
+    try {
+        const cert = JSON.parse(fs.readFileSync(filePaths[0], 'utf8'));
+        // Validate it's a signed certificate, not a CSR
+        if (!cert.caSignature || !cert.issuedAt || !cert.expiresAt) {
+            return { error: 'This looks like a CSR (signing request), not a signed certificate. You need the .cert.json file returned by the CA administrator.' };
+        }
+        return cert;
+    } catch (e) {
+        return null;
+    }
+});
+
+// Generate developer keypair + CSR
+ipcMain.handle('module-generate-keypair', async (event, opts) => {
+    const { developer, organisation, website, email } = opts;
+
+    if (!developer) return { success: false, error: 'Developer name is required' };
+
+    // Pick save directory
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Choose where to save your developer key',
+        properties: ['openDirectory']
+    });
+    if (canceled || !filePaths[0]) return { success: false, error: 'Cancelled' };
+
+    const outputDir = filePaths[0];
+
+    try {
+        // Generate Ed25519 keypair
+        const { publicKey, privateKey } = crypto.generateKeyPairSync('ed25519');
+
+        // Export raw bytes
+        const pubRaw = publicKey.export({ type: 'spki', format: 'der' });
+        const pubHex = pubRaw.slice(12).toString('hex');
+
+        const privRaw = privateKey.export({ type: 'pkcs8', format: 'der' });
+        const seedHex = privRaw.slice(16).toString('hex');
+
+        // Write private key
+        const keyPath = path.join(outputDir, 'developer.key');
+        fs.writeFileSync(keyPath, seedHex, 'utf8');
+
+        // Write CSR
+        const csr = {
+            developer,
+            publicKey: pubHex,
+            algorithm: 'Ed25519',
+            createdAt: new Date().toISOString()
+        };
+        if (organisation) csr.organisation = organisation;
+        if (website) csr.website = website;
+        if (email) csr.email = email;
+
+        const csrPath = path.join(outputDir, 'developer.csr.json');
+        fs.writeFileSync(csrPath, JSON.stringify(csr, null, 2), 'utf8');
+
+        return {
+            success: true,
+            keyPath,
+            csrPath,
+            publicKey: pubHex
+        };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
 // ─── Config File Operations ───────────────────────────────────────────────────
 
 // Open modules directory in file explorer
 ipcMain.handle('open-modules-dir', () => {
     const modulesDir = getModulesDir();
     require('electron').shell.openPath(modulesDir);
+});
+
+// Open a URL in the OS default browser
+ipcMain.handle('open-external-url', (event, url) => {
+    if (url && (url.startsWith('https://') || url.startsWith('http://'))) {
+        require('electron').shell.openExternal(url);
+    }
 });
 
 // Auto-load default config on startup

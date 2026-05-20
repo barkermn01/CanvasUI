@@ -425,12 +425,184 @@ Use **📤 Export** in Settings → Modules to package any installed custom modu
 
 ### Installing a Package
 
-Use **📦 Install from .zip** in Settings → Modules. The installer:
+Use **📦 Install Module** in Settings → Modules. The installer:
 1. Extracts and validates the manifest
 2. Verifies SHA-256 hash of every file
 3. Copies to `www/modules/{name}/`
 4. Updates `modules.json` and `Config.Modules`
 5. Refreshes the module registry (no restart needed)
+
+---
+
+## Module Signing (.cumod Format)
+
+Modules can be signed with an Ed25519 certificate to prove authorship and detect tampering. Signed modules show a green **✓ Developer Name** badge in the Module Manager. Unsigned modules show **Unverified**.
+
+### .cumod Binary Format
+
+The `.cumod` format wraps a zip package with a signed header:
+
+```
+┌─────────────────────────────────────────┐
+│ Magic: "CUMOD" (5 bytes)                │
+│ Version: 1 (uint8, 1 byte)             │
+│ Header length: uint32LE (4 bytes)       │
+│ Header JSON (variable):                 │
+│   - name, displayName, version, author  │
+│   - zipHash (SHA-256 of zip data)       │
+│   - signature (hex, Ed25519)            │
+│   - certificate (JSON object)           │
+│ Zip data (rest of file)                 │
+└─────────────────────────────────────────┘
+```
+
+### Trust Chain
+
+```
+CA public key (bundled with app)
+  └─ verifies certificate.caSignature
+       └─ certificate.publicKey verifies header.signature
+            └─ signature covers zipHash
+                 └─ zipHash covers zip contents
+                      └─ manifest.json hashes cover extracted files
+```
+
+### Verification States
+
+| Badge | Meaning |
+|-------|---------|
+| ✓ Developer Name | Signed, certificate valid, files intact |
+| Unverified | No signature present (still works, just not verified) |
+| ⚠️ Tampered | Signature invalid, files modified, or cert not from trusted CA |
+| 🚫 Revoked | Developer's certificate has been revoked — module disabled |
+
+Revoked modules are fully disabled: hidden from the palette, checkbox locked, cannot be added to scenes.
+
+---
+
+## Getting a Signed Certificate
+
+To sign your modules, you need a developer certificate issued by the CanvasUI CA.
+
+### Step 1: Generate Your Key & Signing Request
+
+**Option A: Using the Editor UI**
+
+1. Open Settings → Modules
+2. Click **🔑 Generate Key & Signing Request**
+3. Fill in your details:
+   - **Developer Name** (required) — shown on the verified badge
+   - **Organisation** (optional)
+   - **Website** (optional) — shown in the certificate popup
+   - **Support Email** (optional) — shown in the certificate popup
+4. Choose a save location
+5. You'll get two files:
+   - `developer.key` — your private key (KEEP SECRET, never share)
+   - `developer.csr.json` — your signing request (send to CA)
+
+**Option B: Using the CLI**
+
+```bash
+node tools/dev-keygen.js
+```
+
+Follow the prompts. Same output files.
+
+### Step 2: Submit Your CSR
+
+Open a **Certificate Signing Request** issue on the [CanvasUI GitHub repository](https://github.com/barkermn01/CanvasUI/issues/new/choose):
+
+1. Select the "🔑 Certificate Signing Request" template
+2. Paste the contents of `developer.csr.json`
+3. Describe your module
+4. Confirm the acknowledgements
+
+> ⚠️ **NEVER submit your `developer.key` file.** If your private key appears in the request, your certificate will be permanently rejected and you'll need to generate a new keypair.
+
+### Step 3: Receive Your Certificate
+
+The CA administrator will review your request and sign your CSR. You'll receive a `developer.cert.json` file — this is your signed certificate.
+
+### Step 4: Sign Your Modules
+
+1. Open Settings → Modules
+2. Click **📤 Export** on your module
+3. Select **Sign with Key File**
+4. Browse to your `developer.key`
+5. Browse to your `developer.cert.json`
+6. Save as `.cumod`
+
+Your exported module will now show as verified when installed by anyone running CanvasUI.
+
+### Certificate Details
+
+Hovering over a verified badge shows certificate details:
+- Developer name and organisation
+- Website (clickable, opens in browser)
+- Email
+- Issued and expiry dates
+
+### Certificate Expiry
+
+Certificates have an expiry date, but **already-signed modules remain verified forever**. Expiry only prevents signing *new* modules — you'll need to request a new certificate to continue publishing.
+
+### Certificate Revocation
+
+If a developer's certificate is compromised or their modules are found to be malicious, the CA can revoke their certificate. Revoked modules are immediately disabled for all users on the next app update.
+
+### External Signatures (YubiKey / FIPS 140)
+
+For hardware security keys that don't expose the private key:
+
+1. Generate your keypair on the hardware device
+2. Export the public key and create a `developer.csr.json` manually
+3. Get it CA-signed as normal
+4. At export time, select **External Signature** mode
+5. The app shows the zipHash — sign it externally with your hardware key
+6. Paste the hex signature into the dialog
+
+---
+
+## CA Administration (For Repo Maintainers)
+
+These tools are for the CA administrator (repo owner) only.
+
+### Initialise the CA
+
+```bash
+node tools/ca-init.js
+```
+
+Generates `tools/ca.key` (private, gitignored) and `tools/ca.json` (public, bundled with app).
+
+### Sign a Developer CSR
+
+```bash
+node tools/ca-sign.js path/to/developer.csr.json
+```
+
+Outputs `developer.cert.json` in the same directory. Send it back to the developer.
+
+### Revoke a Certificate
+
+Add the developer's public key (from their certificate) to `tools/crl.json`:
+
+```json
+{
+    "version": 1,
+    "revoked": ["abcdef1234567890..."]
+}
+```
+
+Ship an app update — the module will be disabled for all users.
+
+### Build Signed Packages for Built-in Modules
+
+```bash
+node tools/build-cumods.js
+```
+
+Generates `.cumod` packages in `www/modules/.packages/` for all built-in modules, signed with the CA key.
 
 ### Module Hot-Reload
 

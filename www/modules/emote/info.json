@@ -9,13 +9,19 @@
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Bouncing emotes from chat",
-    "gradient": { "from": "rgba(234, 179, 8, 0.08)", "to": "rgba(234, 179, 8, 0.25)" },
+    "gradient": {
+        "from": "rgba(234, 179, 8, 0.08)",
+        "to": "rgba(234, 179, 8, 0.25)"
+    },
     "schema": {
         "_type": {
             "RandomDirectionsFromStart": "bool"
         },
         "_labels": {
-            "RandomDirectionsFromStart": { "label": "Random Start Direction", "tooltip": "Randomise the initial movement direction of each emote" }
+            "RandomDirectionsFromStart": {
+                "label": "Random Start Direction",
+                "tooltip": "Randomise the initial movement direction of each emote"
+            }
         },
         "_item_type": {
             "AnimationTime": "object",
@@ -27,8 +33,14 @@
                 "Max": "number"
             },
             "_labels": {
-                "Min": { "label": "Minimum (seconds)", "tooltip": "Shortest time an emote stays on screen" },
-                "Max": { "label": "Maximum (seconds)", "tooltip": "Longest time an emote stays on screen" }
+                "Min": {
+                    "label": "Minimum (seconds)",
+                    "tooltip": "Shortest time an emote stays on screen"
+                },
+                "Max": {
+                    "label": "Maximum (seconds)",
+                    "tooltip": "Longest time an emote stays on screen"
+                }
             }
         },
         "Speed": {
@@ -37,9 +49,17 @@
                 "Max": "number"
             },
             "_labels": {
-                "Min": { "label": "Minimum (px/s)", "tooltip": "Slowest movement speed in pixels per second" },
-                "Max": { "label": "Maximum (px/s)", "tooltip": "Fastest movement speed in pixels per second" }
+                "Min": {
+                    "label": "Minimum (px/s)",
+                    "tooltip": "Slowest movement speed in pixels per second"
+                },
+                "Max": {
+                    "label": "Maximum (px/s)",
+                    "tooltip": "Fastest movement speed in pixels per second"
+                }
             }
         }
-    }
+    },
+    "version": "1.4.1",
+    "builtForVersion": "1.4.1"
 }

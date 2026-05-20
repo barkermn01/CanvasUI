@@ -9,13 +9,19 @@
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Displays Twitch/YouTube chat messages",
-    "gradient": { "from": "rgba(59, 130, 246, 0.08)", "to": "rgba(59, 130, 246, 0.25)" },
+    "gradient": {
+        "from": "rgba(59, 130, 246, 0.08)",
+        "to": "rgba(59, 130, 246, 0.25)"
+    },
     "schema": {
         "_type": {
             "hideMessageStartingWith": "string"
         },
         "_labels": {
-            "hideMessageStartingWith": { "label": "Hide Messages Starting With", "tooltip": "Comma-separated characters — messages starting with any of these are hidden (e.g. !,/,. to hide commands)" }
+            "hideMessageStartingWith": {
+                "label": "Hide Messages Starting With",
+                "tooltip": "Comma-separated characters — messages starting with any of these are hidden (e.g. !,/,. to hide commands)"
+            }
         },
         "_item_type": {
             "ExtendedEmotesServices": "object",
@@ -29,22 +35,52 @@
                 "FFZ": "bool"
             },
             "_labels": {
-                "BTTV": { "label": "BetterTTV", "tooltip": "Enable BetterTTV emotes" },
-                "FFZ": { "label": "FrankerFaceZ", "tooltip": "Enable FrankerFaceZ emotes" }
+                "BTTV": {
+                    "label": "BetterTTV",
+                    "tooltip": "Enable BetterTTV emotes"
+                },
+                "FFZ": {
+                    "label": "FrankerFaceZ",
+                    "tooltip": "Enable FrankerFaceZ emotes"
+                }
             }
         },
         "AutoHide": {
             "_type": {
                 "enabled": "bool",
                 "time": "number",
-                "animation": { "type": "select", "options": ["slide", "fade"] },
-                "direction": { "type": "select", "options": ["left", "right"] }
+                "animation": {
+                    "type": "select",
+                    "options": [
+                        "slide",
+                        "fade"
+                    ]
+                },
+                "direction": {
+                    "type": "select",
+                    "options": [
+                        "left",
+                        "right"
+                    ]
+                }
             },
             "_labels": {
-                "enabled": { "label": "Enabled", "tooltip": "Automatically hide messages after a set time" },
-                "time": { "label": "Time (seconds)", "tooltip": "Seconds before a message starts to hide" },
-                "animation": { "label": "Animation", "tooltip": "How messages disappear" },
-                "direction": { "label": "Slide Direction", "tooltip": "Direction messages slide out (when animation is slide)" }
+                "enabled": {
+                    "label": "Enabled",
+                    "tooltip": "Automatically hide messages after a set time"
+                },
+                "time": {
+                    "label": "Time (seconds)",
+                    "tooltip": "Seconds before a message starts to hide"
+                },
+                "animation": {
+                    "label": "Animation",
+                    "tooltip": "How messages disappear"
+                },
+                "direction": {
+                    "label": "Slide Direction",
+                    "tooltip": "Direction messages slide out (when animation is slide)"
+                }
             }
         },
         "ChatBoxes": {
@@ -55,18 +91,54 @@
                 "NameOnNewLine": "bool",
                 "hideBots": "bool",
                 "allowClipping": "bool",
-                "NewMessages": { "type": "select", "options": ["below", "above"] },
-                "position": { "type": "select", "options": ["top", "bottom"] }
+                "NewMessages": {
+                    "type": "select",
+                    "options": [
+                        "below",
+                        "above"
+                    ]
+                },
+                "position": {
+                    "type": "select",
+                    "options": [
+                        "top",
+                        "bottom"
+                    ]
+                }
             },
             "_labels": {
-                "ShowBadges": { "label": "Show Badges", "tooltip": "Display user badges (sub, mod, etc.)" },
-                "ShowEmotes": { "label": "Show Emotes", "tooltip": "Render emote images inline" },
-                "UserColon": { "label": "Show Colon", "tooltip": "Show ':' after username" },
-                "NameOnNewLine": { "label": "Name On New Line", "tooltip": "Display username on a separate line above the message" },
-                "hideBots": { "label": "Hide Bots", "tooltip": "Hide messages from bot accounts listed in the Bots tab" },
-                "allowClipping": { "label": "Allow Clipping", "tooltip": "Allow messages to overflow the container" },
-                "NewMessages": { "label": "New Messages", "tooltip": "Where new messages appear relative to existing ones" },
-                "position": { "label": "Position", "tooltip": "Where chat starts from (top or bottom of area)" }
+                "ShowBadges": {
+                    "label": "Show Badges",
+                    "tooltip": "Display user badges (sub, mod, etc.)"
+                },
+                "ShowEmotes": {
+                    "label": "Show Emotes",
+                    "tooltip": "Render emote images inline"
+                },
+                "UserColon": {
+                    "label": "Show Colon",
+                    "tooltip": "Show ':' after username"
+                },
+                "NameOnNewLine": {
+                    "label": "Name On New Line",
+                    "tooltip": "Display username on a separate line above the message"
+                },
+                "hideBots": {
+                    "label": "Hide Bots",
+                    "tooltip": "Hide messages from bot accounts listed in the Bots tab"
+                },
+                "allowClipping": {
+                    "label": "Allow Clipping",
+                    "tooltip": "Allow messages to overflow the container"
+                },
+                "NewMessages": {
+                    "label": "New Messages",
+                    "tooltip": "Where new messages appear relative to existing ones"
+                },
+                "position": {
+                    "label": "Position",
+                    "tooltip": "Where chat starts from (top or bottom of area)"
+                }
             },
             "_item_type": {
                 "BadgeSettings": "object",
@@ -79,8 +151,14 @@
                     "height": "number"
                 },
                 "_labels": {
-                    "width": { "label": "Badge Width", "tooltip": "Badge image width in pixels" },
-                    "height": { "label": "Badge Height", "tooltip": "Badge image height in pixels" }
+                    "width": {
+                        "label": "Badge Width",
+                        "tooltip": "Badge image width in pixels"
+                    },
+                    "height": {
+                        "label": "Badge Height",
+                        "tooltip": "Badge image height in pixels"
+                    }
                 }
             }
         },
@@ -93,12 +171,29 @@
                 "bold": "bool"
             },
             "_labels": {
-                "hideMessage": { "label": "Hide Entirely", "tooltip": "Remove the message completely instead of showing replacement text" },
-                "Text": { "label": "Replacement Text", "tooltip": "Text shown in place of removed messages" },
-                "color": { "label": "Text Color", "tooltip": "Color of the replacement text" },
-                "italics": { "label": "Italic", "tooltip": "Render replacement text in italics" },
-                "bold": { "label": "Bold", "tooltip": "Render replacement text in bold" }
+                "hideMessage": {
+                    "label": "Hide Entirely",
+                    "tooltip": "Remove the message completely instead of showing replacement text"
+                },
+                "Text": {
+                    "label": "Replacement Text",
+                    "tooltip": "Text shown in place of removed messages"
+                },
+                "color": {
+                    "label": "Text Color",
+                    "tooltip": "Color of the replacement text"
+                },
+                "italics": {
+                    "label": "Italic",
+                    "tooltip": "Render replacement text in italics"
+                },
+                "bold": {
+                    "label": "Bold",
+                    "tooltip": "Render replacement text in bold"
+                }
             }
         }
-    }
+    },
+    "version": "1.4.1",
+    "builtForVersion": "1.4.1"
 }
