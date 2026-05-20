@@ -6,5 +6,6 @@
     "image": "image/info.json",
     "video": "video/info.json",
     "pngtuber": "pngtuber/info.json",
+    "testmod": "testmod/info.json",
     "scene": "scene.js"
 }
