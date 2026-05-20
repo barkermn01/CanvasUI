@@ -18,6 +18,10 @@
         {
             "from": "../tools/ca.json",
             "to": "ca.json"
+        },
+        {
+            "from": "../tools/crl.json",
+            "to": "crl.json"
         }
     ],
     "win": {

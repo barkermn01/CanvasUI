@@ -199,7 +199,13 @@ function verifyCumod(header, zipBuffer, caPublicKeyHex) {
         return { status: 'tampered', reason: 'Certificate not signed by trusted CA' };
     }
 
-    // Step 4: Verify module signature using developer's public key
+    // Step 4: Check if developer's key has been revoked
+    const crl = loadCrl();
+    if (isRevoked(cert.publicKey, crl)) {
+        return { status: 'tampered', reason: 'Developer certificate has been revoked' };
+    }
+
+    // Step 5: Verify module signature using developer's public key
     const devKeyObj = ed25519PublicKeyFromHex(cert.publicKey);
     const sigValid = ed25519Verify(devKeyObj, header.zipHash, header.signature);
 
@@ -372,6 +378,53 @@ function loadCaPublicKey() {
     }
 }
 
+/**
+ * Get the path to the CRL file.
+ * @returns {string|null}
+ */
+function getCrlPath() {
+    let crlPath;
+    try {
+        const { app } = require('electron');
+        if (app.isPackaged) {
+            crlPath = path.join(process.resourcesPath, 'crl.json');
+        } else {
+            crlPath = path.resolve(__dirname, '..', '..', '..', 'tools', 'crl.json');
+        }
+    } catch (e) {
+        crlPath = path.resolve(__dirname, '..', '..', '..', 'tools', 'crl.json');
+    }
+
+    if (fs.existsSync(crlPath)) return crlPath;
+    return null;
+}
+
+/**
+ * Load the revoked public keys list.
+ * @returns {string[]} Array of hex public keys that have been revoked
+ */
+function loadCrl() {
+    const crlPath = getCrlPath();
+    if (!crlPath) return [];
+    try {
+        const data = JSON.parse(fs.readFileSync(crlPath, 'utf8'));
+        return data.revoked || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+/**
+ * Check if a public key has been revoked.
+ * @param {string} publicKeyHex - The developer's public key
+ * @param {string[]} [revokedKeys] - Pre-loaded CRL (optional, loads from file if not provided)
+ * @returns {boolean}
+ */
+function isRevoked(publicKeyHex, revokedKeys) {
+    const crl = revokedKeys || loadCrl();
+    return crl.includes(publicKeyHex);
+}
+
 // ─── Version Comparison ───────────────────────────────────────────────────────
 
 /**
@@ -403,6 +456,9 @@ module.exports = {
     verifyManifestFiles,
     getCaKeyPath,
     loadCaPublicKey,
+    getCrlPath,
+    loadCrl,
+    isRevoked,
     ed25519Sign,
     ed25519Verify,
     ed25519PublicKeyFromHex,

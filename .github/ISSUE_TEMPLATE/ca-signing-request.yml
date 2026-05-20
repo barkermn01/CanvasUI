@@ -1,0 +1,93 @@
+name: "🔑 Certificate Signing Request"
+description: "Submit your CSR to get a signed developer certificate for module signing"
+title: "[CSR] Developer Certificate Request - "
+labels: ["certificate-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Developer Certificate Signing Request
+
+        Submit your `developer.csr.json` file contents below to request a signed certificate from the CanvasUI CA.
+
+        **How to generate your CSR:**
+        1. Open CanvasUI Editor → Settings → Modules
+        2. Click "🔑 Generate Key & Signing Request"
+        3. Fill in your details and save
+        4. Paste the contents of `developer.csr.json` below
+
+        ---
+
+        ⚠️ **WARNING: DO NOT submit your private key (developer.key)**
+
+        If your private key is included in this request, your certificate will be **permanently rejected** and you will need to generate a new keypair.
+
+        Your `.key` file is SECRET. Only submit the `.csr.json` file.
+
+        ---
+
+  - type: input
+    id: developer-name
+    attributes:
+      label: Developer Name
+      description: "Your name or handle (must match the name in your CSR)"
+      placeholder: "e.g. Martin Barker"
+    validations:
+      required: true
+
+  - type: input
+    id: module-name
+    attributes:
+      label: Module Name
+      description: "The name of the module(s) you intend to sign"
+      placeholder: "e.g. my-cool-overlay"
+    validations:
+      required: true
+
+  - type: textarea
+    id: csr-contents
+    attributes:
+      label: CSR File Contents
+      description: "Paste the FULL contents of your `developer.csr.json` file here"
+      placeholder: |
+        {
+          "developer": "Your Name",
+          "publicKey": "abcdef1234...",
+          "algorithm": "Ed25519",
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "organisation": "...",
+          "website": "..."
+        }
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: module-description
+    attributes:
+      label: Module Description
+      description: "Briefly describe what your module does"
+      placeholder: "A stream overlay module that displays..."
+    validations:
+      required: true
+
+  - type: input
+    id: module-repo
+    attributes:
+      label: Module Repository (optional)
+      description: "Link to the source code if publicly available"
+      placeholder: "https://github.com/..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      options:
+        - label: "I confirm this CSR does NOT contain my private key"
+          required: true
+        - label: "I understand that signed modules are publicly attributable to me"
+          required: true
+        - label: "I understand my certificate can be revoked if my module is found to be malicious"
+          required: true
