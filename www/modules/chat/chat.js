@@ -113,26 +113,60 @@ class CanvasChatMain {
         return entry;
     }
 
-    #parseSegments(text, twitchEmotes) {
+    #parseSegments(text, emotes) {
         const segments = [];
         const emotePositions = [];
 
-        if (twitchEmotes && Array.isArray(twitchEmotes)) {
-            twitchEmotes.forEach(e => {
+        // Build a name→url lookup from the emotes array for fallback matching
+        const emotesByName = new Map();
+        if (emotes && Array.isArray(emotes)) {
+            emotes.forEach(e => {
                 if (e.startIndex !== undefined && e.endIndex !== undefined) {
-                    emotePositions.push({ start: e.startIndex, end: e.endIndex, url: e.imageUrl });
+                    // Validate the position actually matches the text
+                    const len = e.endIndex - e.startIndex + 1;
+                    if (e.startIndex >= 0 && e.endIndex < text.length && len > 0) {
+                        emotePositions.push({ start: e.startIndex, end: e.endIndex, url: e.imageUrl });
+                    }
+                    // Extract the emote name from the text at this position for fallback
+                    const name = text.substring(e.startIndex, e.endIndex + 1);
+                    if (name && e.imageUrl) {
+                        emotesByName.set(name, e.imageUrl);
+                    }
+                }
+                if (e.name && e.imageUrl) {
+                    emotesByName.set(e.name, e.imageUrl);
                 }
             });
         }
+
+        // Deduplicate positions (Kick sends duplicate startIndex for repeated emotes)
+        const seen = new Set();
+        const uniquePositions = [];
         emotePositions.sort((a, b) => a.start - b.start);
+        for (const ep of emotePositions) {
+            const key = `${ep.start}:${ep.end}`;
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniquePositions.push(ep);
+            }
+        }
+
+        // Remove positions that overlap (keep the first one in case of conflicts)
+        const validPositions = [];
+        let lastEnd = -1;
+        for (const ep of uniquePositions) {
+            if (ep.start > lastEnd) {
+                validPositions.push(ep);
+                lastEnd = ep.end;
+            }
+        }
 
         let cursor = 0;
-        for (const ep of emotePositions) {
+        for (const ep of validPositions) {
             if (ep.start > cursor) {
                 const between = text.substring(cursor, ep.start);
-                // Skip pure whitespace between emotes — spacing is handled by the renderer
                 if (between.trim().length > 0) {
-                    segments.push(...this.#parseTextForExtendedEmotes(between));
+                    segments.push(...this.#parseTextForExtendedEmotes(between, emotesByName));
                 }
             }
             segments.push({ type: 'emote', value: text.substring(ep.start, ep.end + 1), url: ep.url });
@@ -141,16 +175,93 @@ class CanvasChatMain {
         if (cursor < text.length) {
             const trailing = text.substring(cursor);
             if (trailing.trim().length > 0) {
-                segments.push(...this.#parseTextForExtendedEmotes(trailing));
+                segments.push(...this.#parseTextForExtendedEmotes(trailing, emotesByName));
             }
         }
-        if (emotePositions.length === 0) {
-            return this.#parseTextForExtendedEmotes(text);
+        if (validPositions.length === 0) {
+            return this.#parseTextForExtendedEmotes(text, emotesByName);
         }
         return segments;
     }
 
-    #parseTextForExtendedEmotes(text) {
+    #parseTextForExtendedEmotes(text, emotesByName) {
+        const segments = [];
+
+        // First try to match platform emotes by scanning for known names in the text
+        // This handles cases where emotes are concatenated without spaces
+        if (emotesByName && emotesByName.size > 0) {
+            const result = this.#scanForEmotes(text, emotesByName);
+            if (result.length > 0) {
+                // Further process any remaining text segments for BTTV/FFZ
+                for (const seg of result) {
+                    if (seg.type === 'text') {
+                        segments.push(...this.#matchExtendedEmotes(seg.value));
+                    } else {
+                        segments.push(seg);
+                    }
+                }
+                return segments;
+            }
+        }
+
+        // Fall back to word-based matching for BTTV/FFZ
+        return this.#matchExtendedEmotes(text);
+    }
+
+    #scanForEmotes(text, emotesByName) {
+        // Sort emote names by length (longest first) to avoid partial matches
+        const names = [...emotesByName.keys()].sort((a, b) => b.length - a.length);
+        const segments = [];
+        let remaining = text;
+
+        while (remaining.length > 0) {
+            let matched = false;
+            for (const name of names) {
+                if (remaining.startsWith(name)) {
+                    segments.push({ type: 'emote', value: name, url: emotesByName.get(name) });
+                    remaining = remaining.substring(name.length);
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                // Check if remaining starts with a space followed by an emote
+                if (remaining.charAt(0) === ' ') {
+                    // Try matching after the space
+                    let spaceMatched = false;
+                    for (const name of names) {
+                        if (remaining.substring(1).startsWith(name)) {
+                            // Flush any accumulated text
+                            segments.push({ type: 'emote', value: name, url: emotesByName.get(name) });
+                            remaining = remaining.substring(1 + name.length);
+                            spaceMatched = true;
+                            break;
+                        }
+                    }
+                    if (!spaceMatched) {
+                        // Accumulate as text
+                        if (segments.length > 0 && segments[segments.length - 1].type === 'text') {
+                            segments[segments.length - 1].value += remaining.charAt(0);
+                        } else {
+                            segments.push({ type: 'text', value: remaining.charAt(0) });
+                        }
+                        remaining = remaining.substring(1);
+                    }
+                } else {
+                    // Accumulate as text character by character until we find an emote
+                    if (segments.length > 0 && segments[segments.length - 1].type === 'text') {
+                        segments[segments.length - 1].value += remaining.charAt(0);
+                    } else {
+                        segments.push({ type: 'text', value: remaining.charAt(0) });
+                    }
+                    remaining = remaining.substring(1);
+                }
+            }
+        }
+        return segments;
+    }
+
+    #matchExtendedEmotes(text) {
         const segments = [];
         const words = text.split(' ');
         for (let i = 0; i < words.length; i++) {
