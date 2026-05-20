@@ -52,14 +52,19 @@
             "label": "Idle Image",
             "mediaType": "image"
         },
-        "talkingImage": {
+        "idleBlinkImage": {
             "type": "media",
-            "label": "Talking Image",
+            "label": "Idle Blink Image",
             "mediaType": "image"
         },
-        "blinkImage": {
+        "talkingImage": {
             "type": "media",
-            "label": "Blink Image",
+            "label": "Active Image",
+            "mediaType": "image"
+        },
+        "talkingBlinkImage": {
+            "type": "media",
+            "label": "Active Blink Image",
             "mediaType": "image"
         },
         "blinkInterval": {

@@ -187,11 +187,17 @@ class PNGTuberMain {
         if (!area) return;
 
         const idleSrc = settings?.idleImage || Config.pngtuber?.idleImage;
+        const idleBlinkSrc = settings?.idleBlinkImage || Config.pngtuber?.idleBlinkImage;
         const talkSrc = settings?.talkingImage || Config.pngtuber?.talkingImage;
-        const blinkSrc = settings?.blinkImage || Config.pngtuber?.blinkImage;
+        const talkBlinkSrc = settings?.talkingBlinkImage || Config.pngtuber?.talkingBlinkImage;
 
-        // Pick the right image
-        const src = this.#state === 'talking' ? (talkSrc || idleSrc) : idleSrc;
+        // Pick the right image based on state and blink
+        let src;
+        if (this.#state === 'talking') {
+            src = this.#isBlinking && talkBlinkSrc ? talkBlinkSrc : (talkSrc || idleSrc);
+        } else {
+            src = this.#isBlinking && idleBlinkSrc ? idleBlinkSrc : idleSrc;
+        }
         if (!src) return;
 
         const entry = this.#getImage(src);
@@ -210,15 +216,6 @@ class PNGTuberMain {
         const dy = area.y + (area.height - dh) / 2 + yOffset;
 
         ctx.drawImage(entry.img, dx, dy, dw, dh);
-
-        // Blink overlay
-        if (this.#isBlinking && blinkSrc) {
-            const blinkEntry = this.#getImage(blinkSrc);
-            if (blinkEntry?.ready) {
-                ctx.drawImage(blinkEntry.img, dx, dy, dw, dh);
-            }
-        }
-
         ctx.restore();
     }
 

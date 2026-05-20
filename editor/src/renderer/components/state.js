@@ -305,18 +305,18 @@ const EditorState = {
             if (!config.Modules.includes('scene')) config.Modules.push('scene');
         }
 
-        // Ensure image/video modules are included if used
+        // Ensure ALL module types used in any scene are in the Modules list
         const usedTypes = new Set();
         Object.values(this.scenes).forEach(scene => {
             Object.values(scene.modules).forEach(mod => usedTypes.add(mod.type));
         });
-        ['image', 'video', 'webcam'].forEach(t => {
-            if (usedTypes.has(t) && !config.Modules.includes(t)) {
-                // Insert before 'scene'
+        for (const t of usedTypes) {
+            if (t && !config.Modules.includes(t)) {
+                // Insert before 'scene' (which should always be last)
                 const idx = config.Modules.indexOf('scene');
                 config.Modules.splice(idx >= 0 ? idx : config.Modules.length, 0, t);
             }
-        });
+        }
 
         config.DefaultScene = this.globalConfig.DefaultScene || Object.keys(this.scenes)[0] || "";
 

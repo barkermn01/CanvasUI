@@ -33,9 +33,9 @@
   RMDir /r "$TEMP\canvasui_modules_backup"
 
   ; Add to PATH
-  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); if ($$p -notlike ''*$INSTDIR*'') { [Environment]::SetEnvironmentVariable(''PATH'',''$$p;$INSTDIR'',''User'') } }"'
+  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& { $$instDir = ''$INSTDIR''; $$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); if ($$p -eq $$null) { $$p = '''' }; if ($$p -notlike (''*'' + $$instDir + ''*'')) { [Environment]::SetEnvironmentVariable(''PATH'',($$p + '';'' + $$instDir),''User'') } }"'
 !macroend
 
 !macro customUnInstall
-  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); $$p = ($$p.Split('';'') | Where-Object { $$_ -ne ''$INSTDIR'' }) -join '';''; [Environment]::SetEnvironmentVariable(''PATH'',$$p,''User'') }"'
+  nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& { $$instDir = ''$INSTDIR''; $$p = [Environment]::GetEnvironmentVariable(''PATH'',''User''); if ($$p) { $$parts = $$p.Split('';'') | Where-Object { $$_ -ne $$instDir }; [Environment]::SetEnvironmentVariable(''PATH'',($$parts -join '';''),''User'') } }"'
 !macroend
