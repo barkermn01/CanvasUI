@@ -144,6 +144,9 @@ class PropertiesPanel {
                 case 'cameraDevice':
                     html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-camera-device" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
                     break;
+                case 'gamepadDevice':
+                    html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-gamepad-device" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
+                    break;
             }
         }
 
@@ -160,7 +163,7 @@ class PropertiesPanel {
 
         // Standard inputs (string, number, select)
         this.#container.querySelectorAll('[data-dprop]').forEach(el => {
-            if (el.classList.contains('dp-color-placeholder') || el.classList.contains('dp-media-btn') || el.classList.contains('dp-audio-device') || el.classList.contains('dp-camera-device')) return;
+            if (el.classList.contains('dp-color-placeholder') || el.classList.contains('dp-media-btn') || el.classList.contains('dp-audio-device') || el.classList.contains('dp-camera-device') || el.classList.contains('dp-gamepad-device')) return;
 
             const key = el.dataset.dprop;
             const prop = properties[key];
@@ -257,6 +260,35 @@ class PropertiesPanel {
             } catch (e) {
                 select.innerHTML = '<option value="">(No cameras found)</option>';
             }
+        });
+
+        // Gamepad device dropdowns
+        this.#container.querySelectorAll('.dp-gamepad-device').forEach((select) => {
+            const key = select.dataset.dprop;
+            const populateGamepads = () => {
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                select.innerHTML = '<option value="">(Select gamepad)</option>';
+                for (let i = 0; i < gamepads.length; i++) {
+                    const gp = gamepads[i];
+                    if (!gp) continue;
+                    const opt = document.createElement('option');
+                    opt.value = String(i);
+                    opt.textContent = `[${i}] ${gp.id}`;
+                    if (String(i) === String(settings[key] ?? '')) opt.selected = true;
+                    select.appendChild(opt);
+                }
+                if (select.options.length === 1) {
+                    select.innerHTML = '<option value="">(No gamepads — press a button to connect)</option>';
+                }
+            };
+            populateGamepads();
+            // Re-populate when a gamepad connects
+            const onConnect = () => populateGamepads();
+            window.addEventListener('gamepadconnected', onConnect);
+            window.addEventListener('gamepaddisconnected', onConnect);
+            select.addEventListener('change', () => {
+                EditorState.updateModuleSetting(id, key, select.value ? parseInt(select.value) : 0);
+            });
         });
     }
 
