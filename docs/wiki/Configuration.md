@@ -83,15 +83,11 @@ AudioVisualiser: {
 
 ```javascript
 chat: {
-    BeforeCanvas: true,            // Chat behind or in front of canvas
     hideBots: true,                // Hide messages from bots
+    hideMessageStartingWith: ["!", "/"],  // Hide messages starting with these chars
     ExtendedEmotesServices: {
         BTTV: true,                // BetterTTV emotes
         FFZ: true                  // FrankerFaceZ emotes
-    },
-    MessageArea: {                 // Chat container positioning
-        width: "100%", height: "100%",
-        top: "0%", right: "0%", bottom: "0%", left: "0%"
     },
     AutoHide: {
         enabled: false,            // Auto-hide messages after time
@@ -102,7 +98,9 @@ chat: {
     ChatBoxes: {
         ShowBadges: true,
         UserColon: true,           // Show ":" after username
-        allowClipping: true,       // Allow messages to overflow
+        NameOnNewLine: false,      // Username on separate line from message
+        hideBots: true,            // Hide messages from bots
+        allowClipping: true,       // Allow messages to overflow (false = hide partial)
         NewMessages: "below",      // "below" or "above"
         position: "bottom",        // "top" or "bottom"
         messageStyle: {            // CSS for message text
@@ -142,7 +140,31 @@ webcam: {
     device: "XSplit VCam",     // Camera device name (blank = default)
     mirror: false,             // Flip horizontally
     mask: "none",              // "none", "circle", "rounded"
-    borderRadius: "0"          // CSS border-radius for "rounded" mask
+    borderRadius: "0",         // CSS border-radius for "rounded" mask
+    chromaKey: false,          // Enable green screen removal
+    chromaKeyColor: "#00ff00", // Key color to remove
+    chromaKeySimilarity: 0.4,  // How close to key color (0-1)
+    chromaKeySmoothness: 0.08, // Edge softness (0-1)
+    chromaKeySpill: 0.1        // Spill reduction (0-1)
+}
+```
+
+## PNGTuber
+
+```javascript
+pngtuber: {
+    device: "",                // Audio input device name
+    threshold: 30,             // Volume level (0-255) to trigger talking
+    holdTime: 200,             // ms to hold talking state after audio drops
+    frequencyMin: 85,          // Lower Hz bound for voice detection
+    frequencyMax: 300,         // Upper Hz bound for voice detection
+    idleImage: "",             // Path to idle PNG (e.g. /media/avatar-idle.png)
+    talkingImage: "",          // Path to talking PNG
+    blinkImage: "",            // Optional blink overlay PNG
+    blinkInterval: 4,          // Seconds between blinks
+    blinkDuration: 150,        // Blink duration in ms
+    bounce: true,              // Bounce animation on talk
+    bounceAmount: 5            // Pixels to bounce
 }
 ```
 

@@ -4,7 +4,7 @@
 
 - Node.js 18+ (recommended: 20 LTS)
 - npm
-- Windows (for building the installer)
+- Windows, macOS, or Linux
 
 ## Setup
 
@@ -62,7 +62,7 @@ editor/dist/
 
 Format: `MAJOR.MINOR.PATCH.BUILD`
 
-- Major/Minor/Patch: Set manually in `build.js`
+- Major/Minor/Patch: Set in `package.json` version field
 - Build: Auto-incremented in `buildnumber.json` on every `npm start` and `npm run build`
 
 ## Admin Mode
@@ -112,23 +112,24 @@ editor/
 │           ├── state.js        # Central state store
 │           ├── prefs.js        # User preferences (localStorage)
 │           ├── history.js      # Undo/redo
+│           ├── simulator.js    # Module simulation/preview system
 │           ├── canvas.js       # Canvas workspace + module rendering
-│           ├── simulator.js    # Module preview animations
 │           ├── sidebar.js      # Panel management
 │           ├── layers.js       # Layer panel
-│           ├── properties.js   # Properties panel
+│           ├── properties.js   # Properties panel (schema-driven)
 │           ├── palette.js      # Module palette (drag source)
 │           ├── mediapanel.js   # Media library
 │           ├── scenes.js       # Scene tabs
-│           ├── toolbar.js      # Canvas size controls
+│           ├── toolbar.js      # Canvas settings controls
 │           ├── configio.js     # Open/Save/keyboard shortcuts
-│           ├── settings.js     # Settings overlay
+│           ├── settings.js     # Settings overlay + Module Manager
 │           ├── serverpanel.js  # Server controls
 │           ├── colorpicker.js  # Custom color picker
 │           ├── typerenderer.js # Auto-generated settings UI
-│           └── ...
+│           └── help.js         # In-app help panel
 ├── build.js                # Build script
+├── screenshot.js           # Automated screenshot capture
 ├── buildnumber.json        # Auto-incrementing build counter
-├── electron-builder.json   # Packaging config
+├── electron-builder.json   # Packaging config (Win/Mac/Linux)
 └── package.json
 ```

@@ -47,13 +47,17 @@ www/modules/
 │   └── audiovisualiser.js
 ├── webcam/
 │   ├── info.json
+│   ├── chromakey.js          # Dependency script
 │   └── webcam.js
 ├── image/
 │   ├── info.json
 │   └── image.js
-└── video/
+├── video/
+│   ├── info.json
+│   └── video.js
+└── pngtuber/
     ├── info.json
-    └── video.js
+    └── pngtuber.js
 ```
 
 ## Module Loading
@@ -92,10 +96,12 @@ Each module's `info.json` defines its metadata and settings schema:
     "type": "canvas",
     "configKey": "chat",
     "entrypoint": "chat.js",
+    "editorClass": "CanvasChat",
     "hasSettings": true,
     "allowMultiple": false,
     "description": "Displays Twitch/YouTube chat messages",
     "gradient": { "from": "rgba(59, 130, 246, 0.08)", "to": "rgba(59, 130, 246, 0.25)" },
+    "properties": { ... },
     "schema": { ... }
 }
 ```
@@ -105,13 +111,16 @@ Each module's `info.json` defines its metadata and settings schema:
 | `name` | Internal identifier (matches config key names) |
 | `displayName` | Shown in the editor palette |
 | `icon` | Emoji shown in palette and layer list |
-| `type` | `"canvas"` — all modules now render to canvas |
-| `configKey` | Key in Config where this module's settings live |
+| `type` | `"canvas"` — all modules render to canvas |
+| `configKey` | Key in Config where this module's global settings live |
 | `entrypoint` | JS filename to load (relative to module directory) |
-| `hasSettings` | Whether the module has a settings tab |
+| `editorClass` | Window property exposing `{ _main, _simulator }` for editor |
+| `hasSettings` | Whether the module has a global settings tab |
 | `allowMultiple` | Whether multiple instances can exist in a scene |
+| `scripts` | Dependency scripts to load before entrypoint |
+| `properties` | Per-instance property definitions for the Properties panel |
 | `gradient` | Editor highlight colours for the module |
-| `schema` | Settings schema for the editor UI (replaces `_type` in config) |
+| `schema` | Global settings schema for the Settings panel |
 
 ## Scene System
 
@@ -158,28 +167,18 @@ Live camera feed rendered to canvas.
 
 ## Creating Custom Modules
 
+See the [[Developer Guide]] for the full module creation walkthrough, including:
+- The `{ _main, _simulator }` class pattern
+- `editorRegister()` for editor preview and simulation
+- The `properties` schema for per-instance settings
+- Module packaging and distribution
+
+Quick start:
+
 1. Create a directory: `www/modules/mymodule/`
-2. Create `info.json` with metadata and schema
-3. Create your JS entrypoint
+2. Create `info.json` with metadata, properties, and schema
+3. Create your JS entrypoint with the `window.MyModule = { _main, _simulator }` pattern
 4. Add to `modules.json`: `"mymodule": "mymodule/info.json"`
 5. Add `"mymodule"` to `Config.Modules`
 
-Your module registers on `window.Modules`:
-
-```javascript
-if (document.getElementById('canvas')) {
-    window.Modules.push({
-        name: "mymodule",
-        draw: (ctx, settings, area) => { /* canvas 2D drawing */ },
-        update: (dt) => { /* logic update, dt in seconds */ },
-        message: (data) => { /* handle WebSocket messages */ }
-    });
-}
-```
-
-The `draw` function receives:
-- `ctx` — Canvas 2D rendering context
-- `settings` — The module instance's settings from the scene config
-- `area` — `{ x, y, width, height }` defining where to draw
-
-All three methods are optional.
+Or install via the Module Manager (Settings → Modules → Install from .zip) which handles steps 4-5 automatically.

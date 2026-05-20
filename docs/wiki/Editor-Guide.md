@@ -7,7 +7,7 @@
 
 The editor has these main areas:
 
-- **Toolbar** (top) — Open/Save, Settings, server controls, canvas size
+- **Toolbar** (top) — Open/Save, Settings, Help, server controls, Canvas Settings dropdown
 - **Scene Tabs** (below toolbar) — Switch between scenes, add new ones
 - **Left Sidebar** — Layers panel and Media library
 - **Canvas** (center) — Visual workspace where you position modules
@@ -23,7 +23,7 @@ Click the **+** button on the left of the scene tabs bar.
 Click a scene tab to switch to it. Each scene has its own module layout.
 
 ### Scene Settings
-Select any module, then look at the **Scene Settings** section in Properties:
+Click the canvas background (deselect all modules) to see Scene Settings in the Properties panel:
 - **OBS Scene** — The OBS scene name that triggers this layout
 - **Transition Type** — Fade or None
 - **Duration** — Transition time in seconds
@@ -88,7 +88,7 @@ Select a module and click the **▶** play button (top-right of the module) to s
 Click **▶ Play All** above the canvas to start all simulations simultaneously. Click **⏹ Stop All** to reset.
 
 ### Chat Preview
-The chat module has a live canvas preview. Use the **💬** button to send test messages and **🗑** to clear.
+The chat module simulates live messages when you click the **▶** play button. Test messages are auto-generated during simulation.
 
 ### WebSocket Admin
 Click the **📡** button in the toolbar to open the WebSocket Admin panel. Send raw messages to connected overlay clients for testing chat, emotes, and scene changes.

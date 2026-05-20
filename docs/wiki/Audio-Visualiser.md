@@ -123,10 +123,6 @@ Supports pixels (`"80px"`) and percentages (`"50%"`).
 - Make sure microphone permission is granted
 - Verify audio is actually playing through that device
 
-### "No audio device" error in overlay
-- The `device` property in config is empty or not set
-- Set it in Settings → Audio Visualiser or directly in config.js
-
 ### Bars not moving
 - The selected audio device might not be receiving audio
 - Try a different device (e.g. "Stereo Mix" or a virtual cable output)

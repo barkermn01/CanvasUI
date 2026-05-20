@@ -2,10 +2,11 @@
 
 ## Installation
 
-1. Download the latest installer from the [Releases page](../../releases)
-2. Run `CanvasUI Setup x.x.x.xxx.exe`
-3. Choose your install location and complete the setup
-4. Launch **CanvasUI Stream Manager** from your desktop or start menu
+1. Download the latest release from the [Releases page](../../releases)
+   - **Windows**: `CanvasUI Setup x.x.x.xxx.exe`
+   - **macOS**: `CanvasUI-x.x.x.dmg`
+   - **Linux**: `CanvasUI-x.x.x.AppImage` or `.deb`
+2. Install and launch **CanvasUI Stream Manager**
 
 ## First Launch
 

@@ -42,8 +42,8 @@ Settings are saved to the config file. Make sure you click **Save** (⚡) after 
 - Make sure `emote` is in your `Modules` list
 
 ### Audio Visualiser blank
-- The URL must include `?microphone=DeviceName&allowaudio=true`
-- The device name must exactly match (case-sensitive)
+- The OBS URL must include `?allowaudio=true`
+- The `device` name in config must exactly match your audio device (case-sensitive)
 - Microphone permission must be granted
 - Audio must be playing through that device
 
