@@ -202,7 +202,7 @@ function verifyCumod(header, zipBuffer, caPublicKeyHex) {
     // Step 4: Check if developer's key has been revoked
     const crl = loadCrl();
     if (isRevoked(cert.publicKey, crl)) {
-        return { status: 'tampered', reason: 'Developer certificate has been revoked' };
+        return { status: 'revoked', reason: 'Developer certificate has been revoked', developer: cert.developer };
     }
 
     // Step 5: Verify module signature using developer's public key

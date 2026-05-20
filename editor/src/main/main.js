@@ -277,6 +277,11 @@ ipcMain.handle('module-list-installed', () => {
                     modData.verification = verifyInstalledModule(entry.name, cumodPath, caPublicKey);
                 }
 
+                // Force-hide revoked modules
+                if (modData.verification.status === 'revoked') {
+                    modData.disabled = true;
+                }
+
                 modules.push(modData);
             } catch (e) {}
         }

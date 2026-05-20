@@ -1984,6 +1984,18 @@ kbd {
 .mm-badge-unverified { background: rgba(149, 165, 166, 0.15); color: #95a5a6; border-color: #95a5a6; }
 .mm-badge-tampered { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border-color: #e74c3c; }
 .mm-badge-outdated { background: rgba(243, 156, 18, 0.15); color: #f39c12; border-color: #f39c12; }
+.mm-badge-revoked { background: rgba(231, 76, 60, 0.25); color: #ff4444; border-color: #ff4444; }
+
+.mm-revoked {
+    opacity: 0.6;
+    border-color: rgba(231, 76, 60, 0.3);
+}
+.mm-revoked-notice {
+    font-size: 11px;
+    color: #e74c3c;
+    padding: 4px 0 2px 28px;
+    font-style: italic;
+}
 
 .mm-btn-sm {
     background: var(--bg-tertiary);

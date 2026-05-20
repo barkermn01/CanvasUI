@@ -517,9 +517,15 @@ class SettingsPanel {
         const modules = result.modules || result;
         const appVersion = result.appVersion || '0.0.0';
 
+        // Track revoked modules so palette can exclude them
+        const revokedModules = modules
+            .filter(m => m.verification && m.verification.status === 'revoked')
+            .map(m => m.dir);
+        EditorPrefs.set('revokedModules', revokedModules);
+
         let html = `
             <div class="settings-section">
-                <h3>Installed Modules</h3>
+                <h3>Modules</h3>
                 <p class="s-hint">Manage installed modules. Built-in modules cannot be removed.</p>
                 <div class="module-manager-actions">
                     <button id="mm-install-btn" class="mm-btn">📦 Install Module</button>
@@ -534,19 +540,20 @@ class SettingsPanel {
             const isHidden = EditorPrefs.get('hiddenModules', []).includes(mod.dir);
             const verBadge = this.#getVerificationBadge(mod);
             const versionBadge = this.#getVersionBadge(mod, appVersion);
+            const isRevoked = mod.verification && mod.verification.status === 'revoked';
             html += `
-                <div class="mm-item ${mod.builtIn ? 'mm-builtin' : 'mm-thirdparty'}">
+                <div class="mm-item ${mod.builtIn ? 'mm-builtin' : 'mm-thirdparty'} ${isRevoked ? 'mm-revoked' : ''}">
                     <div class="mm-item-info">
-                        <input type="checkbox" class="mm-visible-check" data-module="${mod.dir}" ${!isHidden ? 'checked' : ''} title="Show in palette">
+                        <input type="checkbox" class="mm-visible-check" data-module="${mod.dir}" ${!isHidden && !isRevoked ? 'checked' : ''} ${isRevoked ? 'disabled' : ''} title="${isRevoked ? 'This module is disabled — certificate revoked' : 'Show in palette'}">
                         <span class="mm-item-icon">${mod.icon}</span>
                         <span class="mm-item-name">${mod.displayName}</span>
                         ${mod.builtIn ? '<span class="mm-badge">Built-in</span>' : '<span class="mm-badge mm-badge-custom">Custom</span>'}
                         ${verBadge}
                         ${versionBadge}
                     </div>
-                    <div class="mm-item-desc">${mod.description}</div>
+                    ${isRevoked ? '<div class="mm-revoked-notice">⛔ This module has been disabled — the developer\'s certificate has been revoked.</div>' : `<div class="mm-item-desc">${mod.description}</div>`}
                     <div class="mm-item-actions">
-                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-export-btn" data-module="${mod.dir}" title="Export as .cumod">📤 Export</button>` : ''}
+                        ${!mod.builtIn ? `<button class="mm-btn-sm mm-export-btn" data-module="${mod.dir}" title="Export as .cumod" ${isRevoked ? 'disabled' : ''}>📤 Export</button>` : ''}
                         ${!mod.builtIn ? `<button class="mm-btn-sm mm-btn-danger mm-uninstall-btn" data-module="${mod.dir}" title="Uninstall">🗑 Uninstall</button>` : ''}
                     </div>
                 </div>
@@ -595,6 +602,10 @@ class SettingsPanel {
         // Visibility checkboxes
         container.querySelectorAll('.mm-visible-check').forEach(cb => {
             cb.addEventListener('change', () => {
+                if (cb.disabled) {
+                    cb.checked = false;
+                    return;
+                }
                 const name = cb.dataset.module;
                 let hidden = EditorPrefs.get('hiddenModules', []);
                 if (cb.checked) {
@@ -761,6 +772,8 @@ class SettingsPanel {
             }
             case 'tampered':
                 return `<span class="mm-badge mm-badge-tampered" title="${mod.verification.reason || 'Verification failed'}">⚠️ Tampered</span>`;
+            case 'revoked':
+                return `<span class="mm-badge mm-badge-revoked" title="This developer's certificate has been revoked">🚫 Revoked</span>`;
             case 'unverified':
             default:
                 return '<span class="mm-badge mm-badge-unverified" title="This module is not signed">Unverified</span>';
@@ -1088,6 +1101,7 @@ class SettingsPanel {
 
     #rebuildPalette() {
         const hidden = EditorPrefs.get('hiddenModules', []);
+        const revoked = EditorPrefs.get('revokedModules', []);
         const palette = document.getElementById('palette');
         if (!palette) return;
 
@@ -1095,6 +1109,7 @@ class SettingsPanel {
         for (const mod of (window.ModuleRegistry.modules || [])) {
             if (!mod.icon || mod.name.startsWith('_')) continue;
             if (hidden.includes(mod.name)) continue;
+            if (revoked.includes(mod.name)) continue;
 
             const item = document.createElement('div');
             item.className = 'palette-item';
