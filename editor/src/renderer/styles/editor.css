@@ -247,6 +247,7 @@ body {
 .sidebar-panel.visible {
     display: flex;
     flex: 1;
+    min-height: 150px;
 }
 
 .panel-header {
@@ -293,7 +294,9 @@ body {
 .panel-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 8px;
+    min-height: 0;
 }
 
 /* Workspace */
@@ -457,12 +460,15 @@ body {
 
 .prop-row input, .prop-row select {
     flex: 1;
+    min-width: 0;
     background: var(--bg-surface);
     color: var(--text-primary);
     border: 1px solid var(--border);
     padding: 3px 5px;
     border-radius: 3px;
     font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .prop-row input[type="color"] {

@@ -147,6 +147,9 @@ class PropertiesPanel {
                 case 'gamepadDevice':
                     html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-gamepad-device" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
                     break;
+                case 'gamepadButton':
+                    html += `<div class="prop-row"><label>${prop.label}</label><select class="dp-gamepad-button" data-dprop="${key}"><option value="">Loading...</option></select></div>`;
+                    break;
             }
         }
 
@@ -163,7 +166,7 @@ class PropertiesPanel {
 
         // Standard inputs (string, number, select)
         this.#container.querySelectorAll('[data-dprop]').forEach(el => {
-            if (el.classList.contains('dp-color-placeholder') || el.classList.contains('dp-media-btn') || el.classList.contains('dp-audio-device') || el.classList.contains('dp-camera-device') || el.classList.contains('dp-gamepad-device')) return;
+            if (el.classList.contains('dp-color-placeholder') || el.classList.contains('dp-media-btn') || el.classList.contains('dp-audio-device') || el.classList.contains('dp-camera-device') || el.classList.contains('dp-gamepad-device') || el.classList.contains('dp-gamepad-button')) return;
 
             const key = el.dataset.dprop;
             const prop = properties[key];
@@ -265,8 +268,38 @@ class PropertiesPanel {
         // Gamepad device dropdowns
         this.#container.querySelectorAll('.dp-gamepad-device').forEach((select) => {
             const key = select.dataset.dprop;
+            const currentVal = String(settings[key] ?? '');
+
+            // Show saved value immediately without requiring detection
             const populateGamepads = () => {
                 const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                const prevVal = select.value || currentVal;
+                let hasGamepads = false;
+
+                for (let i = 0; i < gamepads.length; i++) {
+                    if (gamepads[i]) { hasGamepads = true; break; }
+                }
+
+                // If no gamepads detected but we have a saved value, keep showing it
+                if (!hasGamepads && prevVal) {
+                    if (select.options.length <= 1 || select.value !== prevVal) {
+                        select.innerHTML = '';
+                        const opt = document.createElement('option');
+                        opt.value = prevVal;
+                        const savedName = settings[key + 'Name'] || '';
+                        opt.textContent = savedName ? `[${prevVal}] ${savedName}` : `[${prevVal}] (press button to detect)`;
+                        opt.selected = true;
+                        select.appendChild(opt);
+                    }
+                    return false;
+                }
+
+                if (!hasGamepads) {
+                    select.innerHTML = '<option value="">(Press a button to detect controllers)</option>';
+                    return false;
+                }
+
+                // Gamepads detected — populate full list
                 select.innerHTML = '<option value="">(Select gamepad)</option>';
                 for (let i = 0; i < gamepads.length; i++) {
                     const gp = gamepads[i];
@@ -274,18 +307,110 @@ class PropertiesPanel {
                     const opt = document.createElement('option');
                     opt.value = String(i);
                     opt.textContent = `[${i}] ${gp.id}`;
-                    if (String(i) === String(settings[key] ?? '')) opt.selected = true;
+                    if (String(i) === prevVal) opt.selected = true;
                     select.appendChild(opt);
                 }
-                if (select.options.length === 1) {
-                    select.innerHTML = '<option value="">(No gamepads — press a button to connect)</option>';
-                }
+                return true;
             };
-            populateGamepads();
-            // Re-populate when a gamepad connects
+
+            // Initial populate — show saved value
+            const detected = populateGamepads();
+
+            // Only start polling when user clicks the dropdown
+            let polling = false;
+            select.addEventListener('mousedown', () => {
+                if (!polling) {
+                    polling = true;
+                    const pollInterval = setInterval(() => {
+                        if (!select.isConnected) { clearInterval(pollInterval); return; }
+                        populateGamepads();
+                    }, 500);
+                }
+            });
+
             const onConnect = () => populateGamepads();
             window.addEventListener('gamepadconnected', onConnect);
             window.addEventListener('gamepaddisconnected', onConnect);
+
+            select.addEventListener('change', () => {
+                const idx = select.value ? parseInt(select.value) : 0;
+                EditorState.updateModuleSetting(id, key, idx);
+                // Save controller name for display when not detected
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                const gp = gamepads[idx];
+                if (gp) {
+                    EditorState.updateModuleSetting(id, key + 'Name', gp.id);
+                }
+            });
+        });
+
+        // Gamepad button dropdowns
+        this.#container.querySelectorAll('.dp-gamepad-button').forEach((select) => {
+            const key = select.dataset.dprop;
+            const savedVal = settings[key];
+            const currentVal = savedVal !== undefined && savedVal !== null ? String(savedVal) : '';
+
+            const populateButtons = () => {
+                // Get gamepad index from the gamepadDevice dropdown if present, else from settings
+                const gpDeviceSelect = this.#container.querySelector('.dp-gamepad-device');
+                const gpIndex = gpDeviceSelect ? parseInt(gpDeviceSelect.value) || 0 : (settings.gamepadIndex ?? 0);
+                const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+                const gp = gamepads[gpIndex];
+
+                // If gamepad not detected but we have a saved value, keep showing it
+                if ((!gp || !gp.buttons) && currentVal) {
+                    if (select.options.length <= 1 || select.value !== currentVal) {
+                        select.innerHTML = '';
+                        const opt = document.createElement('option');
+                        opt.value = currentVal;
+                        opt.textContent = `Button ${currentVal}`;
+                        opt.selected = true;
+                        select.appendChild(opt);
+                    }
+                    return false;
+                }
+
+                if (!gp || !gp.buttons) {
+                    select.innerHTML = '<option value="">(Connect controller first)</option>';
+                    return false;
+                }
+
+                // Gamepad detected — populate full list
+                const prevVal = select.value || currentVal;
+                select.innerHTML = '<option value="">(Select button)</option>';
+                for (let i = 0; i < gp.buttons.length; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = String(i);
+                    opt.textContent = `Button ${i}`;
+                    if (String(i) === prevVal) opt.selected = true;
+                    select.appendChild(opt);
+                }
+                return true;
+            };
+
+            // Show saved value immediately
+            populateButtons();
+
+            // Re-populate when controller dropdown changes
+            const gpDeviceSelect = this.#container.querySelector('.dp-gamepad-device');
+            if (gpDeviceSelect) {
+                gpDeviceSelect.addEventListener('change', () => populateButtons());
+            }
+
+            // Poll on interaction and on gamepad connect
+            let polling = false;
+            select.addEventListener('mousedown', () => {
+                if (!polling) {
+                    polling = true;
+                    const pollInterval = setInterval(() => {
+                        if (!select.isConnected) { clearInterval(pollInterval); return; }
+                        populateButtons();
+                    }, 500);
+                }
+            });
+
+            window.addEventListener('gamepadconnected', () => populateButtons());
+
             select.addEventListener('change', () => {
                 EditorState.updateModuleSetting(id, key, select.value ? parseInt(select.value) : 0);
             });
