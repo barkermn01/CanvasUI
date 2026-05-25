@@ -171,13 +171,29 @@ class ShoutoutMain {
         ctx.closePath();
     }
 
+    #recentShoutouts = new Map(); // name -> timestamp
+
     onMessage(data) {
         if (data.Type === 'Shoutout') {
+            const name = (data.name || '').toLowerCase();
+            if (!name) return;
+
+            // Deduplicate: skip if same user was shouted out in the last 30 seconds
+            const now = Date.now();
+            const lastTime = this.#recentShoutouts.get(name);
+            if (lastTime && (now - lastTime) < 30000) return;
+
+            this.#recentShoutouts.set(name, now);
             this.#queue.push({
                 name: data.name || '',
                 game: data.game || '',
                 avatar: data.avatar || null
             });
+
+            // Clean old entries
+            for (const [key, time] of this.#recentShoutouts) {
+                if (now - time > 60000) this.#recentShoutouts.delete(key);
+            }
         }
     }
 
@@ -256,9 +272,9 @@ if (document.getElementById('canvas')) {
             "Twitch.ShoutoutCreated": (data) => {
                 instance.onMessage({
                     Type: 'Shoutout',
-                    name: data.targetUser?.name || data.targetUserDisplayName || '',
-                    game: data.targetUserGameName || '',
-                    avatar: data.targetUser?.profilePicture || data.targetProfileImageUrl || ''
+                    name: data.targetUserDisplayName || data.targetUserLogin || '',
+                    game: '',
+                    avatar: ''
                 });
             }
         }
