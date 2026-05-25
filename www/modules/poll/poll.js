@@ -13,10 +13,41 @@ class PollMain {
     #title = '';
     #options = []; // [{name, votes}]
     #displayVotes = []; // smoothed
+    #imageCache = new Map();
+    #endsAt = null;
 
     constructor() {}
 
+    #getImage(src) {
+        if (!src) return null;
+        let resolvedSrc = src;
+        if (typeof EditorPrefs !== 'undefined' && src.startsWith('/')) {
+            const host = EditorPrefs.get('serverHost', '127.0.0.1');
+            const port = EditorPrefs.get('serverPort', 31589);
+            resolvedSrc = `http://${host}:${port}${src}`;
+        }
+        if (this.#imageCache.has(resolvedSrc)) return this.#imageCache.get(resolvedSrc);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.src = resolvedSrc;
+        const entry = { img, ready: false };
+        img.onload = () => {
+            entry.ready = true;
+            if (typeof EditorState !== 'undefined') EditorState.notify('module-settings');
+        };
+        this.#imageCache.set(resolvedSrc, entry);
+        return entry;
+    }
+
     update(dt, settings) {
+        // Auto-hide when poll ends
+        if (this.#active && this.#endsAt) {
+            if (new Date() >= new Date(this.#endsAt)) {
+                this.#active = false;
+                this.#endsAt = null;
+            }
+        }
+
         // Smooth vote bar animations
         for (let i = 0; i < this.#options.length; i++) {
             if (!this.#displayVotes[i]) this.#displayVotes[i] = 0;
@@ -41,6 +72,15 @@ class PollMain {
         const showPct = settings?.showPercentage !== false;
 
         ctx.save();
+
+        // Background image
+        const bgImageSrc = settings?.backgroundImage;
+        if (bgImageSrc) {
+            const bgEntry = this.#getImage(bgImageSrc);
+            if (bgEntry && bgEntry.ready) {
+                ctx.drawImage(bgEntry.img, area.x, area.y, area.width, area.height);
+            }
+        }
 
         // Title
         ctx.font = `bold ${fontSize}px sans-serif`;
@@ -89,14 +129,15 @@ class PollMain {
             case 'Update':
                 this.#active = true;
                 this.#title = data.title || this.#title;
+                if (data.endsAt) this.#endsAt = data.endsAt;
                 if (data.options) {
                     this.#options = data.options;
-                    // Snap displayVotes to current values for immediate render
                     this.#displayVotes = data.options.map((o, i) => o.votes || this.#displayVotes[i] || 0);
                 }
                 break;
             case 'End':
                 this.#active = false;
+                this.#endsAt = null;
                 break;
         }
     }
@@ -180,12 +221,12 @@ if (document.getElementById('canvas')) {
         },
         events: {
             "Twitch.PollCreated": (data) => {
-                const options = (data.choices || data.options || []).map(c => ({ name: c.title || c.name, votes: c.votes || 0 }));
-                instance.onMessage({ Type: 'Update', title: data.title || 'Poll', options });
+                const options = (data.choices || []).map(c => ({ name: c.title || c.name, votes: c.votes || 0 }));
+                instance.onMessage({ Type: 'Update', title: data.title || 'Poll', options, endsAt: data.ends_at || null });
             },
             "Twitch.PollUpdated": (data) => {
-                const options = (data.choices || data.options || []).map(c => ({ name: c.title || c.name, votes: c.votes || 0 }));
-                instance.onMessage({ Type: 'Update', title: data.title || 'Poll', options });
+                const options = (data.choices || []).map(c => ({ name: c.title || c.name, votes: c.votes || 0 }));
+                instance.onMessage({ Type: 'Update', title: data.title || 'Poll', options, endsAt: data.ends_at || null });
             },
             "Twitch.PollCompleted": () => {
                 instance.onMessage({ Type: 'End' });

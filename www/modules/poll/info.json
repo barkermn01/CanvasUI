@@ -22,6 +22,11 @@
             "step": 1,
             "default": 16
         },
+        "backgroundImage": {
+            "type": "media",
+            "label": "Background Image",
+            "mediaType": "image"
+        },
         "barColor": {
             "type": "color",
             "label": "Bar Color",
@@ -48,6 +53,6 @@
             "default": true
         }
     },
-    "version": "1.4.2",
-    "builtForVersion": "1.4.2"
+    "version": "1.5.0",
+    "builtForVersion": "1.5.0"
 }

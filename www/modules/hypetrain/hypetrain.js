@@ -176,13 +176,13 @@ if (document.getElementById('canvas')) {
         },
         events: {
             "Twitch.HypeTrainStart": (data) => {
-                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.percentDecimal ?? 0, total: 5 });
+                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.goal ? (data.progress / data.goal) : 0, total: 5 });
             },
             "Twitch.HypeTrainUpdate": (data) => {
-                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.percentDecimal ?? 0, total: 5 });
+                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.goal ? (data.progress / data.goal) : 0, total: 5 });
             },
             "Twitch.HypeTrainLevelUp": (data) => {
-                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.percentDecimal ?? 0, total: 5 });
+                instance.onMessage({ Type: 'Update', level: data.level ?? 1, progress: data.goal ? (data.progress / data.goal) : 0, total: 5 });
             },
             "Twitch.HypeTrainEnd": () => {
                 instance.onMessage({ Type: 'End' });
