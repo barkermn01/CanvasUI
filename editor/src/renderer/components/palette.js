@@ -32,42 +32,12 @@ window.ModuleRegistry = {
 class Palette {
     constructor() {
         this.container = document.getElementById('palette');
-        this.miniMode = EditorPrefs.get('paletteMiniMode', false);
-        this.#addMiniToggle();
+        this.container.classList.add('palette-mini');
         this.init();
     }
 
     #addMiniToggle() {
-        // Add toggle button to the modules panel header
-        const panelHeader = this.container.closest('.sidebar-panel')?.querySelector('.panel-header');
-        if (panelHeader) {
-            const btn = document.createElement('button');
-            btn.className = 'palette-mini-toggle';
-            btn.title = 'Toggle compact view';
-            btn.textContent = this.miniMode ? '☰' : '⊞';
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.miniMode = !this.miniMode;
-                EditorPrefs.set('paletteMiniMode', this.miniMode);
-                btn.textContent = this.miniMode ? '☰' : '⊞';
-                this.container.classList.toggle('palette-mini', this.miniMode);
-                this.render(window.ModuleRegistry.modules);
-            });
-            // Insert before the pin button
-            const pinBtn = panelHeader.querySelector('.panel-pin');
-            if (pinBtn) {
-                panelHeader.insertBefore(btn, pinBtn);
-            } else {
-                panelHeader.appendChild(btn);
-            }
-        }
-        if (this.miniMode) {
-            this.container.classList.add('palette-mini');
-        }
-
-        // Re-check overflow on resize
-        const observer = new ResizeObserver(() => this.#checkOverflow());
-        observer.observe(this.container);
+        // No toggle needed — always grid mode
     }
 
     async init() {
@@ -114,11 +84,7 @@ class Palette {
             item.draggable = true;
 
             const iconHtml = Palette.renderIcon(mod.icon, mod._dir || mod.name);
-            if (this.miniMode) {
-                item.innerHTML = `${iconHtml}<span class="palette-mini-name">${mod.displayName}</span>`;
-            } else {
-                item.innerHTML = `${iconHtml} ${mod.displayName}`;
-            }
+            item.innerHTML = `${iconHtml}<span class="palette-mini-name">${mod.displayName}</span>`;
             item.title = mod.description || mod.displayName;
 
             item.addEventListener('dragstart', (e) => {
@@ -128,9 +94,6 @@ class Palette {
 
             this.container.appendChild(item);
         }
-
-        // Detect if scrollbar is present and adjust grid width
-        this.#checkOverflow();
     }
 
     /**
@@ -147,17 +110,5 @@ class Palette {
             return `<img class="palette-icon palette-icon-img" src="${src}" alt="">`;
         }
         return `<span class="palette-icon">${icon}</span>`;
-    }
-
-    #checkOverflow() {
-        if (this.miniMode) {
-            if (this.container.scrollHeight > this.container.clientHeight) {
-                this.container.classList.add('palette-scrolling');
-            } else {
-                this.container.classList.remove('palette-scrolling');
-            }
-        } else {
-            this.container.classList.remove('palette-scrolling');
-        }
     }
 }
