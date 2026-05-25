@@ -5,7 +5,7 @@ class PropertiesPanel {
         this.#container = document.getElementById('props-content');
 
         EditorState.onChange((what) => {
-            if (['selection', 'module-area', 'scene-switch', 'load', 'modules'].includes(what)) {
+            if (['selection', 'module-area', 'scene-switch', 'load', 'modules', 'module-added'].includes(what)) {
                 this.render();
             }
         });
