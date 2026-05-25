@@ -34,8 +34,14 @@ class CanvasWorkspace {
         this.#setupEvents();
 
         EditorState.onChange((what) => {
-            if (['scenes', 'scene-switch', 'modules', 'load', 'selection', 'module-settings'].includes(what)) {
+            if (['scenes', 'scene-switch', 'modules', 'module-added', 'load'].includes(what)) {
                 this.render();
+            }
+            if (what === 'selection') {
+                this.#updateSelection();
+            }
+            if (what === 'module-settings') {
+                this.#updateModulePreview();
             }
             if (what === 'module-area' && EditorState.selectedModule) {
                 this.#updateModuleElement(EditorState.selectedModule);
@@ -211,6 +217,10 @@ class CanvasWorkspace {
     }
 
     #onMouseUp() {
+        if (this.#resizing || this.#dragging) {
+            // Re-render preview after drag/resize completes
+            this.#updateModulePreview();
+        }
         this.#dragging = null;
         this.#resizing = null;
     }
@@ -281,22 +291,83 @@ class CanvasWorkspace {
         return container;
     }
 
-    render() {
-        // Unregister all module instances — they'll be re-registered as we rebuild
-        ModuleSimulator.unregisterAll();
-        this.#canvas.innerHTML = '';
+    #updateSelection() {
+        const selectedId = EditorState.selectedModule;
+        this.#canvas.querySelectorAll('.canvas-module').forEach(el => {
+            if (el.dataset.moduleId === selectedId) {
+                el.classList.add('selected');
+            } else {
+                el.classList.remove('selected');
+            }
+        });
+    }
+
+    #updateModulePreview() {
+        // Only update the preview of the selected module instead of full re-render
+        const id = EditorState.selectedModule;
+        if (!id) return;
+
         const modules = EditorState.getActiveSceneModules();
+        const mod = modules[id];
+        if (!mod) return;
+
+        // Don't touch modules that are actively simulating
+        if (ModuleSimulator.isPlaying(id)) return;
+
+        const el = this.#canvas.querySelector(`[data-module-id="${id}"]`);
+        if (!el) return;
+
+        // Update the preview container content
+        let previewContainer = el.querySelector('.module-preview');
+        const reg = ModuleSimulator.getRegistration(id);
+        if (reg && reg.preview && previewContainer) {
+            reg.preview(previewContainer, mod.settings || {}, mod.area);
+        }
+    }
+
+    render() {
+        // Unregister modules that are no longer in the scene (keep running ones alive)
+        const modules = EditorState.getActiveSceneModules();
+        ModuleSimulator.unregisterRemoved(Object.keys(modules));
         const moduleKeys = Object.keys(modules);
 
         // Set global config for modules
         window.Config = EditorState.globalConfig;
 
+        // Diff: find which elements to keep, add, or remove
+        const existingEls = new Map();
+        this.#canvas.querySelectorAll('.canvas-module').forEach(el => {
+            existingEls.set(el.dataset.moduleId, el);
+        });
+
+        // Remove elements for modules that no longer exist
+        for (const [id, el] of existingEls) {
+            if (!modules[id] || modules[id].visible === false) {
+                el.remove();
+                existingEls.delete(id);
+            }
+        }
+
+        // Add/update elements
         for (const [id, mod] of Object.entries(modules)) {
-            // Skip hidden modules
             if (mod.visible === false) continue;
 
             const isSelected = EditorState.selectedModule === id;
             const layerIndex = moduleKeys.indexOf(id);
+
+            // If element already exists, just update position/size/z-index
+            if (existingEls.has(id)) {
+                const el = existingEls.get(id);
+                el.style.left = (mod.area.x * this.#scale) + 'px';
+                el.style.top = (mod.area.y * this.#scale) + 'px';
+                el.style.width = (mod.area.width * this.#scale) + 'px';
+                el.style.height = (mod.area.height * this.#scale) + 'px';
+                el.style.zIndex = layerIndex + 1;
+                el.classList.toggle('selected', isSelected);
+                continue;
+            }
+
+            // Create new element
             const el = document.createElement('div');
             el.className = 'canvas-module' + (isSelected ? ' selected' : '');
             el.dataset.moduleId = id;
@@ -319,8 +390,10 @@ class CanvasWorkspace {
 
             // Play/Stop simulation button — shown after registration if module has simulate callbacks
             const hasSimulate = ModuleSimulator.hasEditorSupport(mod.type);
+            const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
+            const autoSim = modInfo?.autoSimulate || false;
             let playBtn = null;
-            if (hasSimulate) {
+            if (hasSimulate && !autoSim) {
                 playBtn = document.createElement('button');
                 playBtn.className = 'module-play-btn';
                 playBtn.textContent = '▶';
@@ -391,6 +464,20 @@ class CanvasWorkspace {
         // Try to register (loads script if needed)
         if (ModuleSimulator.hasEditorSupport(mod.type)) {
             const reg = await ModuleSimulator.register(id, mod.type);
+
+            // Check if module has autoSimulate flag
+            const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
+            const autoSim = modInfo?.autoSimulate || false;
+
+            if (autoSim && (reg?.simulate?.draw || reg?.simulate?.update)) {
+                // Auto-start simulation, no play button
+                const preview = document.createElement('div');
+                preview.className = 'module-preview';
+                el.appendChild(preview);
+                ModuleSimulator.start(id, preview);
+                return;
+            }
+
             // Show play button only if module registered simulate callbacks
             if (reg?.simulate?.draw || reg?.simulate?.update) {
                 const playBtn = el.querySelector('.module-play-btn');

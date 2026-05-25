@@ -113,8 +113,7 @@ class Sidebar {
         const sizes = EditorPrefs.getPanelSizes();
         for (const [panelName, height] of Object.entries(sizes)) {
             const panel = document.querySelector(`.sidebar-panel[data-panel="${panelName}"]`);
-            if (panel && height) {
-                panel.style.flex = 'none';
+            if (panel && height && typeof height === 'number') {
                 panel.style.height = height + 'px';
             }
         }
@@ -172,9 +171,7 @@ class Sidebar {
             const newHeight = Math.max(minHeight, startHeight + delta);
             const newNextHeight = Math.max(minHeight, startNextHeight - delta);
 
-            panel.style.flex = 'none';
             panel.style.height = newHeight + 'px';
-            nextPanel.style.flex = 'none';
             nextPanel.style.height = newNextHeight + 'px';
         });
 

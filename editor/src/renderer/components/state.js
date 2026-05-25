@@ -2,6 +2,7 @@ const EditorState = {
     canvasWidth: 1920,
     canvasHeight: 1080,
     lockToCanvas: true,
+    showLabels: true,
     scenes: {},
     activeScene: null,
     selectedModule: null,
@@ -121,7 +122,8 @@ const EditorState = {
             settings: this.getDefaultSettings(moduleType)
         };
 
-        this.notify('modules');
+        this.lastAddedModule = id;
+        this.notify('module-added');
         return id;
     },
 
@@ -299,6 +301,9 @@ const EditorState = {
     buildConfig() {
         const config = { ...this.globalConfig };
 
+        // Always save canvas size
+        config.CanvasWidth = this.canvasWidth;
+        config.CanvasHeight = this.canvasHeight;
         // Ensure scene module is in the modules list
         if (!config.Modules.includes('scene')) {
             config.Modules = [...config.Modules];
@@ -368,8 +373,14 @@ const EditorState = {
 
     // Load from imported config
     loadConfig(config) {
+        // Canvas size from config (persists across installs)
+        this.canvasWidth = config.CanvasWidth || 1920;
+        this.canvasHeight = config.CanvasHeight || 1080;
+
         this.globalConfig = {
             Name: config.Name || "",
+            CanvasWidth: this.canvasWidth,
+            CanvasHeight: this.canvasHeight,
             StreamerBot: config.StreamerBot || {},
             ChannelName: config.ChannelName || "",
             TwitchID: config.TwitchID || "",

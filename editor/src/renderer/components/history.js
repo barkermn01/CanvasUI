@@ -12,7 +12,7 @@ class UndoHistory {
 
     constructor() {
         EditorState.onChange((what) => {
-            if (['modules', 'module-settings', 'scenes', 'settings', 'load'].includes(what)) {
+            if (['modules', 'module-added', 'module-settings', 'scenes', 'settings', 'load'].includes(what)) {
                 if (this.#ignoreNext) {
                     this.#ignoreNext = false;
                     return;

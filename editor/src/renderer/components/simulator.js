@@ -188,6 +188,18 @@ class ModuleSimulator {
     }
 
     /**
+     * Unregister only modules that are no longer in the active scene.
+     * Keeps running simulations alive for modules that still exist.
+     */
+    static unregisterRemoved(activeIds) {
+        for (const id of [...this.#registry.keys()]) {
+            if (!activeIds.includes(id)) {
+                this.unregister(id);
+            }
+        }
+    }
+
+    /**
      * Toggle simulation for an instance.
      */
     static toggle(id, container) {
@@ -305,6 +317,22 @@ class ModuleSimulator {
         }
 
         entry.playing = false;
+
+        // Restore the static preview
+        const moduleEl = document.querySelector(`[data-module-id="${id}"]`);
+        if (moduleEl && entry.registration?.preview) {
+            let previewContainer = moduleEl.querySelector('.module-preview');
+            if (!previewContainer) {
+                previewContainer = document.createElement('div');
+                previewContainer.className = 'module-preview';
+                moduleEl.appendChild(previewContainer);
+            }
+            const modules = EditorState.getActiveSceneModules();
+            const mod = modules[id];
+            if (mod) {
+                entry.registration.preview(previewContainer, mod.settings || {}, mod.area);
+            }
+        }
     }
 
     /**
