@@ -62,6 +62,12 @@ class EventTickerMain {
         ctx.clip();
 
         ctx.font = `${fontSize}px ${fontFamily}`;
+        // Auto-scale font if it's too small for the area height
+        let actualFontSize = fontSize;
+        if (actualFontSize < area.height * 0.5) {
+            actualFontSize = Math.floor(area.height * 0.5);
+        }
+        ctx.font = `${actualFontSize}px ${fontFamily}`;
         ctx.fillStyle = color;
         ctx.textBaseline = 'middle';
 

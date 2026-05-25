@@ -146,11 +146,12 @@ class ShoutoutMain {
 
         // Game
         if (this.#current.game) {
+            const gamePrefix = settings?.gamePrefix ?? 'Was last playing: ';
             ctx.font = `${gameFontSize}px sans-serif`;
             ctx.fillStyle = gameColor;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
-            ctx.fillText(this.#current.game, area.x + gameX, area.y + gameY);
+            ctx.fillText(`${gamePrefix}${this.#current.game}`, area.x + gameX, area.y + gameY);
         }
 
         ctx.restore();

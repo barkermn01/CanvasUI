@@ -9,7 +9,10 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Displays a user profile card for shoutouts",
-    "gradient": { "from": "rgba(249, 115, 22, 0.08)", "to": "rgba(249, 115, 22, 0.25)" },
+    "gradient": {
+        "from": "rgba(249, 115, 22, 0.08)",
+        "to": "rgba(249, 115, 22, 0.25)"
+    },
     "properties": {
         "duration": {
             "type": "range",
@@ -135,6 +138,13 @@
             "type": "color",
             "label": "Game Color",
             "default": "#ffffff"
+        },
+        "gamePrefix": {
+            "type": "string",
+            "label": "Game Prefix",
+            "default": "Was last playing: "
         }
-    }
+    },
+    "version": "1.5.0",
+    "builtForVersion": "1.5.0"
 }

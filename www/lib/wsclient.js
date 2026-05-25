@@ -112,13 +112,12 @@ window.initWebSocket = function() {
         onData: (resp) => {
             if (!resp) return;
 
-            // Determine if this is a native event or a custom action
-            if (resp.event && resp.event.source && resp.event.type) {
-                // Native Streamer.bot event (e.g. Twitch.ViewerCountUpdate)
-                routeEvent(resp.event.source, resp.event.type, resp.data);
-            } else if (resp.data && resp.data.Module) {
-                // Custom action message (General.Custom)
+            // Custom action messages (General.Custom) take priority
+            if (resp.data && resp.data.Module) {
                 routeCustomMessage(resp);
+            } else if (resp.event && resp.event.source && resp.event.type) {
+                // Native Streamer.bot event (e.g. Twitch.Follow)
+                routeEvent(resp.event.source, resp.event.type, resp.data);
             }
         }
     });
