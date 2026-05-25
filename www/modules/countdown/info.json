@@ -1,0 +1,77 @@
+{
+    "name": "countdown",
+    "displayName": "Countdown Timer",
+    "icon": "⏱️",
+    "type": "canvas",
+    "configKey": "countdown",
+    "entrypoint": "countdown.js",
+    "editorClass": "CountdownModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Configurable countdown timer with end state",
+    "gradient": {
+        "from": "rgba(239, 68, 68, 0.08)",
+        "to": "rgba(239, 68, 68, 0.25)"
+    },
+    "properties": {
+        "minutes": {
+            "type": "number",
+            "label": "Minutes",
+            "min": 0,
+            "max": 999,
+            "default": 5
+        },
+        "seconds": {
+            "type": "number",
+            "label": "Seconds",
+            "min": 0,
+            "max": 59,
+            "default": 0
+        },
+        "autoStart": {
+            "type": "bool",
+            "label": "Auto Start",
+            "default": false
+        },
+        "endText": {
+            "type": "string",
+            "label": "End Text",
+            "default": "LIVE!"
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 12,
+            "max": 200,
+            "step": 2,
+            "default": 64
+        },
+        "fontFamily": {
+            "type": "string",
+            "label": "Font Family",
+            "default": "monospace"
+        },
+        "color": {
+            "type": "color",
+            "label": "Color",
+            "default": "#ffffff"
+        },
+        "endColor": {
+            "type": "color",
+            "label": "End Color",
+            "default": "#10b981"
+        },
+        "align": {
+            "type": "select",
+            "label": "Alignment",
+            "options": [
+                "left",
+                "center",
+                "right"
+            ],
+            "default": "center"
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}

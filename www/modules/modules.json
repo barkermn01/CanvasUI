@@ -9,6 +9,17 @@
     "steeringwheel": "steeringwheel/info.json",
     "gamepaddpad": "gamepaddpad/info.json",
     "gamepadbuttons": "gamepadbuttons/info.json",
+    "clock": "clock/info.json",
+    "spritesheet": "spritesheet/info.json",
+    "viewercount": "viewercount/info.json",
+    "alert": "alert/info.json",
+    "goalbar": "goalbar/info.json",
+    "countdown": "countdown/info.json",
+    "bitcollector": "bitcollector/info.json",
+    "eventticker": "eventticker/info.json",
+    "hypetrain": "hypetrain/info.json",
+    "poll": "poll/info.json",
+    "shoutout": "shoutout/info.json",
     "testmod": "testmod/info.json",
     "scene": "scene.js"
 }

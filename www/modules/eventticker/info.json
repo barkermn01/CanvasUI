@@ -1,0 +1,75 @@
+{
+    "name": "eventticker",
+    "displayName": "Event Ticker",
+    "icon": "📜",
+    "type": "canvas",
+    "configKey": "eventticker",
+    "entrypoint": "eventticker.js",
+    "editorClass": "EventTickerModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "autoSimulate": true,
+    "description": "Scrolling ticker of recent stream events",
+    "gradient": { "from": "rgba(14, 165, 233, 0.08)", "to": "rgba(14, 165, 233, 0.25)" },
+    "properties": {
+        "speed": {
+            "type": "range",
+            "label": "Scroll Speed",
+            "min": 20,
+            "max": 200,
+            "step": 5,
+            "default": 60
+        },
+        "maxEvents": {
+            "type": "number",
+            "label": "Max Events",
+            "min": 1,
+            "max": 50,
+            "default": 20
+        },
+        "separator": {
+            "type": "string",
+            "label": "Separator",
+            "default": " ★ "
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 10,
+            "max": 48,
+            "step": 1,
+            "default": 18
+        },
+        "fontFamily": {
+            "type": "string",
+            "label": "Font Family",
+            "default": "sans-serif"
+        },
+        "color": {
+            "type": "color",
+            "label": "Text Color",
+            "default": "#ffffff"
+        },
+        "backgroundColor": {
+            "type": "color",
+            "label": "Background",
+            "default": "rgba(0,0,0,0.5)"
+        },
+        "padding": {
+            "type": "range",
+            "label": "Padding",
+            "min": 0,
+            "max": 20,
+            "step": 1,
+            "default": 4
+        },
+        "borderRadius": {
+            "type": "range",
+            "label": "Border Radius",
+            "min": 0,
+            "max": 20,
+            "step": 1,
+            "default": 0
+        }
+    }
+}

@@ -1,0 +1,140 @@
+{
+    "name": "shoutout",
+    "displayName": "Shoutout Card",
+    "icon": "📢",
+    "type": "canvas",
+    "configKey": "shoutout",
+    "entrypoint": "shoutout.js",
+    "editorClass": "ShoutoutModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Displays a user profile card for shoutouts",
+    "gradient": { "from": "rgba(249, 115, 22, 0.08)", "to": "rgba(249, 115, 22, 0.25)" },
+    "properties": {
+        "duration": {
+            "type": "range",
+            "label": "Display Duration (s)",
+            "min": 2,
+            "max": 30,
+            "step": 1,
+            "default": 8
+        },
+        "backgroundImage": {
+            "type": "media",
+            "label": "Background Image",
+            "mediaType": "image"
+        },
+        "backgroundColor": {
+            "type": "color",
+            "label": "Background Color",
+            "default": "#1a1a2e"
+        },
+        "borderColor": {
+            "type": "color",
+            "label": "Border Color",
+            "default": "#f97316"
+        },
+        "borderWidth": {
+            "type": "range",
+            "label": "Border Width",
+            "min": 0,
+            "max": 8,
+            "step": 1,
+            "default": 3
+        },
+        "borderRadius": {
+            "type": "range",
+            "label": "Border Radius",
+            "min": 0,
+            "max": 30,
+            "step": 1,
+            "default": 10
+        },
+        "avatarX": {
+            "type": "number",
+            "label": "Avatar X",
+            "min": 0,
+            "max": 2000,
+            "default": 12
+        },
+        "avatarY": {
+            "type": "number",
+            "label": "Avatar Y",
+            "min": 0,
+            "max": 2000,
+            "default": 12
+        },
+        "avatarSize": {
+            "type": "range",
+            "label": "Avatar Size",
+            "min": 20,
+            "max": 300,
+            "step": 5,
+            "default": 80
+        },
+        "avatarRound": {
+            "type": "bool",
+            "label": "Round Avatar",
+            "default": true
+        },
+        "defaultAvatar": {
+            "type": "media",
+            "label": "Default Avatar",
+            "mediaType": "image"
+        },
+        "nameX": {
+            "type": "number",
+            "label": "Name X",
+            "min": 0,
+            "max": 2000,
+            "default": 100
+        },
+        "nameY": {
+            "type": "number",
+            "label": "Name Y",
+            "min": 0,
+            "max": 2000,
+            "default": 30
+        },
+        "nameFontSize": {
+            "type": "range",
+            "label": "Name Font Size",
+            "min": 10,
+            "max": 72,
+            "step": 1,
+            "default": 24
+        },
+        "nameColor": {
+            "type": "color",
+            "label": "Name Color",
+            "default": "#f97316"
+        },
+        "gameX": {
+            "type": "number",
+            "label": "Game X",
+            "min": 0,
+            "max": 2000,
+            "default": 100
+        },
+        "gameY": {
+            "type": "number",
+            "label": "Game Y",
+            "min": 0,
+            "max": 2000,
+            "default": 60
+        },
+        "gameFontSize": {
+            "type": "range",
+            "label": "Game Font Size",
+            "min": 8,
+            "max": 48,
+            "step": 1,
+            "default": 16
+        },
+        "gameColor": {
+            "type": "color",
+            "label": "Game Color",
+            "default": "#ffffff"
+        }
+    }
+}

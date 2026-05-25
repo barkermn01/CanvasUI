@@ -1,0 +1,79 @@
+{
+    "name": "clock",
+    "displayName": "Clock",
+    "icon": "🕐",
+    "type": "canvas",
+    "configKey": "clock",
+    "entrypoint": "clock.js",
+    "editorClass": "ClockModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "autoSimulate": true,
+    "description": "Displays current time, date, or stream uptime",
+    "gradient": {
+        "from": "rgba(168, 85, 247, 0.08)",
+        "to": "rgba(168, 85, 247, 0.25)"
+    },
+    "properties": {
+        "mode": {
+            "type": "select",
+            "label": "Mode",
+            "options": [
+                "clock",
+                "date",
+                "datetime",
+                "uptime"
+            ],
+            "default": "clock"
+        },
+        "format24h": {
+            "type": "bool",
+            "label": "24-Hour Format",
+            "default": true
+        },
+        "showSeconds": {
+            "type": "bool",
+            "label": "Show Seconds",
+            "default": true
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 12,
+            "max": 200,
+            "step": 2,
+            "default": 48
+        },
+        "fontFamily": {
+            "type": "string",
+            "label": "Font Family",
+            "default": "monospace"
+        },
+        "color": {
+            "type": "color",
+            "label": "Color",
+            "default": "#ffffff"
+        },
+        "align": {
+            "type": "select",
+            "label": "Alignment",
+            "options": [
+                "left",
+                "center",
+                "right"
+            ],
+            "default": "center"
+        },
+        "streamStartTime": {
+            "type": "string",
+            "label": "Stream Start (ISO)",
+            "placeholder": "Auto-set when stream goes live",
+            "showWhen": {
+                "field": "mode",
+                "value": "uptime"
+            }
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}

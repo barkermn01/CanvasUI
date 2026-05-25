@@ -1,0 +1,80 @@
+{
+    "name": "spritesheet",
+    "displayName": "Spritesheet",
+    "icon": "🎞️",
+    "type": "canvas",
+    "configKey": "spritesheet",
+    "entrypoint": "spritesheet.js",
+    "editorClass": "SpritesheetModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Animated spritesheet player for borders, frames, and effects",
+    "gradient": {
+        "from": "rgba(251, 146, 60, 0.08)",
+        "to": "rgba(251, 146, 60, 0.25)"
+    },
+    "properties": {
+        "src": {
+            "type": "media",
+            "label": "Spritesheet Image",
+            "mediaType": "image"
+        },
+        "frameWidth": {
+            "type": "number",
+            "label": "Frame Width (px)",
+            "min": 1,
+            "max": 4096,
+            "default": 128
+        },
+        "frameHeight": {
+            "type": "number",
+            "label": "Frame Height (px)",
+            "min": 1,
+            "max": 4096,
+            "default": 128
+        },
+        "frameCount": {
+            "type": "number",
+            "label": "Frame Count",
+            "min": 1,
+            "max": 1000,
+            "default": 8
+        },
+        "fps": {
+            "type": "range",
+            "label": "FPS",
+            "min": 1,
+            "max": 60,
+            "step": 1,
+            "default": 12
+        },
+        "loop": {
+            "type": "bool",
+            "label": "Loop",
+            "default": true
+        },
+        "columns": {
+            "type": "number",
+            "label": "Columns",
+            "min": 1,
+            "max": 100,
+            "default": 8
+        },
+        "offsetX": {
+            "type": "number",
+            "label": "Offset X (px)",
+            "min": 0,
+            "max": 500,
+            "default": 0
+        },
+        "offsetY": {
+            "type": "number",
+            "label": "Offset Y (px)",
+            "min": 0,
+            "max": 500,
+            "default": 0
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}

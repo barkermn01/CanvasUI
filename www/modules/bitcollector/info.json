@@ -1,0 +1,81 @@
+{
+    "name": "bitcollector",
+    "displayName": "Bit Collector",
+    "icon": "💎",
+    "type": "canvas",
+    "configKey": "bitcollector",
+    "entrypoint": "bitcollector.js",
+    "editorClass": "BitCollectorModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Glass that fills with bits/kicks and bursts at threshold",
+    "gradient": {
+        "from": "rgba(139, 92, 246, 0.08)",
+        "to": "rgba(139, 92, 246, 0.25)"
+    },
+    "properties": {
+        "threshold": {
+            "type": "number",
+            "label": "Burst Threshold",
+            "min": 1,
+            "max": 100000,
+            "default": 1000
+        },
+        "fillColor": {
+            "type": "color",
+            "label": "Fill Color",
+            "default": "#8b5cf6"
+        },
+        "glassColor": {
+            "type": "color",
+            "label": "Glass Color",
+            "default": "#ffffff"
+        },
+        "burstColor": {
+            "type": "color",
+            "label": "Burst Color",
+            "default": "#fbbf24"
+        },
+        "backgroundColor": {
+            "type": "color",
+            "label": "Background Color",
+            "default": "#1f1f3a"
+        },
+        "showAmount": {
+            "type": "bool",
+            "label": "Show Amount",
+            "default": true
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 10,
+            "max": 48,
+            "step": 1,
+            "default": 16
+        },
+        "textColor": {
+            "type": "color",
+            "label": "Text Color",
+            "default": "#ffffff"
+        },
+        "glassThickness": {
+            "type": "range",
+            "label": "Glass Thickness",
+            "min": 1,
+            "max": 8,
+            "step": 1,
+            "default": 3
+        },
+        "borderRadius": {
+            "type": "range",
+            "label": "Border Radius",
+            "min": 0,
+            "max": 20,
+            "step": 1,
+            "default": 4
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}

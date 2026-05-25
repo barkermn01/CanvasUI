@@ -1,0 +1,81 @@
+{
+    "name": "goalbar",
+    "displayName": "Goal Bar",
+    "icon": "📊",
+    "type": "canvas",
+    "configKey": "goalbar",
+    "entrypoint": "goalbar.js",
+    "editorClass": "GoalBarModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Progress bar toward a configurable target (subs, bits, donations)",
+    "gradient": { "from": "rgba(16, 185, 129, 0.08)", "to": "rgba(16, 185, 129, 0.25)" },
+    "properties": {
+        "title": {
+            "type": "string",
+            "label": "Title",
+            "default": "Sub Goal"
+        },
+        "target": {
+            "type": "number",
+            "label": "Target",
+            "min": 1,
+            "max": 100000,
+            "default": 100
+        },
+        "current": {
+            "type": "number",
+            "label": "Starting Value",
+            "min": 0,
+            "max": 100000,
+            "default": 0
+        },
+        "textPosition": {
+            "type": "select",
+            "label": "Text Position",
+            "options": ["top", "center", "bottom"],
+            "default": "center"
+        },
+        "showNumbers": {
+            "type": "bool",
+            "label": "Show Numbers",
+            "default": true
+        },
+        "showPercentage": {
+            "type": "bool",
+            "label": "Show Percentage",
+            "default": false
+        },
+        "barColor": {
+            "type": "color",
+            "label": "Bar Color",
+            "default": "#10b981"
+        },
+        "backgroundColor": {
+            "type": "color",
+            "label": "Background Color",
+            "default": "#1f2937"
+        },
+        "textColor": {
+            "type": "color",
+            "label": "Text Color",
+            "default": "#ffffff"
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 10,
+            "max": 48,
+            "step": 1,
+            "default": 16
+        },
+        "borderRadius": {
+            "type": "range",
+            "label": "Border Radius",
+            "min": 0,
+            "max": 20,
+            "step": 1,
+            "default": 6
+        }
+    }
+}

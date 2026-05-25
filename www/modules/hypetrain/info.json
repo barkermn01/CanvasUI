@@ -1,0 +1,48 @@
+{
+    "name": "hypetrain",
+    "displayName": "Hype Train",
+    "icon": "🚂",
+    "type": "canvas",
+    "configKey": "hypetrain",
+    "entrypoint": "hypetrain.js",
+    "editorClass": "HypeTrainModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Displays hype train level and progress",
+    "gradient": {
+        "from": "rgba(244, 63, 94, 0.08)",
+        "to": "rgba(244, 63, 94, 0.25)"
+    },
+    "properties": {
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 12,
+            "max": 72,
+            "step": 2,
+            "default": 28
+        },
+        "barColor": {
+            "type": "color",
+            "label": "Bar Color",
+            "default": "#f43f5e"
+        },
+        "backgroundColor": {
+            "type": "color",
+            "label": "Background",
+            "default": "#1f2937"
+        },
+        "textColor": {
+            "type": "color",
+            "label": "Text Color",
+            "default": "#ffffff"
+        },
+        "hideWhenInactive": {
+            "type": "bool",
+            "label": "Hide When Inactive",
+            "default": true
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}

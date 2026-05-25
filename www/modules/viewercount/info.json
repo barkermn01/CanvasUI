@@ -1,0 +1,64 @@
+{
+    "name": "viewercount",
+    "displayName": "Viewer Count",
+    "icon": "👁️",
+    "type": "canvas",
+    "configKey": "viewercount",
+    "entrypoint": "viewercount.js",
+    "editorClass": "ViewerCountModule",
+    "hasSettings": false,
+    "allowMultiple": true,
+    "description": "Combined viewer count across Twitch and Kick",
+    "gradient": {
+        "from": "rgba(59, 130, 246, 0.08)",
+        "to": "rgba(59, 130, 246, 0.25)"
+    },
+    "properties": {
+        "displayMode": {
+            "type": "select",
+            "label": "Display",
+            "options": [
+                "combined",
+                "separate",
+                "twitch-only",
+                "kick-only"
+            ],
+            "default": "combined"
+        },
+        "prefix": {
+            "type": "string",
+            "label": "Prefix Text",
+            "default": "👁️ "
+        },
+        "fontSize": {
+            "type": "range",
+            "label": "Font Size",
+            "min": 12,
+            "max": 120,
+            "step": 2,
+            "default": 32
+        },
+        "fontFamily": {
+            "type": "string",
+            "label": "Font Family",
+            "default": "sans-serif"
+        },
+        "color": {
+            "type": "color",
+            "label": "Color",
+            "default": "#ffffff"
+        },
+        "align": {
+            "type": "select",
+            "label": "Alignment",
+            "options": [
+                "left",
+                "center",
+                "right"
+            ],
+            "default": "center"
+        }
+    },
+    "version": "1.4.2",
+    "builtForVersion": "1.4.2"
+}
