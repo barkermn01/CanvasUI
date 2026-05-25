@@ -249,6 +249,11 @@ body {
     height: 50%;
 }
 
+/* When only one panel is visible, fill the space */
+.sidebar-panel.visible:only-child {
+    height: 100% !important;
+}
+
 .panel-header {
     display: flex;
     align-items: center;

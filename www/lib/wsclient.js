@@ -90,8 +90,8 @@ function routeCustomMessage(resp) {
     }
 }
 
-// Initialize after a short delay to let modules register
-setTimeout(() => {
+// Exposed globally — called by modules.js after all modules are loaded
+window.initWebSocket = function() {
     const subscriptions = collectEventSubscriptions();
     console.log('[WS] Subscribing to:', JSON.stringify(subscriptions));
 
@@ -125,4 +125,4 @@ setTimeout(() => {
 
     // Expose client for debugging
     window._sbClient = client;
-}, 100);
+};

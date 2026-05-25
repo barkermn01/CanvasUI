@@ -173,13 +173,13 @@ if (document.getElementById('canvas')) {
         },
         events: {
             "Twitch.Follow": (data) => {
-                instance.addEvent(`${data.targetUser?.name || 'Someone'} followed!`);
+                instance.addEvent(`${data.user_name || data.targetUser?.name || 'Someone'} followed!`);
             },
             "Twitch.Sub": (data) => {
                 instance.addEvent(`${data.user?.name || 'Someone'} subscribed!`);
             },
             "Twitch.ReSub": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} resubscribed (${data.cumulative_months || data.duration_months || '?'} months)!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} resubscribed (${data.cumulativeMonths || '?'} months)!`);
             },
             "Twitch.GiftSub": (data) => {
                 instance.addEvent(`${data.user?.name || 'Someone'} gifted a sub to ${data.recipient?.name || 'someone'}!`);
@@ -192,7 +192,7 @@ if (document.getElementById('canvas')) {
                 instance.addEvent(`${name} cheered ${data.bits || '?'} bits!`);
             },
             "Twitch.Raid": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} raided with ${data.viewers || '?'} viewers!`);
+                instance.addEvent(`${data.from_broadcaster_user_name || data.user?.name || 'Someone'} raided with ${data.viewers || '?'} viewers!`);
             },
             "Kick.Follow": (data) => {
                 instance.addEvent(`${data.user?.name || 'Someone'} followed on Kick!`);

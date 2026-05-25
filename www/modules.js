@@ -120,6 +120,11 @@ const loadJS = (src, cb) => {
     document.addEventListener("DOMContentLoaded", async () => {
         const moduleManager = new ModuleManager();
         await moduleManager.initialize();
+
+        // Notify wsclient that modules are ready
+        if (typeof window.initWebSocket === 'function') {
+            window.initWebSocket();
+        }
         
         document.getElementById("canvas").width = window.innerWidth;
         document.getElementById("canvas").height = window.innerHeight;

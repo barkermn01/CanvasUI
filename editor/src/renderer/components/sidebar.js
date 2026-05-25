@@ -128,6 +128,20 @@ class Sidebar {
         } else {
             panelsContainer.classList.add('collapsed');
         }
+
+        // If only one panel is visible, give it full height
+        const visiblePanels = sidebar.querySelectorAll('.sidebar-panel.visible');
+        if (visiblePanels.length === 1) {
+            visiblePanels[0].style.height = '100%';
+        } else if (visiblePanels.length > 1) {
+            // Reset to saved sizes or 50/50
+            visiblePanels.forEach(p => {
+                if (!p.style.height || p.style.height === '100%') {
+                    p.style.height = `${100 / visiblePanels.length}%`;
+                }
+            });
+        }
+
         // Trigger canvas resize after sidebar width transition completes (0.2s)
         setTimeout(() => window.dispatchEvent(new Event('resize')), 250);
     }

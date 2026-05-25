@@ -133,7 +133,8 @@ class AlertMain {
         ctx.translate(-(area.width / 2), -(area.height / 2));
 
         // Background color
-        this.#roundRect(ctx, 0, 0, area.width, area.height, borderRadius);
+        const inset = borderWidth / 2;
+        this.#roundRect(ctx, inset, inset, area.width - borderWidth, area.height - borderWidth, borderRadius);
         ctx.fillStyle = bgColor;
         ctx.fill();
 
@@ -142,7 +143,7 @@ class AlertMain {
             const bgEntry = this.#getImage(bgImageSrc);
             if (bgEntry && bgEntry.ready) {
                 ctx.save();
-                this.#roundRect(ctx, 0, 0, area.width, area.height, borderRadius);
+                this.#roundRect(ctx, inset, inset, area.width - borderWidth, area.height - borderWidth, borderRadius);
                 ctx.clip();
                 ctx.drawImage(bgEntry.img, 0, 0, area.width, area.height);
                 ctx.restore();
@@ -151,7 +152,7 @@ class AlertMain {
 
         // Border
         if (borderWidth > 0) {
-            this.#roundRect(ctx, 0, 0, area.width, area.height, borderRadius);
+            this.#roundRect(ctx, inset, inset, area.width - borderWidth, area.height - borderWidth, borderRadius);
             ctx.strokeStyle = borderColor;
             ctx.lineWidth = borderWidth;
             ctx.stroke();
@@ -291,13 +292,13 @@ if (document.getElementById('canvas')) {
         },
         events: {
             "Twitch.Follow": (data) => {
-                instance.onMessage({ Type: 'Alert', title: 'New Follower!', message: data.targetUser?.name || '' });
+                instance.onMessage({ Type: 'Alert', title: 'New Follower!', message: data.user_name || data.targetUser?.name || '' });
             },
             "Twitch.Sub": (data) => {
                 instance.onMessage({ Type: 'Alert', title: 'New Subscriber!', message: data.user?.name || '' });
             },
             "Twitch.ReSub": (data) => {
-                instance.onMessage({ Type: 'Alert', title: 'Resubscribed!', message: `${data.user?.name || ''} (${data.cumulative_months || data.duration_months || '?'} months)` });
+                instance.onMessage({ Type: 'Alert', title: 'Resubscribed!', message: `${data.user?.name || ''} (${data.cumulativeMonths || '?'} months)` });
             },
             "Twitch.GiftSub": (data) => {
                 instance.onMessage({ Type: 'Alert', title: 'Gift Sub!', message: `${data.user?.name || 'Someone'} → ${data.recipient?.name || 'someone'}` });
@@ -310,7 +311,7 @@ if (document.getElementById('canvas')) {
                 instance.onMessage({ Type: 'Alert', title: `${data.bits || '?'} Bits!`, message: name });
             },
             "Twitch.Raid": (data) => {
-                instance.onMessage({ Type: 'Alert', title: 'Raid!', message: `${data.user?.name || 'Someone'} with ${data.viewers || '?'} viewers` });
+                instance.onMessage({ Type: 'Alert', title: 'Raid!', message: `${data.from_broadcaster_user_name || data.user?.name || 'Someone'} with ${data.viewers || '?'} viewers` });
             },
             "Kick.Follow": (data) => {
                 instance.onMessage({ Type: 'Alert', title: 'New Follower!', message: data.user?.name || '' });
