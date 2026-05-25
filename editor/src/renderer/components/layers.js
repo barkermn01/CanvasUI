@@ -7,7 +7,7 @@ class LayerPanel {
         this.#list = document.getElementById('layer-list');
 
         EditorState.onChange((what) => {
-            if (['scenes', 'scene-switch', 'modules', 'load', 'selection'].includes(what)) {
+            if (['scenes', 'scene-switch', 'modules', 'module-added', 'load', 'selection'].includes(what)) {
                 this.render();
             }
         });
@@ -99,9 +99,19 @@ class LayerPanel {
             });
 
             // Icon
-            const icon = document.createElement('span');
-            icon.className = 'layer-icon';
-            icon.textContent = getModuleIcon(mod.type);
+            const iconContainer = document.createElement('span');
+            iconContainer.className = 'layer-icon';
+            const iconValue = getModuleIcon(mod.type);
+            if (/\.\w{2,4}$/.test(iconValue) && !iconValue.startsWith('/') && !iconValue.includes('..')) {
+                const img = document.createElement('img');
+                img.className = 'layer-icon-img';
+                img.src = `/modules/${mod.type}/${iconValue}`;
+                iconContainer.appendChild(img);
+            } else if (/\.\w{2,4}$/.test(iconValue)) {
+                iconContainer.textContent = '📦';
+            } else {
+                iconContainer.textContent = iconValue;
+            }
 
             // Name
             const name = document.createElement('span');
@@ -160,7 +170,7 @@ class LayerPanel {
             buttons.appendChild(downBtn);
             buttons.appendChild(deleteBtn);
 
-            item.appendChild(icon);
+            item.appendChild(iconContainer);
             item.appendChild(name);
             item.appendChild(buttons);
 

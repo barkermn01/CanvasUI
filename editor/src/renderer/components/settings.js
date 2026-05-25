@@ -545,7 +545,7 @@ class SettingsPanel {
                 <div class="mm-item ${mod.builtIn ? 'mm-builtin' : 'mm-thirdparty'} ${isRevoked ? 'mm-revoked' : ''}">
                     <div class="mm-item-info">
                         <input type="checkbox" class="mm-visible-check" data-module="${mod.dir}" ${!isHidden && !isRevoked ? 'checked' : ''} ${isRevoked ? 'disabled' : ''} title="${isRevoked ? 'This module is disabled — certificate revoked' : 'Show in palette'}">
-                        <span class="mm-item-icon">${mod.icon}</span>
+                        <span class="mm-item-icon">${this.#renderModuleIcon(mod.icon, mod.dir)}</span>
                         <span class="mm-item-name">${mod.displayName}</span>
                         ${mod.builtIn ? '<span class="mm-badge">Built-in</span>' : '<span class="mm-badge mm-badge-custom">Custom</span>'}
                         ${verBadge}
@@ -750,6 +750,16 @@ class SettingsPanel {
 
             badge.addEventListener('mouseleave', scheduleHide);
         });
+    }
+
+    #renderModuleIcon(icon, moduleName) {
+        if (!icon) return '📦';
+        if (/\.\w{2,4}$/.test(icon)) {
+            if (icon.startsWith('/') || icon.includes('..')) return '📦';
+            const src = `/modules/${moduleName}/${icon}`;
+            return `<img class="mm-icon-img" src="${src}" alt="">`;
+        }
+        return icon;
     }
 
     #getVerificationBadge(mod) {

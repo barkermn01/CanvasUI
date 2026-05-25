@@ -38,6 +38,20 @@ class Toolbar {
             EditorPrefs.set('canvasLock', this.#lockCheckbox.checked);
         });
 
+        // Show labels toggle
+        const showLabelsCheckbox = document.getElementById('canvas-show-labels');
+        EditorState.showLabels = EditorPrefs.get('showLabels', true);
+        showLabelsCheckbox.checked = EditorState.showLabels;
+        showLabelsCheckbox.addEventListener('change', () => {
+            EditorState.showLabels = showLabelsCheckbox.checked;
+            EditorPrefs.set('showLabels', showLabelsCheckbox.checked);
+            document.getElementById('canvas-container')?.classList.toggle('hide-labels', !showLabelsCheckbox.checked);
+        });
+        // Apply initial state
+        if (!EditorState.showLabels) {
+            document.getElementById('canvas-container')?.classList.add('hide-labels');
+        }
+
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             const dropdown = document.getElementById('canvas-settings-dropdown');
