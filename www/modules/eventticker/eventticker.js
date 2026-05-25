@@ -173,22 +173,23 @@ if (document.getElementById('canvas')) {
         },
         events: {
             "Twitch.Follow": (data) => {
-                instance.addEvent(`${data.user?.name || data.displayName || 'Someone'} followed!`);
+                instance.addEvent(`${data.targetUser?.name || 'Someone'} followed!`);
             },
             "Twitch.Sub": (data) => {
-                instance.addEvent(`${data.user?.name || data.displayName || 'Someone'} subscribed!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} subscribed!`);
             },
             "Twitch.ReSub": (data) => {
-                instance.addEvent(`${data.user?.name || data.displayName || 'Someone'} resubscribed (${data.cumulativeMonths || '?'} months)!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} resubscribed (${data.cumulative_months || data.duration_months || '?'} months)!`);
             },
             "Twitch.GiftSub": (data) => {
                 instance.addEvent(`${data.user?.name || 'Someone'} gifted a sub to ${data.recipientUser?.name || 'someone'}!`);
             },
             "Twitch.GiftBomb": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} gifted ${data.gifts || '?'} subs!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} gifted ${data.gifts || data.totalGifts || '?'} subs!`);
             },
             "Twitch.Cheer": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} cheered ${data.bits || '?'} bits!`);
+                const name = data.anonymous ? 'Anonymous' : (data.user?.name || 'Someone');
+                instance.addEvent(`${name} cheered ${data.bits || '?'} bits!`);
             },
             "Twitch.Raid": (data) => {
                 instance.addEvent(`${data.user?.name || 'Someone'} raided with ${data.viewers || '?'} viewers!`);

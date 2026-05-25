@@ -288,6 +288,45 @@ if (document.getElementById('canvas')) {
         },
         message: (data) => {
             instance.onMessage(data);
+        },
+        events: {
+            "Twitch.Follow": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'New Follower!', message: data.targetUser?.name || '' });
+            },
+            "Twitch.Sub": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'New Subscriber!', message: data.user?.name || '' });
+            },
+            "Twitch.ReSub": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Resubscribed!', message: `${data.user?.name || ''} (${data.cumulative_months || data.duration_months || '?'} months)` });
+            },
+            "Twitch.GiftSub": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Gift Sub!', message: `${data.user?.name || 'Someone'} → ${data.recipientUser?.name || 'someone'}` });
+            },
+            "Twitch.GiftBomb": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Gift Bomb!', message: `${data.user?.name || 'Someone'} gifted ${data.gifts || data.totalGifts || '?'} subs` });
+            },
+            "Twitch.Cheer": (data) => {
+                const name = data.anonymous ? 'Anonymous' : (data.user?.name || 'Someone');
+                instance.onMessage({ Type: 'Alert', title: `${data.bits || '?'} Bits!`, message: name });
+            },
+            "Twitch.Raid": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Raid!', message: `${data.user?.name || 'Someone'} with ${data.viewers || '?'} viewers` });
+            },
+            "Kick.Follow": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'New Follower!', message: data.user?.name || '' });
+            },
+            "Kick.Subscription": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'New Subscriber!', message: data.user?.name || '' });
+            },
+            "Kick.Resubscription": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Resubscribed!', message: data.user?.name || '' });
+            },
+            "Kick.GiftSubscription": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Gift Sub!', message: data.user?.name || '' });
+            },
+            "Kick.MassGiftSubscription": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Gift Bomb!', message: `${data.user?.name || 'Someone'} gifted subs` });
+            }
         }
     });
 }
