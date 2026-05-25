@@ -267,16 +267,6 @@ if (document.getElementById('canvas')) {
         },
         message: (data) => {
             instance.onMessage(data);
-        },
-        events: {
-            "Twitch.ShoutoutCreated": (data) => {
-                instance.onMessage({
-                    Type: 'Shoutout',
-                    name: data.targetUserDisplayName || data.targetUserLogin || '',
-                    game: '',
-                    avatar: ''
-                });
-            }
         }
     });
 }
