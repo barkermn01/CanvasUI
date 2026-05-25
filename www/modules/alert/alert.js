@@ -326,6 +326,15 @@ if (document.getElementById('canvas')) {
             },
             "Kick.MassGiftSubscription": (data) => {
                 instance.onMessage({ Type: 'Alert', title: 'Gift Bomb!', message: `${data.user?.name || 'Someone'} gifted subs` });
+            },
+            "Twitch.GiftPaidUpgrade": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Sub Upgrade!', message: `${data.user?.name || 'Someone'} continued their gift sub` });
+            },
+            "Twitch.CharityDonation": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Charity Donation!', message: `${data.user?.name || 'Someone'} donated${data.amount ? ' ' + data.amount : ''}` });
+            },
+            "Kick.sGifted": (data) => {
+                instance.onMessage({ Type: 'Alert', title: 'Kicks Gifted!', message: `${data.user?.name || 'Someone'} donated ${data.amount || data.kicksAmount || '?'} kicks` });
             }
         }
     });

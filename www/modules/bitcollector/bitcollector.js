@@ -247,6 +247,9 @@ if (document.getElementById('canvas')) {
         events: {
             "Twitch.Cheer": (data) => {
                 instance.onMessage({ Type: 'Add', amount: data.bits || 0 });
+            },
+            "Kick.sGifted": (data) => {
+                instance.onMessage({ Type: 'Add', amount: parseInt(data.amount || data.kicksAmount || 0) });
             }
         }
     });
