@@ -300,10 +300,10 @@ if (document.getElementById('canvas')) {
                 instance.onMessage({ Type: 'Alert', title: 'Resubscribed!', message: `${data.user?.name || ''} (${data.cumulative_months || data.duration_months || '?'} months)` });
             },
             "Twitch.GiftSub": (data) => {
-                instance.onMessage({ Type: 'Alert', title: 'Gift Sub!', message: `${data.user?.name || 'Someone'} → ${data.recipientUser?.name || 'someone'}` });
+                instance.onMessage({ Type: 'Alert', title: 'Gift Sub!', message: `${data.user?.name || 'Someone'} → ${data.recipient?.name || 'someone'}` });
             },
             "Twitch.GiftBomb": (data) => {
-                instance.onMessage({ Type: 'Alert', title: 'Gift Bomb!', message: `${data.user?.name || 'Someone'} gifted ${data.gifts || data.totalGifts || '?'} subs` });
+                instance.onMessage({ Type: 'Alert', title: 'Gift Bomb!', message: `${data.user?.name || 'Someone'} gifted ${data.total || '?'} subs` });
             },
             "Twitch.Cheer": (data) => {
                 const name = data.anonymous ? 'Anonymous' : (data.user?.name || 'Someone');

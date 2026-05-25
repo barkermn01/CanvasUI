@@ -182,10 +182,10 @@ if (document.getElementById('canvas')) {
                 instance.addEvent(`${data.user?.name || 'Someone'} resubscribed (${data.cumulative_months || data.duration_months || '?'} months)!`);
             },
             "Twitch.GiftSub": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} gifted a sub to ${data.recipientUser?.name || 'someone'}!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} gifted a sub to ${data.recipient?.name || 'someone'}!`);
             },
             "Twitch.GiftBomb": (data) => {
-                instance.addEvent(`${data.user?.name || 'Someone'} gifted ${data.gifts || data.totalGifts || '?'} subs!`);
+                instance.addEvent(`${data.user?.name || 'Someone'} gifted ${data.total || '?'} subs!`);
             },
             "Twitch.Cheer": (data) => {
                 const name = data.anonymous ? 'Anonymous' : (data.user?.name || 'Someone');
