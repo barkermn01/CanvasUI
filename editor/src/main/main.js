@@ -211,7 +211,18 @@ const crypto = require('crypto');
 const AdmZip = require('adm-zip');
 const cumod = require('./cumod');
 
-const BUILT_IN_MODULES = ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+// Built-in modules are determined from the modules.json shipped with the app
+function getBuiltInModules() {
+    try {
+        const manifestPath = path.join(getWwwDir(), 'modules', 'modules.json');
+        if (fs.existsSync(manifestPath)) {
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+            return Object.keys(manifest).filter(k => k !== 'scene');
+        }
+    } catch (e) {}
+    return ['chat', 'emote', 'audiovisualiser', 'webcam', 'image', 'video', 'pngtuber'];
+}
+const BUILT_IN_MODULES = getBuiltInModules();
 const APP_VERSION = require('../../package.json').version;
 
 function hashFile(filePath) {

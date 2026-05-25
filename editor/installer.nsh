@@ -9,10 +9,10 @@
   IfFileExists "$INSTDIR\resources\www\media" 0 +2
     CopyFiles /SILENT "$INSTDIR\resources\www\media\*.*" "$TEMP\canvasui_media_backup"
 
-  ; Backup custom modules (any module not in the built-in list)
+  ; Backup custom modules (any module not shipped with the installer)
   IfFileExists "$INSTDIR\resources\www\modules" 0 +3
     CreateDirectory "$TEMP\canvasui_modules_backup"
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$builtIn = @(''chat'',''emote'',''audiovisualiser'',''webcam'',''image'',''video'',''pngtuber''); $$dir = ''$INSTDIR\resources\www\modules''; if (Test-Path $$dir) { Get-ChildItem $$dir -Directory | Where-Object { $$builtIn -notcontains $$_.Name } | ForEach-Object { Copy-Item $$_.FullName ''$TEMP\canvasui_modules_backup\'' -Recurse -Force } } }"'
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "& {$$dir = ''$INSTDIR\resources\www\modules''; $$mf = Join-Path $$dir ''modules.json''; if ((Test-Path $$dir) -and (Test-Path $$mf)) { $$builtIn = (Get-Content $$mf -Raw | ConvertFrom-Json).PSObject.Properties.Name; Get-ChildItem $$dir -Directory | Where-Object { $$builtIn -notcontains $$_.Name -and $$_.Name -ne ''.packages'' } | ForEach-Object { Copy-Item $$_.FullName ''$TEMP\canvasui_modules_backup\'' -Recurse -Force } } }"'
 !macroend
 
 !macro customInstall
