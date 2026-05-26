@@ -516,32 +516,26 @@ class TypeRenderer {
             }
         });
 
-        // Apply raw CSS on change — debounce onChange to prevent parent re-render
-        // from destroying this editor mid-typing
-        let _cssDebounce = null;
-        const applyRawCss = () => {
+        // Apply raw CSS on change — only when Save is clicked
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'tr-css-save-btn';
+        saveBtn.textContent = '💾 Save CSS';
+        saveBtn.addEventListener('click', () => {
             try {
                 const parsed = cssToObj(textarea.value);
                 // Clear existing keys and apply parsed
                 for (const k of Object.keys(value)) delete value[k];
                 Object.assign(value, parsed);
                 parentObj[key] = value;
-                rawStatus.textContent = `✓ ${Object.keys(parsed).length} properties`;
+                rawStatus.textContent = `✓ ${Object.keys(parsed).length} properties saved`;
                 rawStatus.className = 'tr-css-raw-status success';
-                // Debounce the onChange to avoid parent re-render while typing
-                clearTimeout(_cssDebounce);
-                _cssDebounce = setTimeout(() => onChange(), 800);
+                onChange();
             } catch (err) {
                 rawStatus.textContent = '⚠ Parse error';
                 rawStatus.className = 'tr-css-raw-status error';
             }
-        };
-
-        textarea.addEventListener('input', applyRawCss);
-        textarea.addEventListener('paste', () => {
-            // Paste fires before input updates the value, so defer
-            setTimeout(applyRawCss, 0);
         });
+        rawEditor.appendChild(saveBtn);
 
         const renderList = () => {
             list.innerHTML = '';
