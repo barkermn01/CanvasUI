@@ -546,26 +546,7 @@ class CanvasChatMain {
                 ctx.translate(msg.slideOffset, 0);
             }
 
-            // Drop shadow on box — use a separate save/restore so shadow only affects the box outline
-            if (dropShadow) {
-                ctx.save();
-                ctx.shadowColor = dropShadow.color;
-                ctx.shadowBlur = dropShadow.blur;
-                ctx.shadowOffsetX = dropShadow.x;
-                ctx.shadowOffsetY = dropShadow.y;
-                // Clip out the box area so only the shadow (outside the box) is visible
-                ctx.beginPath();
-                ctx.rect(boxX - 100, msgY - 100, boxW + 200, boxH + 200);
-                this.#roundRect(ctx, boxX, msgY, boxW, boxH, borderRadius);
-                // Use evenodd to cut out the inner shape — shadow renders outside
-                ctx.clip('evenodd');
-                ctx.fillStyle = 'rgba(0,0,0,1)';
-                this.#roundRect(ctx, boxX, msgY, boxW, boxH, borderRadius);
-                ctx.fill();
-                ctx.restore();
-                // Re-apply globalAlpha for the actual content
-                ctx.globalAlpha = msg.alpha;
-            }
+            // Drop shadow is handled by the CSS filter in #drawMessageBox SVG rendering
 
             // Background + Border — rendered together via CSS for accurate styling
             this.#drawMessageBox(ctx, style, bgStyle, boxX, msgY, boxW, boxH, borderRadius, borderWidth, dropShadow);
@@ -849,16 +830,24 @@ class CanvasChatMain {
         }
 
         const cacheKey = `${css}`;
-        const rw = Math.ceil(w) + (dropShadow ? Math.abs(dropShadow.x) + dropShadow.blur * 2 : 0);
-        const rh = Math.ceil(h) + (dropShadow ? Math.abs(dropShadow.y) + dropShadow.blur * 2 : 0);
-        const offsetX = dropShadow ? dropShadow.blur : 0;
-        const offsetY = dropShadow ? dropShadow.blur : 0;
+
+        // Calculate extra space for drop-shadow overflow
+        // Only add extra on the right/bottom — never shift the image left/up
+        // of the draw position to avoid scene clip boundary cutting the border
+        const sBlur = dropShadow ? dropShadow.blur : 0;
+        const sX = dropShadow ? dropShadow.x : 0;
+        const sY = dropShadow ? dropShadow.y : 0;
+        const extraRight = sBlur + Math.max(0, sX);
+        const extraBottom = sBlur + Math.max(0, sY);
+
+        const rw = Math.ceil(w) + extraRight;
+        const rh = Math.ceil(h) + extraBottom;
 
         // Check cache
         if (this.#bgCache.has(cacheKey)) {
             const cached = this.#bgCache.get(cacheKey);
             if (cached.ready) {
-                ctx.drawImage(cached.canvas, x - offsetX, y - offsetY);
+                ctx.drawImage(cached.canvas, x, y);
                 return;
             }
             // Still loading — draw fallback and wait
@@ -872,9 +861,10 @@ class CanvasChatMain {
         }
 
         // Build SVG with foreignObject to render the CSS natively
-        // Add padding around the div for drop-shadow overflow
-        const divCss = css + `margin:${offsetY}px 0 0 ${offsetX}px;`;
-        const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${rw}" height="${rh}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" style="${divCss}"></div></foreignObject></svg>`;
+        // Box starts at top-left of SVG, extra space on right/bottom for shadow
+        // overflow:visible allows the drop-shadow filter to render on all sides
+        const divCss = css;
+        const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${rw}" height="${rh}"><foreignObject width="100%" height="100%" style="overflow:visible"><div xmlns="http://www.w3.org/1999/xhtml" style="${divCss}"></div></foreignObject></svg>`;
 
         const entry = { canvas: null, ready: false };
         this.#bgCache.set(cacheKey, entry);
