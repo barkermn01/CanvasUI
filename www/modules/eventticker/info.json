@@ -10,7 +10,10 @@
     "allowMultiple": true,
     "autoSimulate": true,
     "description": "Scrolling ticker of recent stream events",
-    "gradient": { "from": "rgba(14, 165, 233, 0.08)", "to": "rgba(14, 165, 233, 0.25)" },
+    "gradient": {
+        "from": "rgba(14, 165, 233, 0.08)",
+        "to": "rgba(14, 165, 233, 0.25)"
+    },
     "properties": {
         "speed": {
             "type": "range",
@@ -71,5 +74,7 @@
             "step": 1,
             "default": 0
         }
-    }
+    },
+    "version": "1.5.0",
+    "builtForVersion": "1.5.0"
 }

@@ -9,7 +9,10 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Animated alert popups for follows, subs, raids, and custom events",
-    "gradient": { "from": "rgba(245, 158, 11, 0.08)", "to": "rgba(245, 158, 11, 0.25)" },
+    "gradient": {
+        "from": "rgba(245, 158, 11, 0.08)",
+        "to": "rgba(245, 158, 11, 0.25)"
+    },
     "properties": {
         "duration": {
             "type": "range",
@@ -22,13 +25,25 @@
         "animationIn": {
             "type": "select",
             "label": "Animation In",
-            "options": ["fade", "slide-down", "slide-up", "scale", "none"],
+            "options": [
+                "fade",
+                "slide-down",
+                "slide-up",
+                "scale",
+                "none"
+            ],
             "default": "scale"
         },
         "animationOut": {
             "type": "select",
             "label": "Animation Out",
-            "options": ["fade", "slide-down", "slide-up", "scale", "none"],
+            "options": [
+                "fade",
+                "slide-down",
+                "slide-up",
+                "scale",
+                "none"
+            ],
             "default": "fade"
         },
         "animationSpeed": {
@@ -88,7 +103,11 @@
         "titleAlign": {
             "type": "select",
             "label": "Title Align",
-            "options": ["left", "center", "right"],
+            "options": [
+                "left",
+                "center",
+                "right"
+            ],
             "default": "center"
         },
         "fontSize": {
@@ -126,7 +145,11 @@
         "messageAlign": {
             "type": "select",
             "label": "Message Align",
-            "options": ["left", "center", "right"],
+            "options": [
+                "left",
+                "center",
+                "right"
+            ],
             "default": "center"
         },
         "messageFontSize": {
@@ -168,5 +191,7 @@
             "step": 1,
             "default": 8
         }
-    }
+    },
+    "version": "1.5.0",
+    "builtForVersion": "1.5.0"
 }

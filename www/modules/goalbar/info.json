@@ -9,7 +9,10 @@
     "hasSettings": false,
     "allowMultiple": true,
     "description": "Progress bar toward a configurable target (subs, bits, donations)",
-    "gradient": { "from": "rgba(16, 185, 129, 0.08)", "to": "rgba(16, 185, 129, 0.25)" },
+    "gradient": {
+        "from": "rgba(16, 185, 129, 0.08)",
+        "to": "rgba(16, 185, 129, 0.25)"
+    },
     "properties": {
         "title": {
             "type": "string",
@@ -33,7 +36,11 @@
         "textPosition": {
             "type": "select",
             "label": "Text Position",
-            "options": ["top", "center", "bottom"],
+            "options": [
+                "top",
+                "center",
+                "bottom"
+            ],
             "default": "center"
         },
         "showNumbers": {
@@ -77,5 +84,7 @@
             "step": 1,
             "default": 6
         }
-    }
+    },
+    "version": "1.5.0",
+    "builtForVersion": "1.5.0"
 }
