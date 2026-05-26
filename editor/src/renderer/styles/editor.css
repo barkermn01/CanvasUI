@@ -1276,8 +1276,83 @@ body {
     margin-bottom: 8px;
 }
 
+.tr-css-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tr-css-mode-toggle {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tr-css-mode-toggle:hover {
+    background: var(--accent);
+    color: white;
+}
+
+.tr-css-mode-toggle.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
+
 .tr-css-list {
     padding: 6px;
+}
+
+.tr-css-raw {
+    padding: 6px;
+}
+
+.tr-css-textarea {
+    width: 100%;
+    min-height: 120px;
+    max-height: 400px;
+    resize: vertical;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    tab-size: 4;
+    box-sizing: border-box;
+}
+
+.tr-css-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.tr-css-textarea::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.tr-css-raw-status {
+    font-size: 11px;
+    margin-top: 4px;
+    min-height: 16px;
+    color: var(--text-secondary);
+}
+
+.tr-css-raw-status.success {
+    color: var(--success, #4ade80);
+}
+
+.tr-css-raw-status.error {
+    color: var(--danger);
 }
 
 .tr-css-row {

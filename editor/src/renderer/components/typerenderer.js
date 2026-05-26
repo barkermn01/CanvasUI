@@ -5,6 +5,9 @@
  * appropriate inputs for each property.
  */
 class TypeRenderer {
+    // Track which CSS editors are in raw mode (survives re-renders)
+    static #cssRawModeState = new Map();
+
     /**
      * Renders a config object into a container using schema metadata.
      * Schema is read from the module registry's info files, falling back to obj._type for legacy.
@@ -422,12 +425,123 @@ class TypeRenderer {
         section.className = 'tr-css-section';
 
         const header = document.createElement('div');
-        header.className = 'tr-group-header';
-        header.textContent = `${key} (CSS)`;
+        header.className = 'tr-group-header tr-css-header';
+
+        const headerLabel = document.createElement('span');
+        headerLabel.textContent = `${key} (CSS)`;
+        header.appendChild(headerLabel);
+
+        const modeToggle = document.createElement('button');
+        modeToggle.className = 'tr-css-mode-toggle';
+        modeToggle.textContent = '{ }';
+        modeToggle.title = 'Toggle raw CSS mode';
+        header.appendChild(modeToggle);
+
         section.appendChild(header);
 
         const list = document.createElement('div');
         list.className = 'tr-css-list';
+
+        const rawEditor = document.createElement('div');
+        rawEditor.className = 'tr-css-raw';
+        rawEditor.style.display = 'none';
+
+        const textarea = document.createElement('textarea');
+        textarea.className = 'tr-css-textarea';
+        textarea.spellcheck = false;
+        textarea.placeholder = 'font-size: 14px;\nbackground: rgba(0,0,0,0.5);\nborder-radius: 8px;';
+        rawEditor.appendChild(textarea);
+
+        const rawStatus = document.createElement('div');
+        rawStatus.className = 'tr-css-raw-status';
+        rawEditor.appendChild(rawStatus);
+
+        let rawMode = false;
+
+        // Persist raw mode state across re-renders using a static Map keyed by path
+        const rawModeKey = `${fullPath}.${key}`;
+        if (TypeRenderer.#cssRawModeState.get(rawModeKey)) {
+            rawMode = true;
+        }
+
+        // Convert object to CSS text
+        const objToCss = (obj) => {
+            return Object.entries(obj || {}).map(([p, v]) => `${p}: ${v};`).join('\n');
+        };
+
+        // Parse CSS text back to object
+        const cssToObj = (text) => {
+            const result = {};
+            const lines = text.split('\n');
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('/*') || trimmed.startsWith('//')) continue;
+                // Find the first colon that separates property from value
+                const colonIdx = trimmed.indexOf(':');
+                if (colonIdx === -1) continue;
+                const prop = trimmed.substring(0, colonIdx).trim();
+                let val = trimmed.substring(colonIdx + 1).trim();
+                // Remove trailing semicolon
+                if (val.endsWith(';')) val = val.slice(0, -1).trim();
+                if (prop) result[prop] = val;
+            }
+            return result;
+        };
+
+        const switchToRaw = () => {
+            textarea.value = objToCss(value);
+            list.style.display = 'none';
+            rawEditor.style.display = '';
+            modeToggle.classList.add('active');
+            modeToggle.title = 'Switch to property editor';
+            rawStatus.textContent = '';
+        };
+
+        const switchToProperties = () => {
+            list.style.display = '';
+            rawEditor.style.display = 'none';
+            modeToggle.classList.remove('active');
+            modeToggle.title = 'Toggle raw CSS mode';
+            renderList();
+        };
+
+        modeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            rawMode = !rawMode;
+            TypeRenderer.#cssRawModeState.set(rawModeKey, rawMode);
+            if (rawMode) {
+                switchToRaw();
+            } else {
+                switchToProperties();
+            }
+        });
+
+        // Apply raw CSS on change — debounce onChange to prevent parent re-render
+        // from destroying this editor mid-typing
+        let _cssDebounce = null;
+        const applyRawCss = () => {
+            try {
+                const parsed = cssToObj(textarea.value);
+                // Clear existing keys and apply parsed
+                for (const k of Object.keys(value)) delete value[k];
+                Object.assign(value, parsed);
+                parentObj[key] = value;
+                rawStatus.textContent = `✓ ${Object.keys(parsed).length} properties`;
+                rawStatus.className = 'tr-css-raw-status success';
+                // Debounce the onChange to avoid parent re-render while typing
+                clearTimeout(_cssDebounce);
+                _cssDebounce = setTimeout(() => onChange(), 800);
+            } catch (err) {
+                rawStatus.textContent = '⚠ Parse error';
+                rawStatus.className = 'tr-css-raw-status error';
+            }
+        };
+
+        textarea.addEventListener('input', applyRawCss);
+        textarea.addEventListener('paste', () => {
+            // Paste fires before input updates the value, so defer
+            setTimeout(applyRawCss, 0);
+        });
 
         const renderList = () => {
             list.innerHTML = '';
@@ -496,6 +610,13 @@ class TypeRenderer {
 
         renderList();
         section.appendChild(list);
+        section.appendChild(rawEditor);
+
+        // If raw mode was active before re-render, restore it
+        if (rawMode) {
+            switchToRaw();
+        }
+
         return section;
     }
 
