@@ -24,7 +24,11 @@ class SceneManager {
             console.warn("DefaultScene not found, falling back to:", defaultScene);
         }
 
-        if (defaultScene && this.#scenes[defaultScene]) {
+        // Restore last active scene from localStorage if it still exists
+        const savedScene = localStorage.getItem('activeScene');
+        if (savedScene && this.#scenes[savedScene]) {
+            this.#activeScene = savedScene;
+        } else if (defaultScene && this.#scenes[defaultScene]) {
             this.#activeScene = defaultScene;
         }
 
@@ -155,6 +159,7 @@ class SceneManager {
         this.#transitioning = true;
 
         this.#activeScene = sceneName;
+        localStorage.setItem('activeScene', sceneName);
 
         console.log("Scene switched to:", sceneName);
     }

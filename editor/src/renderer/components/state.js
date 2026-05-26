@@ -88,6 +88,7 @@ const EditorState = {
     switchScene(name) {
         if (!this.scenes[name]) return;
         this.activeScene = name;
+        localStorage.setItem('editorActiveScene', name);
         this.selectedModule = null;
         this.notify('scene-switch');
     },
@@ -445,6 +446,13 @@ const EditorState = {
         }
 
         this.activeScene = this.globalConfig.DefaultScene;
+
+        // Restore last active scene from localStorage if it still exists
+        const savedScene = localStorage.getItem('editorActiveScene');
+        if (savedScene && this.scenes[savedScene]) {
+            this.activeScene = savedScene;
+        }
+
         this.selectedModule = null;
         this.dirty = false;
         this.notify('load');
