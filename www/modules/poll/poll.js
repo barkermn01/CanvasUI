@@ -230,6 +230,9 @@ if (document.getElementById('canvas')) {
             },
             "Twitch.PollCompleted": () => {
                 instance.onMessage({ Type: 'End' });
+            },
+            "Twitch.PollTerminated": () => {
+                instance.onMessage({ Type: 'End' });
             }
         }
     });

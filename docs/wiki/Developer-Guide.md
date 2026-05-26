@@ -632,6 +632,95 @@ The `Module` field matches the module's registered `name`. The `Data` object is 
 
 ---
 
+## Native Streamer.bot Events
+
+Modules can subscribe to native Streamer.bot WebSocket events (Twitch.Follow, Kick.Subscription, etc.) without needing a custom C# action. The overlay's `wsclient.js` automatically collects subscriptions from all modules and subscribes on connect.
+
+### Registering Event Handlers
+
+Add an `events` object to your module registration:
+
+```javascript
+window.Modules.push({
+    name: "mymodule",
+    draw: (ctx, settings, area) => { ... },
+    update: (dt) => { ... },
+    message: (data) => { ... },  // For custom action messages (General.Custom)
+    events: {
+        "Twitch.Follow": (data) => {
+            // data contains the raw event payload from Streamer.bot
+            console.log('New follower:', data.user_name || data.targetUser?.name);
+        },
+        "Twitch.Cheer": (data) => {
+            console.log('Cheer:', data.bits, 'from', data.user?.name);
+        },
+        "Kick.Follow": (data) => {
+            console.log('Kick follow:', data.user?.name);
+        }
+    }
+});
+```
+
+### How It Works
+
+1. Each module declares which events it wants in its `events` object
+2. On startup, `wsclient.js` collects all event keys from all modules
+3. It sends a Subscribe request to Streamer.bot with the merged event list
+4. When events arrive, they're routed to all modules that registered for that event
+
+### Event Key Format
+
+Event keys use the format `"Source.EventName"`:
+- `"Twitch.Follow"` — Twitch follow event
+- `"Twitch.Cheer"` — Twitch bits cheer
+- `"Kick.Subscription"` — Kick subscription
+- `"Twitch.HypeTrainStart"` — Hype train started
+
+### Available Events
+
+See the full list at: https://docs.streamer.bot/api/websocket/events
+
+Common events for stream overlays:
+
+| Event | Key Fields |
+|-------|-----------|
+| `Twitch.Follow` | `data.user_name` or `data.targetUser.name` |
+| `Twitch.Sub` | `data.user.name`, `data.sub_tier`, `data.is_prime` |
+| `Twitch.ReSub` | `data.user.name`, `data.cumulativeMonths` |
+| `Twitch.GiftSub` | `data.user.name`, `data.recipient.name` |
+| `Twitch.GiftBomb` | `data.user.name`, `data.total` |
+| `Twitch.Cheer` | `data.user.name`, `data.bits`, `data.anonymous` |
+| `Twitch.Raid` | `data.from_broadcaster_user_name`, `data.viewers` |
+| `Twitch.HypeTrainStart` | `data.level`, `data.progress`, `data.goal` |
+| `Twitch.HypeTrainUpdate` | `data.level`, `data.progress`, `data.goal` |
+| `Twitch.HypeTrainEnd` | (no key fields) |
+| `Twitch.PollCreated` | `data.title`, `data.choices[].title`, `data.ends_at` |
+| `Twitch.PollUpdated` | `data.title`, `data.choices[].title`, `data.choices[].votes` |
+| `Twitch.PollCompleted` | (no key fields) |
+| `Twitch.ViewerCountUpdate` | `data.viewers` or `data.viewerCount` |
+| `Twitch.StreamOnline` | (no key fields) |
+| `Kick.Follow` | `data.user.name` |
+| `Kick.Subscription` | `data.user.name` |
+| `Kick.ViewerCountUpdate` | `data.viewerCount` |
+
+### Custom Messages vs Native Events
+
+| Approach | When to Use |
+|----------|-------------|
+| `message(data)` | When you need normalised data from a C# action (e.g. chat messages that combine Twitch + Kick into one format) |
+| `events` | When the native event data is sufficient and you don't need server-side processing |
+
+Both can coexist on the same module. Custom messages are routed via `General.Custom` events with a `Module` field. Native events are routed directly by their source and type.
+
+### Important Notes
+
+- Event field names come from Streamer.bot's WebSocket API, not the trigger variables
+- Field names may differ between Streamer.bot versions — use fallback chains: `data.user_name || data.targetUser?.name`
+- Test events from Streamer.bot's "Test" button may not fire WebSocket events — test with real events or use the browser console
+- The `wsclient.js` only connects after all modules are loaded (called by `modules.js`)
+
+---
+
 ## Editor WebSocket (Live Reload)
 
 The editor's server has a WebSocket for:
