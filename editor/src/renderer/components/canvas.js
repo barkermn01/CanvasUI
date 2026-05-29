@@ -26,7 +26,9 @@ class CanvasWorkspace {
     #dragging = null;
     #resizing = null;
     #rotating = null;
+    #cropping = null;
     #dragOffset = { x: 0, y: 0 };
+    #contextMenu = null;
 
     constructor() {
         this.#canvas = document.getElementById('editor-canvas');
@@ -40,11 +42,18 @@ class CanvasWorkspace {
             }
             if (what === 'selection') {
                 this.#updateSelection();
+                // Re-apply crop clip-path since it depends on selection state
+                this.#canvas.querySelectorAll('[data-module-id]').forEach(el => {
+                    this.#updateModuleElement(el.dataset.moduleId);
+                });
             }
             if (what === 'module-settings') {
                 this.#updateModulePreview();
             }
             if (what === 'module-area' && EditorState.selectedModule) {
+                this.#updateModuleElement(EditorState.selectedModule);
+            }
+            if (what === 'module-crop' && EditorState.selectedModule) {
                 this.#updateModuleElement(EditorState.selectedModule);
             }
         });
@@ -77,6 +86,21 @@ class CanvasWorkspace {
             if (e.target === this.#canvas) {
                 EditorState.selectModule(null);
             }
+            // Dismiss context menu on any click
+            this.#dismissContextMenu();
+        });
+
+        // Right-click context menu on modules
+        this.#canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            const moduleEl = e.target.closest('[data-module-id]');
+            if (!moduleEl) {
+                this.#dismissContextMenu();
+                return;
+            }
+            const id = moduleEl.dataset.moduleId;
+            EditorState.selectModule(id);
+            this.#showContextMenu(e.clientX, e.clientY, id);
         });
 
         // Click workspace background (blue area) to deselect
@@ -223,16 +247,72 @@ class CanvasWorkspace {
             this.#rotating.snap = !e.shiftKey;
             this.#handleRotate(mx, my);
         }
+
+        if (this.#cropping) {
+            const rect = this.#canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) / this.#scale;
+            const my = (e.clientY - rect.top) / this.#scale;
+            this.#handleCrop(mx, my);
+        }
     }
 
     #onMouseUp() {
-        if (this.#resizing || this.#dragging || this.#rotating) {
-            // Re-render preview after drag/resize/rotate completes
+        if (this.#resizing || this.#dragging || this.#rotating || this.#cropping) {
+            // Re-render preview after drag/resize/rotate/crop completes
             this.#updateModulePreview();
         }
         this.#dragging = null;
         this.#resizing = null;
         this.#rotating = null;
+        this.#cropping = null;
+    }
+
+    #showContextMenu(clientX, clientY, moduleId) {
+        this.#dismissContextMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'canvas-context-menu';
+        menu.style.left = clientX + 'px';
+        menu.style.top = clientY + 'px';
+
+        const isCropMode = EditorState.cropMode === moduleId;
+
+        // Toggle crop mode
+        const cropItem = document.createElement('div');
+        cropItem.className = 'context-menu-item' + (isCropMode ? ' active' : '');
+        cropItem.textContent = isCropMode ? '✂️ Exit Crop Mode' : '✂️ Crop Mode';
+        cropItem.addEventListener('click', () => {
+            EditorState.cropMode = isCropMode ? null : moduleId;
+            this.#dismissContextMenu();
+            this.render();
+            this.#updateModuleElement(moduleId);
+        });
+        menu.appendChild(cropItem);
+
+        // Reset crop
+        const mod = EditorState.getActiveSceneModules()[moduleId];
+        const hasCrop = mod?.crop && (mod.crop.top || mod.crop.right || mod.crop.bottom || mod.crop.left);
+        if (hasCrop) {
+            const resetItem = document.createElement('div');
+            resetItem.className = 'context-menu-item';
+            resetItem.textContent = '↩️ Reset Crop';
+            resetItem.addEventListener('click', () => {
+                EditorState.updateModuleCrop(moduleId, { top: 0, right: 0, bottom: 0, left: 0 });
+                this.#dismissContextMenu();
+                this.#updateModuleElement(moduleId);
+            });
+            menu.appendChild(resetItem);
+        }
+
+        document.body.appendChild(menu);
+        this.#contextMenu = menu;
+    }
+
+    #dismissContextMenu() {
+        if (this.#contextMenu) {
+            this.#contextMenu.remove();
+            this.#contextMenu = null;
+        }
     }
 
     #handleResize(mx, my) {
@@ -240,15 +320,44 @@ class CanvasWorkspace {
         let { x, y, width, height } = startArea;
         const minSize = 30;
 
-        switch (handle) {
-            case 'se': width = mx - x; height = my - y; break;
-            case 'sw': width = (x + width) - mx; x = mx; height = my - y; break;
-            case 'ne': width = mx - x; height = (y + height) - my; y = my; break;
-            case 'nw': width = (x + width) - mx; height = (y + height) - my; x = mx; y = my; break;
-            case 'e': width = mx - x; break;
-            case 'w': width = (x + width) - mx; x = mx; break;
-            case 's': height = my - y; break;
-            case 'n': height = (y + height) - my; y = my; break;
+        // When cropped (not in crop mode), the handles are at the cropped edges
+        // but startArea is the full area. Offset mouse to match full area coordinates.
+        const mod = EditorState.getActiveSceneModules()[id];
+        const crop = mod?.crop || {};
+        const hasCrop = crop.top || crop.right || crop.bottom || crop.left;
+        const inCropMode = EditorState.cropMode === id;
+
+        if (hasCrop && !inCropMode) {
+            // Adjust mouse position: handles are at cropped edges, math expects full area edges
+            // For handles on the left/top side, the handle is at area.x + crop.left (not area.x)
+            // The switch below uses mx directly as the new edge position, so we need to
+            // NOT adjust mx/my — instead adjust the startArea to match the cropped bounds
+            const cx = startArea.x + (crop.left || 0);
+            const cy = startArea.y + (crop.top || 0);
+            const cw = startArea.width - (crop.left || 0) - (crop.right || 0);
+            const ch = startArea.height - (crop.top || 0) - (crop.bottom || 0);
+
+            switch (handle) {
+                case 'se': width = mx - x + (crop.right || 0); height = my - y + (crop.bottom || 0); break;
+                case 'sw': { const newLeft = mx - (crop.left || 0); width = (x + width) - newLeft; x = newLeft; height = my - y + (crop.bottom || 0); break; }
+                case 'ne': width = mx - x + (crop.right || 0); { const newTop = my - (crop.top || 0); height = (y + height) - newTop; y = newTop; break; }
+                case 'nw': { const newLeft = mx - (crop.left || 0); const newTop = my - (crop.top || 0); width = (x + width) - newLeft; height = (y + height) - newTop; x = newLeft; y = newTop; break; }
+                case 'e': width = mx - x + (crop.right || 0); break;
+                case 'w': { const newLeft = mx - (crop.left || 0); width = (x + width) - newLeft; x = newLeft; break; }
+                case 's': height = my - y + (crop.bottom || 0); break;
+                case 'n': { const newTop = my - (crop.top || 0); height = (y + height) - newTop; y = newTop; break; }
+            }
+        } else {
+            switch (handle) {
+                case 'se': width = mx - x; height = my - y; break;
+                case 'sw': width = (x + width) - mx; x = mx; height = my - y; break;
+                case 'ne': width = mx - x; height = (y + height) - my; y = my; break;
+                case 'nw': width = (x + width) - mx; height = (y + height) - my; x = mx; y = my; break;
+                case 'e': width = mx - x; break;
+                case 'w': width = (x + width) - mx; x = mx; break;
+                case 's': height = my - y; break;
+                case 'n': height = (y + height) - my; y = my; break;
+            }
         }
 
         width = Math.max(minSize, width);
@@ -290,16 +399,143 @@ class CanvasWorkspace {
         this.#updateModuleElement(id);
     }
 
+    #handleCrop(mx, my) {
+        const { id, handle, startCrop, startMouse } = this.#cropping;
+        const mod = EditorState.getActiveSceneModules()[id];
+        if (!mod) return;
+
+        const dx = mx - startMouse.x;
+        const dy = my - startMouse.y;
+        const crop = { ...startCrop };
+
+        // Each handle adjusts specific crop edges
+        switch (handle) {
+            case 'n': crop.top = Math.max(0, startCrop.top + dy); break;
+            case 's': crop.bottom = Math.max(0, startCrop.bottom - dy); break;
+            case 'w': crop.left = Math.max(0, startCrop.left + dx); break;
+            case 'e': crop.right = Math.max(0, startCrop.right - dx); break;
+            case 'nw': crop.top = Math.max(0, startCrop.top + dy); crop.left = Math.max(0, startCrop.left + dx); break;
+            case 'ne': crop.top = Math.max(0, startCrop.top + dy); crop.right = Math.max(0, startCrop.right - dx); break;
+            case 'sw': crop.bottom = Math.max(0, startCrop.bottom - dy); crop.left = Math.max(0, startCrop.left + dx); break;
+            case 'se': crop.bottom = Math.max(0, startCrop.bottom - dy); crop.right = Math.max(0, startCrop.right - dx); break;
+        }
+
+        // Clamp so crop doesn't exceed module size
+        const maxW = mod.area.width - 20;
+        const maxH = mod.area.height - 20;
+        crop.left = Math.min(crop.left, maxW - crop.right);
+        crop.right = Math.min(crop.right, maxW - crop.left);
+        crop.top = Math.min(crop.top, maxH - crop.bottom);
+        crop.bottom = Math.min(crop.bottom, maxH - crop.top);
+
+        EditorState.updateModuleCrop(id, crop);
+        this.#updateModuleElement(id);
+    }
+
     #updateModuleElement(id) {
         const el = this.#canvas.querySelector(`[data-module-id="${id}"]`);
         const mod = EditorState.getActiveSceneModules()[id];
         if (!el || !mod) return;
 
+        // Always position at full area
         el.style.left = (mod.area.x * this.#scale) + 'px';
         el.style.top = (mod.area.y * this.#scale) + 'px';
         el.style.width = (mod.area.width * this.#scale) + 'px';
         el.style.height = (mod.area.height * this.#scale) + 'px';
         el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
+
+        // Apply visual crop via clip-path when not in crop mode
+        const crop = mod.crop || {};
+        const hasCrop = crop.top || crop.right || crop.bottom || crop.left;
+        const inCropMode = EditorState.cropMode === id;
+
+        // Apply visual crop via clip-path when not in crop mode
+        // Only clip the preview content, not the handles
+        const preview = el.querySelector('.module-preview');
+        if (hasCrop && !inCropMode) {
+            // Shrink element to cropped region
+            const cx = mod.area.x + (crop.left || 0);
+            const cy = mod.area.y + (crop.top || 0);
+            const cw = mod.area.width - (crop.left || 0) - (crop.right || 0);
+            const ch = mod.area.height - (crop.top || 0) - (crop.bottom || 0);
+            el.style.left = (cx * this.#scale) + 'px';
+            el.style.top = (cy * this.#scale) + 'px';
+            el.style.width = (Math.max(0, cw) * this.#scale) + 'px';
+            el.style.height = (Math.max(0, ch) * this.#scale) + 'px';
+            el.style.overflow = 'hidden';
+            el.style.clipPath = '';
+            if (preview) {
+                preview.style.position = 'absolute';
+                preview.style.width = (mod.area.width * this.#scale) + 'px';
+                preview.style.height = (mod.area.height * this.#scale) + 'px';
+                preview.style.left = (-(crop.left || 0) * this.#scale) + 'px';
+                preview.style.top = (-(crop.top || 0) * this.#scale) + 'px';
+                preview.style.clipPath = '';
+            }
+        } else {
+            el.style.overflow = '';
+            el.style.clipPath = '';
+            if (preview) {
+                preview.style.position = '';
+                preview.style.width = '';
+                preview.style.height = '';
+                preview.style.left = '';
+                preview.style.top = '';
+                preview.style.clipPath = '';
+            }
+        }
+
+        // Crop overlay (only in crop mode)
+        let overlay = el.querySelector('.crop-overlay');
+        if (inCropMode && hasCrop) {
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'crop-overlay';
+                el.appendChild(overlay);
+            }
+            const t = (crop.top || 0) * this.#scale;
+            const r = (crop.right || 0) * this.#scale;
+            const b = (crop.bottom || 0) * this.#scale;
+            const l = (crop.left || 0) * this.#scale;
+            overlay.style.top = t + 'px';
+            overlay.style.right = r + 'px';
+            overlay.style.bottom = b + 'px';
+            overlay.style.left = l + 'px';
+        } else if (overlay) {
+            overlay.remove();
+        }
+
+        // Position crop handles at crop boundary
+        if (inCropMode) {
+            const tPx = (crop.top || 0) * this.#scale;
+            const rPx = (crop.right || 0) * this.#scale;
+            const bPx = (crop.bottom || 0) * this.#scale;
+            const lPx = (crop.left || 0) * this.#scale;
+            const w = mod.area.width * this.#scale;
+            const h = mod.area.height * this.#scale;
+            const midX = lPx + (w - lPx - rPx) / 2;
+            const midY = tPx + (h - tPx - bPx) / 2;
+
+            el.querySelectorAll('.crop-handle').forEach(handle => {
+                const pos = handle.classList[1];
+                // Reset all positioning
+                handle.style.top = '';
+                handle.style.left = '';
+                handle.style.right = '';
+                handle.style.bottom = '';
+
+                switch (pos) {
+                    case 'nw': handle.style.top = (tPx - 5) + 'px'; handle.style.left = (lPx - 5) + 'px'; break;
+                    case 'n':  handle.style.top = (tPx - 5) + 'px'; handle.style.left = (midX - 5) + 'px'; break;
+                    case 'ne': handle.style.top = (tPx - 5) + 'px'; handle.style.left = (w - rPx - 5) + 'px'; break;
+                    case 'w':  handle.style.top = (midY - 5) + 'px'; handle.style.left = (lPx - 5) + 'px'; break;
+                    case 'e':  handle.style.top = (midY - 5) + 'px'; handle.style.left = (w - rPx - 5) + 'px'; break;
+                    case 'sw': handle.style.top = (h - bPx - 5) + 'px'; handle.style.left = (lPx - 5) + 'px'; break;
+                    case 's':  handle.style.top = (h - bPx - 5) + 'px'; handle.style.left = (midX - 5) + 'px'; break;
+                    case 'se': handle.style.top = (h - bPx - 5) + 'px'; handle.style.left = (w - rPx - 5) + 'px'; break;
+                }
+            });
+        }
     }
 
     /**
@@ -386,29 +622,30 @@ class CanvasWorkspace {
             const isSelected = EditorState.selectedModule === id;
             const layerIndex = moduleKeys.indexOf(id);
 
-            // If element already exists, just update position/size/z-index
+            // If element already exists, just update via #updateModuleElement
             if (existingEls.has(id)) {
                 const el = existingEls.get(id);
-                el.style.left = (mod.area.x * this.#scale) + 'px';
-                el.style.top = (mod.area.y * this.#scale) + 'px';
-                el.style.width = (mod.area.width * this.#scale) + 'px';
-                el.style.height = (mod.area.height * this.#scale) + 'px';
                 el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
                 el.style.zIndex = layerIndex + 1;
                 el.classList.toggle('selected', isSelected);
+                el.classList.toggle('crop-mode', EditorState.cropMode === id);
+                this.#updateModuleElement(id);
                 continue;
             }
 
             // Create new element
             const el = document.createElement('div');
-            el.className = 'canvas-module' + (isSelected ? ' selected' : '');
+            el.className = 'canvas-module' + (isSelected ? ' selected' : '') + (EditorState.cropMode === id ? ' crop-mode' : '');
             el.dataset.moduleId = id;
+
             el.style.left = (mod.area.x * this.#scale) + 'px';
             el.style.top = (mod.area.y * this.#scale) + 'px';
             el.style.width = (mod.area.width * this.#scale) + 'px';
             el.style.height = (mod.area.height * this.#scale) + 'px';
             el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
             el.style.zIndex = layerIndex + 1;
+
+            // Clip-path for crop is applied via #updateModuleElement after preview is built
 
             // Gradient background — transparent by default, visible on hover, stronger on select
             const grad = getModuleGradient(mod.type);
@@ -448,20 +685,37 @@ class CanvasWorkspace {
             // Build preview — register module and use its preview callback
             this.#registerAndBuildPreview(id, mod, el);
 
-            // Resize handles
+            // Resize handles (only for resize, hidden in crop mode)
             ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].forEach(h => {
                 const handle = document.createElement('div');
                 handle.className = `resize-handle ${h}`;
                 handle.addEventListener('mousedown', (e) => {
                     e.stopPropagation();
                     EditorState.selectModule(id);
-                    // Re-fetch module from state since selectModule triggers render
                     const currentMod = EditorState.getActiveSceneModules()[id];
                     if (!currentMod) return;
                     this.#resizing = {
                         id,
                         handle: h,
                         startArea: { ...currentMod.area }
+                    };
+                });
+                el.appendChild(handle);
+            });
+
+            // Crop handles — separate set, positioned at crop boundary, only visible in crop mode
+            ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'].forEach(h => {
+                const handle = document.createElement('div');
+                handle.className = `crop-handle ${h}`;
+                handle.addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    const currentMod = EditorState.getActiveSceneModules()[id];
+                    if (!currentMod) return;
+                    this.#cropping = {
+                        id,
+                        handle: h,
+                        startCrop: { ...(currentMod.crop || { top: 0, right: 0, bottom: 0, left: 0 }) },
+                        startMouse: { x: (e.clientX - this.#canvas.getBoundingClientRect().left) / this.#scale, y: (e.clientY - this.#canvas.getBoundingClientRect().top) / this.#scale }
                     };
                 });
                 el.appendChild(handle);

@@ -6,6 +6,7 @@ const EditorState = {
     scenes: {},
     activeScene: null,
     selectedModule: null,
+    cropMode: null,
     configPath: null,
     dirty: false,
 
@@ -120,6 +121,7 @@ const EditorState = {
         modules[id] = {
             type: moduleType,
             area: area || { x: 100, y: 100, width: 300, height: 200 },
+            crop: { top: 0, right: 0, bottom: 0, left: 0 },
             settings: this.getDefaultSettings(moduleType)
         };
 
@@ -204,6 +206,15 @@ const EditorState = {
         }
     },
 
+    updateModuleCrop(id, crop) {
+        if (!this.activeScene) return;
+        const mod = this.scenes[this.activeScene].modules[id];
+        if (mod) {
+            mod.crop = { ...mod.crop, ...crop };
+            this.notify('module-crop');
+        }
+    },
+
     updateModuleSetting(id, key, value) {
         if (!this.activeScene) return;
         const mod = this.scenes[this.activeScene].modules[id];
@@ -216,6 +227,7 @@ const EditorState = {
     selectModule(id) {
         if (this.selectedModule === id) return;
         this.selectedModule = id;
+        if (this.cropMode && this.cropMode !== id) this.cropMode = null;
         this.notify('selection');
     },
 
@@ -360,6 +372,11 @@ const EditorState = {
 
                 sceneConfig.modules[configKey] = { area, _type: mod.type };
 
+                // Add crop if set
+                if (mod.crop && (mod.crop.top || mod.crop.right || mod.crop.bottom || mod.crop.left)) {
+                    sceneConfig.modules[configKey].crop = mod.crop;
+                }
+
                 // Add visibility if hidden
                 if (mod.visible === false) {
                     sceneConfig.modules[configKey].visible = false;
@@ -415,6 +432,7 @@ const EditorState = {
                         this.scenes[sceneName].modules[modKey] = {
                             type,
                             area: this.parseArea(modData.area),
+                            crop: modData.crop || { top: 0, right: 0, bottom: 0, left: 0 },
                             settings: modData.settings || this.getDefaultSettings(type),
                             visible: modData.visible !== false
                         };

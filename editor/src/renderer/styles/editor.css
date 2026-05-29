@@ -502,6 +502,71 @@ body {
 
 .canvas-module:not(.selected) .rotate-handle { display: none; }
 
+/* Crop overlay — shows the visible crop boundary */
+.crop-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 15;
+    border: 1px dashed rgba(255, 80, 80, 0.7);
+    background: transparent;
+}
+
+.canvas-module:not(.selected) .crop-overlay { display: none; }
+
+/* Crop mode — handles turn orange */
+.canvas-module.crop-mode .resize-handle {
+    display: none;
+}
+
+.crop-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #f97316;
+    border: 2px solid white;
+    border-radius: 2px;
+    z-index: 21;
+    cursor: crosshair;
+    display: none;
+}
+
+.canvas-module.crop-mode .crop-handle {
+    display: block;
+}
+
+.canvas-module.crop-mode {
+    border-color: #f97316 !important;
+}
+
+/* Canvas context menu */
+.canvas-context-menu {
+    position: fixed;
+    background: var(--bg-secondary, #1e1e2e);
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    padding: 4px 0;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 9999;
+}
+
+.context-menu-item {
+    padding: 6px 14px;
+    font-size: 12px;
+    color: var(--text-primary, #eee);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.context-menu-item:hover {
+    background: var(--accent, #7c3aed);
+    color: white;
+}
+
+.context-menu-item.active {
+    color: #f97316;
+}
+
 /* Properties panel content */
 .props-hint { color: var(--text-secondary); font-size: 12px; font-style: italic; }
 

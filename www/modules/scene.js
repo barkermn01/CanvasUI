@@ -206,8 +206,14 @@ class SceneManager {
                     ctx.rotate(rotation * Math.PI / 180);
                     ctx.translate(-cx, -cy);
                 }
+                // Apply crop — inset the clip rect while module draws at full area
+                const crop = mod.crop || {};
+                const clipX = area.x + (crop.left || 0);
+                const clipY = area.y + (crop.top || 0);
+                const clipW = area.width - (crop.left || 0) - (crop.right || 0);
+                const clipH = area.height - (crop.top || 0) - (crop.bottom || 0);
                 ctx.beginPath();
-                ctx.rect(area.x, area.y, area.width, area.height);
+                ctx.rect(clipX, clipY, Math.max(0, clipW), Math.max(0, clipH));
                 ctx.clip();
             }
             wrapped.originalDraw(ctx, mod.settings || {}, area);

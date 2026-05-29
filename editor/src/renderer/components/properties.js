@@ -71,6 +71,16 @@ class PropertiesPanel {
         html += this.#numRow('Rotation', 'area-rotation', mod.area.rotation || 0, 1, -360, 360);
         html += `</div>`;
 
+        // Crop
+        const crop = mod.crop || {};
+        html += `<div class="prop-group">`;
+        html += `<div class="prop-group-title">Crop</div>`;
+        html += this.#numRow('Top', 'crop-top', crop.top || 0);
+        html += this.#numRow('Right', 'crop-right', crop.right || 0);
+        html += this.#numRow('Bottom', 'crop-bottom', crop.bottom || 0);
+        html += this.#numRow('Left', 'crop-left', crop.left || 0);
+        html += `</div>`;
+
         // Type-specific settings — dynamically built from info.json properties field
         const modInfo = window.ModuleRegistry?.modules?.find(m => m.name === mod.type);
         if (modInfo?.properties) {
@@ -442,6 +452,17 @@ class PropertiesPanel {
             if (input) {
                 input.addEventListener('change', () => {
                     EditorState.updateModuleArea(id, { [key]: parseFloat(input.value) || 0 });
+                });
+            }
+        });
+
+        // Crop inputs
+        const cropMap = { 'crop-top': 'top', 'crop-right': 'right', 'crop-bottom': 'bottom', 'crop-left': 'left' };
+        Object.entries(cropMap).forEach(([prop, key]) => {
+            const input = this.#container.querySelector(`[data-prop="${prop}"]`);
+            if (input) {
+                input.addEventListener('change', () => {
+                    EditorState.updateModuleCrop(id, { [key]: parseFloat(input.value) || 0 });
                 });
             }
         });
