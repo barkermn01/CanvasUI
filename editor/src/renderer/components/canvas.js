@@ -25,6 +25,7 @@ class CanvasWorkspace {
     #scale = 1;
     #dragging = null;
     #resizing = null;
+    #rotating = null;
     #dragOffset = { x: 0, y: 0 };
 
     constructor() {
@@ -214,15 +215,24 @@ class CanvasWorkspace {
             const my = (e.clientY - rect.top) / this.#scale;
             this.#handleResize(mx, my);
         }
+
+        if (this.#rotating) {
+            const rect = this.#canvas.getBoundingClientRect();
+            const mx = (e.clientX - rect.left) / this.#scale;
+            const my = (e.clientY - rect.top) / this.#scale;
+            this.#rotating.snap = !e.shiftKey;
+            this.#handleRotate(mx, my);
+        }
     }
 
     #onMouseUp() {
-        if (this.#resizing || this.#dragging) {
-            // Re-render preview after drag/resize completes
+        if (this.#resizing || this.#dragging || this.#rotating) {
+            // Re-render preview after drag/resize/rotate completes
             this.#updateModulePreview();
         }
         this.#dragging = null;
         this.#resizing = null;
+        this.#rotating = null;
     }
 
     #handleResize(mx, my) {
@@ -257,6 +267,26 @@ class CanvasWorkspace {
         }
 
         EditorState.updateModuleArea(id, { x, y, width, height });
+        this.#updateModuleElement(id);
+    }
+
+    #handleRotate(mx, my) {
+        const { id, centerX, centerY } = this.#rotating;
+        // Calculate angle from center to mouse position
+        const angle = Math.atan2(my - centerY, mx - centerX) * (180 / Math.PI);
+        // Offset by 90° so "up" is 0°
+        let rotation = angle + 90;
+        // Snap to 15° increments when not holding shift (checked via stored flag)
+        if (this.#rotating.snap) {
+            rotation = Math.round(rotation / 15) * 15;
+        }
+        // Normalize to -180..180
+        if (rotation > 180) rotation -= 360;
+        if (rotation < -180) rotation += 360;
+        // Round to 1 decimal
+        rotation = Math.round(rotation * 10) / 10;
+
+        EditorState.updateModuleArea(id, { rotation });
         this.#updateModuleElement(id);
     }
 
@@ -436,6 +466,20 @@ class CanvasWorkspace {
                 });
                 el.appendChild(handle);
             });
+
+            // Rotation handle — circular grab point above top-center
+            const rotHandle = document.createElement('div');
+            rotHandle.className = 'rotate-handle';
+            rotHandle.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                EditorState.selectModule(id);
+                const currentMod = EditorState.getActiveSceneModules()[id];
+                if (!currentMod) return;
+                const centerX = currentMod.area.x + currentMod.area.width / 2;
+                const centerY = currentMod.area.y + currentMod.area.height / 2;
+                this.#rotating = { id, centerX, centerY, snap: true };
+            });
+            el.appendChild(rotHandle);
 
             // Drag to move
             el.addEventListener('mousedown', (e) => {

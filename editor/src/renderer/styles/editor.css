@@ -399,6 +399,7 @@ body {
     border-color: var(--accent);
     background: linear-gradient(135deg, var(--mod-grad-to), var(--mod-grad-to));
     z-index: 100 !important;
+    overflow: visible;
 }
 
 .canvas-module .module-label {
@@ -468,6 +469,38 @@ body {
 .resize-handle.e { top: 50%; right: -4px; transform: translateY(-50%); cursor: e-resize; }
 
 .canvas-module:not(.selected) .resize-handle { display: none; }
+
+/* Rotation handle */
+.rotate-handle {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border: 1px solid white;
+    border-radius: 50%;
+    cursor: grab;
+    z-index: 20;
+}
+
+.rotate-handle:active {
+    cursor: grabbing;
+}
+
+.rotate-handle::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 14px;
+    background: var(--accent);
+}
+
+.canvas-module:not(.selected) .rotate-handle { display: none; }
 
 /* Properties panel content */
 .props-hint { color: var(--text-secondary); font-size: 12px; font-style: italic; }
