@@ -247,7 +247,9 @@ const EditorState = {
         // If already has numeric x/y/width/height, use directly
         if (typeof area.x === 'number' && typeof area.y === 'number' &&
             typeof area.width === 'number' && typeof area.height === 'number') {
-            return { x: area.x, y: area.y, width: area.width, height: area.height };
+            const parsed = { x: area.x, y: area.y, width: area.width, height: area.height };
+            if (area.rotation) parsed.rotation = area.rotation;
+            return parsed;
         }
 
         // Parse a value that could be a number, "50%", or "100px"
@@ -352,6 +354,9 @@ const EditorState = {
                     width: Math.round(mod.area.width),
                     height: Math.round(mod.area.height)
                 };
+                if (mod.area.rotation) {
+                    area.rotation = mod.area.rotation;
+                }
 
                 sceneConfig.modules[configKey] = { area, _type: mod.type };
 

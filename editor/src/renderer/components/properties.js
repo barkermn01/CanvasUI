@@ -68,6 +68,7 @@ class PropertiesPanel {
         html += this.#numRow('Y', 'area-y', Math.round(mod.area.y));
         html += this.#numRow('Width', 'area-w', Math.round(mod.area.width));
         html += this.#numRow('Height', 'area-h', Math.round(mod.area.height));
+        html += this.#numRow('Rotation', 'area-rotation', mod.area.rotation || 0, 1, -360, 360);
         html += `</div>`;
 
         // Type-specific settings — dynamically built from info.json properties field
@@ -435,7 +436,7 @@ class PropertiesPanel {
         }
 
         // Area inputs
-        const areaMap = { 'area-x': 'x', 'area-y': 'y', 'area-w': 'width', 'area-h': 'height' };
+        const areaMap = { 'area-x': 'x', 'area-y': 'y', 'area-w': 'width', 'area-h': 'height', 'area-rotation': 'rotation' };
         Object.entries(areaMap).forEach(([prop, key]) => {
             const input = this.#container.querySelector(`[data-prop="${prop}"]`);
             if (input) {

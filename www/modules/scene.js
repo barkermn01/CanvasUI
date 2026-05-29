@@ -197,6 +197,15 @@ class SceneManager {
 
             ctx.save();
             if (area) {
+                // Apply rotation around the module's center
+                const rotation = mod.area?.rotation || 0;
+                if (rotation) {
+                    const cx = area.x + area.width / 2;
+                    const cy = area.y + area.height / 2;
+                    ctx.translate(cx, cy);
+                    ctx.rotate(rotation * Math.PI / 180);
+                    ctx.translate(-cx, -cy);
+                }
                 ctx.beginPath();
                 ctx.rect(area.x, area.y, area.width, area.height);
                 ctx.clip();

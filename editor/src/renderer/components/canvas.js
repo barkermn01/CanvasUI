@@ -269,6 +269,7 @@ class CanvasWorkspace {
         el.style.top = (mod.area.y * this.#scale) + 'px';
         el.style.width = (mod.area.width * this.#scale) + 'px';
         el.style.height = (mod.area.height * this.#scale) + 'px';
+        el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
     }
 
     /**
@@ -362,6 +363,7 @@ class CanvasWorkspace {
                 el.style.top = (mod.area.y * this.#scale) + 'px';
                 el.style.width = (mod.area.width * this.#scale) + 'px';
                 el.style.height = (mod.area.height * this.#scale) + 'px';
+                el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
                 el.style.zIndex = layerIndex + 1;
                 el.classList.toggle('selected', isSelected);
                 continue;
@@ -375,6 +377,7 @@ class CanvasWorkspace {
             el.style.top = (mod.area.y * this.#scale) + 'px';
             el.style.width = (mod.area.width * this.#scale) + 'px';
             el.style.height = (mod.area.height * this.#scale) + 'px';
+            el.style.transform = mod.area.rotation ? `rotate(${mod.area.rotation}deg)` : '';
             el.style.zIndex = layerIndex + 1;
 
             // Gradient background — transparent by default, visible on hover, stronger on select
