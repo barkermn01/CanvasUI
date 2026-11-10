@@ -6,13 +6,27 @@ CanvasUI is built around a modular system. Each module handles a specific overla
 
 | Module | Icon | Description | Multiple Instances |
 |--------|------|-------------|-------------------|
-| `chat` | 💬 | Displays Twitch/YouTube/Kick chat messages | No |
-| `emote` | 😀 | Bouncing emote animations | No |
-| `audiovisualiser` | 🎵 | Real-time audio frequency bars | Yes |
-| `webcam` | 📷 | Live webcam feed | Yes |
+| `alert` | 🔔 | Animated alert popups for follows, subs, raids, and custom events | Yes |
+| `audiovisualiser` | 🎵 | Audio frequency visualisation bars | Yes |
+| `bitcollector` | 💎 | Glass that fills with bits/kicks and bursts at threshold | Yes |
+| `chat` | 💬 | Displays Twitch/YouTube chat messages | No |
+| `clock` | 🕐 | Displays current time, date, or stream uptime | Yes |
+| `countdown` | ⏱️ | Configurable countdown timer with end state | Yes |
+| `emote` | 😀 | Bouncing emotes from chat | No |
+| `eventticker` | 📜 | Scrolling ticker of recent stream events | Yes |
+| `gamepadbuttons` | 🔘 | Displays a single controller button with idle/active images | Yes |
+| `gamepaddpad` | ✚ | Displays D-pad directional input from a controller | Yes |
+| `goalbar` | 📊 | Progress bar toward a configurable target (subs, bits, donations) | Yes |
+| `hypetrain` | 🚂 | Displays hype train level and progress | Yes |
 | `image` | 🖼️ | Static image overlay | Yes |
+| `pngtuber` | 🎭 | Audio-reactive PNG avatar that switches poses based on voice | Yes |
+| `poll` | 📋 | Displays active poll with live-updating vote bars | Yes |
+| `shoutout` | 📢 | Displays a user profile card for shoutouts | Yes |
+| `spritesheet` | 🎞️ | Animated spritesheet player for borders, frames, and effects | Yes |
+| `steeringwheel` | 🎮 | Displays a rotating steering wheel driven by a gamepad axis | Yes |
 | `video` | 🎬 | Video playback overlay | Yes |
-| `pngtuber` | 🎭 | Audio-reactive PNG avatar | Yes |
+| `viewercount` | 👁️ | Combined viewer count across Twitch and Kick | Yes |
+| `webcam` | 📷 | Live webcam feed with optional chroma key | Yes |
 | `scene` | — | Scene switching and transitions (system) | — |
 
 ## Installing Custom Modules
@@ -62,7 +76,7 @@ www/modules/
 
 ## Module Loading
 
-The overlay loads modules via `modules.json`, which maps names to their `info.json` files:
+The overlay loads modules via `modules.json`, which maps every bundled module name to its `info.json` file (abbreviated below — the full manifest lists all modules from the table above):
 
 ```json
 {
@@ -72,6 +86,7 @@ The overlay loads modules via `modules.json`, which maps names to their `info.js
     "webcam": "webcam/info.json",
     "image": "image/info.json",
     "video": "video/info.json",
+    "...": "...",
     "scene": "scene.js"
 }
 ```

@@ -8,6 +8,10 @@ config.json
 SirHeck/
 SirHeck.config.js
 
+.agents/
+.kiro/
+.worktrees/
+
 # Media uploads (user content)
 www/media/*
 !www/media/.gitkeep

@@ -20,6 +20,5 @@
     "hypetrain": "hypetrain/info.json",
     "poll": "poll/info.json",
     "shoutout": "shoutout/info.json",
-    "testmod": "testmod/info.json",
     "scene": "scene.js"
 }
