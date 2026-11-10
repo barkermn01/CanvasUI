@@ -207,7 +207,7 @@ class SettingsPanel {
         const webroot = EditorPrefs.get('serverWebroot', './www');
         const autoStart = EditorPrefs.get('serverAutoStart', true);
 
-        const baseUrl = `http://${host}:${port}?allowaudio=true`;
+        const baseUrl = `http://${host}:${port}?allowaudio=true&ENABLE_OBS_WEBSOCKET_DEBUG=1`;
 
         container.innerHTML = `
             <div class="settings-section">
@@ -224,7 +224,7 @@ class SettingsPanel {
             </div>
             <div class="settings-section">
                 <h3>OBS Browser Source URL</h3>
-                <p class="s-hint">Copy this URL into your OBS Browser Source. Add <code>?allowaudio=true</code> if using the Audio Visualiser.</p>
+                <p class="s-hint">Copy this URL into your OBS Browser Source. It already includes <code>allowaudio=true</code> (for the Audio Visualiser) and <code>ENABLE_OBS_WEBSOCKET_DEBUG=1</code>.</p>
                 <div class="obs-url-box">
                     <code id="srv-obs-url">${baseUrl}</code>
                     <button id="srv-copy-url" title="Copy to clipboard">📋</button>
@@ -262,7 +262,7 @@ class SettingsPanel {
             EditorPrefs.set('serverAutoStart', autoStartInput.checked);
             // Update displayed URL
             const urlEl = container.querySelector('#srv-obs-url');
-            if (urlEl) urlEl.textContent = `http://${hostInput.value}:${portInput.value}?allowaudio=true`;
+            if (urlEl) urlEl.textContent = `http://${hostInput.value}:${portInput.value}?allowaudio=true&ENABLE_OBS_WEBSOCKET_DEBUG=1`;
         };
 
         hostInput.addEventListener('change', saveServerSettings);
@@ -308,7 +308,7 @@ class SettingsPanel {
         const host = EditorPrefs.get('serverHost', '127.0.0.1');
         const port = EditorPrefs.get('serverPort', 31589);
         const urlEl = container.querySelector('#srv-obs-url');
-        if (urlEl) urlEl.textContent = `http://${host}:${port}?allowaudio=true`;
+        if (urlEl) urlEl.textContent = `http://${host}:${port}?allowaudio=true&ENABLE_OBS_WEBSOCKET_DEBUG=1`;
     }
 
     #renderStreamerBot() {

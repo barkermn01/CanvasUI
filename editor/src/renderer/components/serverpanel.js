@@ -38,7 +38,7 @@ class ServerPanel {
             if (!this.#running) return;
             const host = EditorPrefs.get('serverHost', '127.0.0.1');
             const port = EditorPrefs.get('serverPort', 31589);
-            const url = `http://${host}:${port}?allowaudio=true`;
+            const url = `http://${host}:${port}?allowaudio=true&ENABLE_OBS_WEBSOCKET_DEBUG=1`;
             navigator.clipboard.writeText(url).then(() => {
                 this.#statusEl.innerHTML = `<span class="server-dot online"></span> Copied!`;
                 setTimeout(() => { this.#updateUI(); }, 1200);
